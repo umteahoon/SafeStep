@@ -3,6 +3,7 @@ import { useAuthListener } from './hooks/useAuth';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { isNativeApp } from './lib/platform';
 import { AppShell } from './components/common/AppShell';
+import { AdminLayout } from './components/admin/AdminLayout';
 
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/auth/LoginPage';
@@ -22,6 +23,7 @@ import ClassSchedulePage from './pages/classes/ClassSchedulePage';
 import ClassAttendancePage from './pages/attendance/ClassAttendancePage';
 import SubscriptionPage from './pages/billing/SubscriptionPage';
 import SuperAdminDashboardPage from './pages/admin/SuperAdminDashboardPage';
+import AdminAccessLogsPage from './pages/admin/AdminAccessLogsPage';
 import StudentQrPage from './pages/student/StudentQrPage';
 import ParentReportPage from './pages/parent/ParentReportPage';
 
@@ -50,7 +52,10 @@ function App() {
 
         {/* 슈퍼 관리자 전용 */}
         <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']} />}>
-          <Route path="/admin" element={<SuperAdminDashboardPage />} />
+          <Route element={<AdminLayout />}>
+            <Route path="/admin" element={<SuperAdminDashboardPage />} />
+            <Route path="/admin/logs" element={<AdminAccessLogsPage />} />
+          </Route>
         </Route>
 
         {/* 원장 + 강사(승인시) */}

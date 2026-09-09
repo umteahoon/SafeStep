@@ -185,6 +185,20 @@ CREATE TABLE seat_reports (
     -- 익명성 보장을 위해 신고자 식별 정보는 저장하지 않음
 );
 
+-- 로그인 시도 기록 (관리자 접속 감사용)
+CREATE TABLE login_attempts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(150) NOT NULL,
+    success BOOLEAN NOT NULL,
+    reason VARCHAR(100),
+    ip_address VARCHAR(64),
+    user_agent TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_login_attempts_email_created ON login_attempts(email, created_at DESC);
+CREATE INDEX idx_login_attempts_created ON login_attempts(created_at DESC);
+
 -- ------------------------------------------------------------
 -- 3. Helper 함수: 현재 로그인 사용자의 role / academy_id
 --    (매 정책마다 서브쿼리를 반복하지 않도록 SECURITY DEFINER 함수로 분리)
@@ -234,6 +248,7 @@ ALTER TABLE attendance_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE absence_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE seat_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE login_attempts ENABLE ROW LEVEL SECURITY;
 
 -- ------------------------------------------------------------
 -- 5. academies: 공개 읽기 + 쓰기는 슈퍼관리자/원장(본인 학원)만
@@ -406,6 +421,13 @@ CREATE POLICY "Seat Reports Create" ON seat_reports
 CREATE POLICY "Seat Reports Staff Read" ON seat_reports
     FOR SELECT TO authenticated
     USING (is_approved_staff_of(academy_id));
+
+-- ------------------------------------------------------------
+-- 15. login_attempts: 슈퍼관리자만 조회. 쓰기는 백엔드가 service role로만 수행
+-- ------------------------------------------------------------
+CREATE POLICY "Login Attempts SuperAdmin Read" ON login_attempts
+    FOR SELECT TO authenticated
+    USING (current_user_role() = 'SUPER_ADMIN');
 
 -- ============================================================
 -- 끝. 실행 후 Supabase Dashboard > Authentication > Policies 에서

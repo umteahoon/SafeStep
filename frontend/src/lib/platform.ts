@@ -9,26 +9,17 @@ export const isInIframe =
 
 /**
  * 웹 브라우저에서 앱 화면을 미리보기 하는 모드.
- * - URL `?app=1` 로 켜고 `?app=0` 으로 끔 (localStorage 에 유지)
+ * - 주소에 `?app=` 파라미터가 없으면 항상 웹(데스크톱) 화면.
+ * - `?app=0` 또는 `?app=1`이 있으면 모바일 미리보기.
  * - 또는 빌드시 VITE_APP_MODE=native
+ * - 저장/유지되는 상태가 없어서(요청마다 URL만 보고 판단) "한번 켜지면 계속
+ *   모바일로 고정되는" 문제가 생기지 않습니다.
  */
 function resolveAppPreview(): boolean {
   if (isRealNative || typeof window === 'undefined') return false;
   if (import.meta.env.VITE_APP_MODE === 'native') return true;
-  try {
-    const q = new URLSearchParams(window.location.search).get('app');
-    if (q === '1') {
-      localStorage.setItem('safestep:appPreview', '1');
-      return true;
-    }
-    if (q === '0') {
-      localStorage.removeItem('safestep:appPreview');
-      return false;
-    }
-    return localStorage.getItem('safestep:appPreview') === '1';
-  } catch {
-    return false;
-  }
+  const q = new URLSearchParams(window.location.search).get('app');
+  return q === '0' || q === '1';
 }
 
 export const isAppPreview = resolveAppPreview();

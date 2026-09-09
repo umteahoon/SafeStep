@@ -59,4 +59,26 @@ router.post('/register', async (req, res) => {
   res.json({ success: true });
 });
 
+// POST /api/auth/login-log  { email, success, reason? }
+// 프론트가 supabase.auth.signInWithPassword() 직후 결과와 무관하게 호출합니다.
+// 슈퍼 관리자 대시보드의 "접속 로그"에서 반복 실패 등 의심스러운 시도를 확인할 수 있습니다.
+router.post('/login-log', async (req, res) => {
+  const { email, success, reason } = req.body ?? {};
+
+  if (!email || typeof success !== 'boolean') {
+    return res.status(400).json({ error: 'email과 success가 필요합니다.' });
+  }
+
+  await supabaseAdmin.from('login_attempts').insert({
+    email: String(email).slice(0, 150),
+    success,
+    reason: reason ? String(reason).slice(0, 100) : null,
+    ip_address: req.ip ?? null,
+    user_agent: req.headers['user-agent']?.slice(0, 500) ?? null,
+  });
+
+  // 로그 실패 여부가 로그인 자체를 막으면 안 되므로 항상 200으로 응답
+  res.json({ success: true });
+});
+
 export default router;
