@@ -33,6 +33,12 @@ export default function ClassAttendancePage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busyStudent, setBusyStudent] = useState<string | null>(null);
+  const [reasonModal, setReasonModal] = useState<{
+    studentId: string;
+    studentName: string;
+    status: AttendanceStatus;
+  } | null>(null);
+  const [reasonText, setReasonText] = useState('');
 
   useEffect(() => {
     if (!academyId) return;
@@ -91,12 +97,18 @@ export default function ClassAttendancePage() {
     loadRoster();
   }, [loadRoster]);
 
-  const mark = async (studentId: string, status: AttendanceStatus) => {
+  const mark = async (studentId: string, status: AttendanceStatus, reasonOverride?: string | null) => {
     setBusyStudent(studentId);
     setMessage(null);
     setError(null);
     try {
       const req = requests.find((r) => r.student_id === studentId);
+      const reason =
+        reasonOverride !== undefined
+          ? reasonOverride
+          : status === 'EXCUSED' || status === 'ABSENT'
+          ? req?.reason ?? null
+          : null;
       const res = await apiFetch<{ alertSent: boolean }>('/api/attendance', {
         method: 'PUT',
         body: JSON.stringify({
@@ -104,7 +116,7 @@ export default function ClassAttendancePage() {
           studentId,
           date,
           status,
-          reason: status === 'EXCUSED' || status === 'ABSENT' ? req?.reason ?? null : null,
+          reason,
         }),
       });
       await loadRoster();
@@ -114,6 +126,24 @@ export default function ClassAttendancePage() {
     } finally {
       setBusyStudent(null);
     }
+  };
+
+  const handleStatusClick = (studentId: string, studentName: string, status: AttendanceStatus) => {
+    if (status === 'EXCUSED') {
+      const req = requests.find((r) => r.student_id === studentId);
+      const rec = records[studentId];
+      setReasonText((rec?.status === 'EXCUSED' ? rec.reason : req?.reason) ?? '');
+      setReasonModal({ studentId, studentName, status });
+      return;
+    }
+    mark(studentId, status);
+  };
+
+  const confirmReasonModal = async () => {
+    if (!reasonModal) return;
+    const trimmed = reasonText.trim();
+    setReasonModal(null);
+    await mark(reasonModal.studentId, reasonModal.status, trimmed || null);
   };
 
   const markAllPresent = async () => {
@@ -192,7 +222,7 @@ export default function ClassAttendancePage() {
                     {STATUSES.map((st) => (
                       <button
                         key={st.value}
-                        onClick={() => mark(s.id, st.value)}
+                        onClick={() => handleStatusClick(s.id, s.name, st.value)}
                         disabled={busyStudent === s.id}
                         className={`rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-40 ${
                           rec?.status === st.value
@@ -210,6 +240,48 @@ export default function ClassAttendancePage() {
           </ul>
         )}
       </div>
+
+      {reasonModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-lg">
+            <h3 className="mb-1 text-base font-semibold text-gray-900">
+              사유결석 사유 입력
+            </h3>
+            <p className="mb-3 text-sm text-gray-500">{reasonModal.studentName} 학생</p>
+            <textarea
+              autoFocus
+              value={reasonText}
+              onChange={(e) => setReasonText(e.target.value)}
+              placeholder="사유를 입력하세요 (예: 병원 진료)"
+              rows={3}
+              className="mb-4 w-full rounded-lg border border-gray-300 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setReasonModal(null)}
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-100"
+              >
+                취소
+              </button>
+              <button
+                onClick={confirmReasonModal}
+                className="rounded-lg bg-gray-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-gray-600"
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {busyStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+          <div className="flex items-center gap-3 rounded-xl bg-white px-5 py-4 shadow-lg">
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+            <span className="text-sm font-medium text-gray-700">저장 중...</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

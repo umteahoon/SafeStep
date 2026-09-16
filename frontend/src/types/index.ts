@@ -114,6 +114,43 @@ export interface AbsenceRequest {
   created_at: string;
 }
 
+export type ChatRoomType = 'CLASS' | 'ANNOUNCEMENT';
+
+export interface ChatRoom {
+  id: string;
+  academy_id: string;
+  class_id: string | null;
+  type: ChatRoomType;
+  name: string;
+  created_at: string;
+}
+
+export type ChatMessageType =
+  | 'TEXT'
+  | 'IMAGE'
+  | 'ATTENDANCE_CHECK'
+  | 'ATTENDANCE_RESPONSE'
+  | 'SYSTEM';
+
+export interface ChatMessage {
+  id: string;
+  room_id: string;
+  sender_id: string | null;
+  type: ChatMessageType;
+  content: string | null;
+  image_url: string | null;
+  edited_at: string | null;
+  metadata: { classId?: string; date?: string } | null;
+  created_at: string;
+  sender?: { name: string } | null;
+}
+
+export interface ChatRoomRead {
+  user_id: string;
+  room_id: string;
+  last_read_at: string;
+}
+
 export type SeatStatus = 'EMPTY' | 'OCCUPIED' | 'AWAY';
 
 export interface Seat {

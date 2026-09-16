@@ -11,8 +11,13 @@ safestep/
 └── supabase/
     ├── schema.sql                              전체 DB 스키마 + RLS 정책 (신규 프로젝트용)
     ├── migration_02_owner_invites_seat_admin.sql  기존 프로젝트 추가 마이그레이션 (아래 §1 참고)
+    ├── migration_login_attempts.sql            기존 프로젝트 추가 마이그레이션 (로그인 시도 기록, §1 참고)
+    ├── migration_03_chat.sql                   기존 프로젝트 추가 마이그레이션 (반 채팅/공지방, §1 참고)
+    ├── migration_04_realtime.sql               기존 프로젝트 추가 마이그레이션 (채팅/출결 Realtime 활성화, §1 참고)
+    ├── migration_05_chat_upgrades.sql          기존 프로젝트 추가 마이그레이션 (채팅 이미지첨부/삭제·수정/안읽음, §1 참고)
     ├── seed.sql                                샘플 학원 2곳
-    └── seed_floorplan.sql                      존별 좌석 배치 샘플
+    ├── seed_floorplan.sql                      존별 좌석 배치 샘플
+    └── seed_demo_accounts.mjs                  랜딩페이지 "데모 체험하기" 버튼용 계정 생성 스크립트
 ```
 
 > ⚠️ 아래 체크리스트는 이 저장소에 **실제로 존재하는 코드 기준**입니다.
@@ -37,11 +42,18 @@ safestep/
 | 결제 | 학원 SaaS 구독 결제(토스페이먼츠 결제위젯) |
 | 알림 | 결석·지각 시 Web Push 발송(`public/sw.js`) |
 | 웹/앱 분리 | 웹은 랜딩 페이지, 앱(Capacitor)은 지도로 바로 진입. `?app=1`로 브라우저에서 앱 화면 미리보기(폰 목업+하단 탭바) 가능 |
+| 관리자 접속 로그 | 로그인 성공/실패를 `login_attempts`에 기록, `/admin/logs`에서 조회 (60분 내 3회 이상 실패 시 자동 하이라이트) |
+| 데모 체험 계정 | 랜딩 페이지에서 로그인 없이 이용자/키오스크 화면 바로가기 + 원장/강사 데모 계정 원클릭 로그인 (`supabase/seed_demo_accounts.mjs`로 계정 생성) |
+| 반 채팅 / 공지방 | 학원 공지방(전원 읽기, 발신은 직원) + 반별 채팅방(담당직원·수강생 양방향, 학부모 읽기전용), Realtime 메시지. 강사가 채팅방에서 **직접 출석 체크 시작(하루 1회 알림) → 별도 패널에서 학생별 출석/지각/결석/사유결석 처리** (학생이 스스로 누르는 방식이 아니라 강사/원장이 확인 후 처리 — 자기 출석 조작 방지). 정상 출석은 채팅에 안 남기고 지각·결석·사유결석만 알림처럼 표시 |
+| 채팅 목록/UX | 방별 마지막 메시지 미리보기·시간, 최근 활동순 정렬, 안읽음 표시(●), 메시지 시간·날짜 구분선 |
+| 채팅 참여자 보기 | 반 채팅방에서 담당 강사·수강생 명단(오늘 출결 상태 포함) 확인 |
+| 채팅 이미지 첨부 | Supabase Storage(`chat-uploads`) 업로드, 방별 폴더로 발신 권한 제한 |
+| 채팅 메시지 수정/삭제 | 본인 TEXT 메시지만 수정 가능(수정됨 표시), 삭제는 본인 또는 학원 직원 |
+| 공지 Web Push | 공지방에 직원이 글을 쓰면 그 학원 학생들의 구독자(주로 학부모)에게 Web Push 발송 (`backend/src/routes/chat.ts` `POST /api/chat/announce`) |
 
 ### ⏳ 미구현 (코드 자체가 아직 없음 — 외부 계정 설정과 무관하게 개발이 필요한 항목)
 | 항목 | 비고 |
 |---|---|
-| 반 채팅 | 채팅방/실시간 메시지/채팅 내 셀프 출석체크/이미지 첨부/안읽음 표시 — 전부 미구현 |
 | 학생 개인 이용권(시간권/기간권) 결제 | `student_passes` 테이블, 결제 연동, 키오스크 차감 로직 미구현 |
 | 이용권 하드 게이팅 | 위 이용권 기능이 없어 종속적으로 미구현 |
 | 학생 계정 ↔ 명부 자가 연동 | 학생이 스스로 `students` 레코드에 연결하는 기능 없음. 현재는 원장이 학생관리에서 직접 등록 |
@@ -55,7 +67,7 @@ safestep/
 | 네이티브 푸시(FCM) | Firebase 프로젝트 생성, `google-services.json`, 서버 키 |
 | 토스 결제위젯 인앱(WebView) 동작 검증 | 실기기 필요 — 딥링크 복귀 구조는 검증 없이 만들면 오히려 위험 |
 
-원하시면 위 미구현 항목 중 우선순위를 정해 이어서 만들어 드립니다 (반 채팅이 가장 큰 항목입니다).
+원하시면 위 미구현 항목 중 우선순위를 정해 이어서 만들어 드립니다.
 
 ---
 
@@ -73,8 +85,21 @@ safestep/
    **Table Editor → `profiles`** 에서 `role` 을 `SUPER_ADMIN` 으로 수동 변경하세요.
 
 ### 이미 schema.sql을 실행한 기존 프로젝트
-`supabase/migration_02_owner_invites_seat_admin.sql` 을 SQL Editor에서 추가로 실행하세요.
-(원장 등록 코드 테이블, 좌석 추가/삭제 권한, 신고 처리 상태 컬럼이 추가됩니다 — **이 마이그레이션 없이는 학원 생성/원장 연결/좌석 에디터/신고 처리 화면이 동작하지 않습니다**.)
+아래 두 마이그레이션을 SQL Editor에서 추가로 실행하세요 (순서 무관, 서로 독립적):
+- `supabase/migration_02_owner_invites_seat_admin.sql` — 원장 등록 코드 테이블, 좌석 추가/삭제 권한, 신고 처리 상태 컬럼 (**없으면 학원 생성/원장 연결/좌석 에디터/신고 처리 화면이 동작하지 않습니다**)
+- `supabase/migration_login_attempts.sql` — 로그인 시도 기록 테이블 (**없으면 `/admin/logs` 접속 로그 화면이 동작하지 않습니다**, 로그인 자체는 정상 동작)
+- `supabase/migration_03_chat.sql` — 채팅방/메시지 테이블 + 권한 함수 (**없으면 `/chat` 화면이 동작하지 않습니다**)
+- `supabase/migration_04_realtime.sql` — `chat_messages`/`class_attendance_records`를 Realtime 발행 목록에 추가 (**없으면 메시지·출결 처리가 새로고침 전까지 안 보입니다**)
+- `supabase/migration_05_chat_upgrades.sql` — 채팅 이미지 첨부(Storage 버킷)·메시지 수정/삭제·안읽음 표시 (**없으면 이미지 첨부/수정/삭제 버튼이 에러 납니다**)
+
+### 데모 체험 계정 만들기 (선택)
+랜딩 페이지의 "원장 데모 체험하기" / "강사 데모 체험하기" 버튼이 로그인할 계정을 생성합니다.
+`schema.sql` + `seed.sql` 을 먼저 적용한 뒤 실행하세요:
+```bash
+cd backend
+node ../supabase/seed_demo_accounts.mjs
+```
+여러 번 실행해도 안전합니다(이미 있으면 건너뜀).
 
 ### 학원 생성 & 원장 계정 연결 (신규 플로우)
 `academies` 테이블 INSERT는 RLS상 `SUPER_ADMIN`만 가능합니다. 원장이 임의로 기존 학원의 `academy_id`를 지정해 관리자 권한을 얻는 취약점을 막기 위해, 회원가입 화면에서는 원장이 `academy_id`를 직접 고를 수 없습니다. 대신:
@@ -182,15 +207,16 @@ Android Studio가 열리면:
 | `/admin/seats/editor` | 좌석 배치 에디터 | ACADEMY_ADMIN, TEACHER(승인) |
 | `/billing` | 이용권 결제(학원 SaaS 구독) | ACADEMY_ADMIN |
 | `/admin` | 플랫폼 관리자(지점 생성, 매출) | SUPER_ADMIN |
+| `/admin/logs` | 로그인 접속 로그 | SUPER_ADMIN |
 | `/student/qr` | 학생 본인 QR | STUDENT |
 | `/parent/report` | 학부모 리포트 | PARENT |
+| `/chat`, `/chat/:roomId` | 채팅(공지방/반 채팅방) | ACADEMY_ADMIN, TEACHER(승인), STUDENT, PARENT(읽기전용) |
 
 ## 7. 다음 개발 순서 제안
 
 우선순위 순 (전부 위 "미구현" 표에서 가져온 항목):
 
-1. **반 채팅** — `chat_rooms`/`chat_messages` 테이블 + RLS, 반별/공지 채팅방, Realtime 메시지, 채팅 내 셀프 출석체크
-2. **학생 개인 이용권 결제** — `student_passes` 테이블, 결제 연동, 키오스크 퇴실 시 자동 차감
-3. **학생 계정 자가 연동** — 회원가입 시 선택한 학원 기준으로 `students` 레코드와 연결
-4. **안드로이드 뒤로가기 차단** — `@capacitor/app` 설치 후 키오스크 화면에 적용
-5. 카카오 알림톡 / 네이티브 푸시(FCM) — 외부 계정 준비되면 진행
+1. **학생 개인 이용권 결제** — `student_passes` 테이블, 결제 연동, 키오스크 퇴실 시 자동 차감
+2. **학생 계정 자가 연동** — 회원가입 시 선택한 학원 기준으로 `students` 레코드와 연결
+3. **안드로이드 뒤로가기 차단** — `@capacitor/app` 설치 후 키오스크 화면에 적용
+4. 카카오 알림톡 / 네이티브 푸시(FCM) — 외부 계정 준비되면 진행

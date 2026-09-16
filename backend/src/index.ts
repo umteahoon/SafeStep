@@ -12,6 +12,7 @@ import academyRoutes from './routes/academy';
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import ownerRoutes from './routes/owner';
+import chatRoutes from './routes/chat';
 
 import { scheduleAwayTimeout } from './cron/awayTimeout';
 import { scheduleAutoCheckout } from './cron/autoCheckout';
@@ -40,6 +41,7 @@ app.use('/api/academy', academyRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/owner', ownerRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Cron 작업 등록 (무료 티어 Cold Start 대응은 별도 외부 핑 서비스 권장)
 scheduleAwayTimeout();

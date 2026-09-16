@@ -1,6 +1,31 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
 import logo from '../assets/logo.png';
+
+// 로그인 없이 원장/강사 화면을 바로 체험할 수 있는 데모 전용 계정.
+// 시드 데이터(SafeStep 강남점, "중3 수학 데모반")에 연결되어 있습니다.
+// 계정 생성: `node supabase/seed_demo_accounts.mjs` (backend/.env 필요)
+// ⚠️ 프론트에 하드코딩된 공개 데모 계정입니다 — 실제 서비스 데이터가 섞인
+// 프로덕션 DB에는 절대 이 방식을 그대로 쓰지 마세요.
+const DEMO_ACCOUNTS: Record<
+  'admin' | 'teacher',
+  { email: string; password: string; redirect: string; label: string }
+> = {
+  admin: {
+    email: 'demo-admin@safestep.local',
+    password: 'safestepdemo',
+    redirect: '/dashboard',
+    label: '원장 데모 체험하기',
+  },
+  teacher: {
+    email: 'demo-teacher@safestep.local',
+    password: 'safestepdemo',
+    redirect: '/attendance',
+    label: '강사 데모 체험하기',
+  },
+};
 
 const CONSUMER_FEATURES = [
   {
@@ -38,6 +63,22 @@ const BUSINESS_FEATURES = [
 
 export default function LandingPage() {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
+  const [demoLoading, setDemoLoading] = useState<'admin' | 'teacher' | null>(null);
+  const [demoError, setDemoError] = useState<string | null>(null);
+
+  const tryDemo = async (kind: 'admin' | 'teacher') => {
+    setDemoError(null);
+    setDemoLoading(kind);
+    const { email, password, redirect } = DEMO_ACCOUNTS[kind];
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setDemoLoading(null);
+    if (error) {
+      setDemoError('데모 계정 접속에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+    navigate(redirect);
+  };
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -109,8 +150,42 @@ export default function LandingPage() {
             </Link>
           </div>
         </div>
-        <div className="flex items-center justify-center">
+        <div className="flex flex-col items-center justify-center">
           <img src={logo} alt="SafeStep" className="w-full max-w-lg" />
+
+          {/* 데모 체험하기 */}
+          <div className="mt-6 grid w-full max-w-lg grid-cols-2 gap-2 md:grid-cols-4">
+            <Link
+              to="/map"
+              className="rounded-lg border border-gray-300 px-2 py-2.5 text-center text-xs font-medium text-gray-700 hover:bg-gray-50"
+            >
+              이용자 데모
+            </Link>
+            <Link
+              to="/kiosk"
+              className="rounded-lg border border-gray-300 px-2 py-2.5 text-center text-xs font-medium text-gray-700 hover:bg-gray-50"
+            >
+              키오스크 데모
+            </Link>
+            <button
+              onClick={() => tryDemo('admin')}
+              disabled={demoLoading !== null}
+              className="rounded-lg border border-gray-300 px-2 py-2.5 text-center text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              {demoLoading === 'admin' ? '접속 중...' : '원장 데모'}
+            </button>
+            <button
+              onClick={() => tryDemo('teacher')}
+              disabled={demoLoading !== null}
+              className="rounded-lg border border-gray-300 px-2 py-2.5 text-center text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              {demoLoading === 'teacher' ? '접속 중...' : '강사 데모'}
+            </button>
+          </div>
+          {demoError && <p className="mt-2 text-sm text-red-500">{demoError}</p>}
+          <p className="mt-2 max-w-lg text-center text-xs text-gray-400">
+            원장/강사 데모는 예시 데이터를 함께 쓰는 공용 체험 계정입니다.
+          </p>
         </div>
       </section>
 
