@@ -616,7 +616,7 @@ CREATE POLICY "Chat Room Reads Own" ON chat_room_reads
     WITH CHECK (user_id = auth.uid());
 
 -- ------------------------------------------------------------
--- 18. Storage: 채팅 이미지 첨부용 공개 버킷
+-- 17. Storage: 채팅 이미지 첨부용 공개 버킷
 --     업로드 경로는 "<room_id>/<파일명>" 규칙을 강제해 발신 권한과 동일한 기준으로 제한
 -- ------------------------------------------------------------
 INSERT INTO storage.buckets (id, name, public)
@@ -635,7 +635,7 @@ CREATE POLICY "Chat Uploads Participant Insert" ON storage.objects
     );
 
 -- ------------------------------------------------------------
--- 17. Realtime 활성화: seats(잔여석), chat_messages(채팅), class_attendance_records(출결)
+-- 18. Realtime 활성화: seats(잔여석), chat_messages(채팅), class_attendance_records(출결)
 --     테이블을 SQL로만 만들면 Realtime 발행 목록에 자동 포함되지 않아 별도로 추가해야 함
 -- ------------------------------------------------------------
 ALTER PUBLICATION supabase_realtime ADD TABLE seats;
