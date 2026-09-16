@@ -88,7 +88,7 @@ export default function RegisterPage() {
     if (role === 'TEACHER') {
       navigate('/teacher/pending');
     } else if (role === 'ACADEMY_ADMIN') {
-      navigate('/onboarding');
+      navigate('/owner/claim');
     } else {
       navigate('/map');
     }

@@ -181,8 +181,21 @@ CREATE TABLE seat_reports (
     academy_id UUID NOT NULL REFERENCES academies(id) ON DELETE CASCADE,
     seat_number INT NOT NULL,
     reason VARCHAR(50) NOT NULL, -- 'NOISE' | 'MONOPOLY' | 'OTHER'
+    resolved BOOLEAN DEFAULT FALSE,
+    resolved_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
     -- 익명성 보장을 위해 신고자 식별 정보는 저장하지 않음
+);
+
+-- 원장 초대코드: 슈퍼관리자가 지점 생성 시 발급하는 8자리 등록 코드
+-- ⚠️ 의도적으로 RLS 정책을 하나도 만들지 않음 (서비스 롤 전용, 공개 읽기 정책을 두면 코드가 노출됨)
+CREATE TABLE academy_owner_invites (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    academy_id UUID NOT NULL REFERENCES academies(id) ON DELETE CASCADE,
+    code VARCHAR(8) NOT NULL UNIQUE,
+    used_by UUID REFERENCES profiles(id),
+    used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ------------------------------------------------------------
@@ -234,6 +247,7 @@ ALTER TABLE attendance_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE absence_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE seat_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE academy_owner_invites ENABLE ROW LEVEL SECURITY;
 
 -- ------------------------------------------------------------
 -- 5. academies: 공개 읽기 + 쓰기는 슈퍼관리자/원장(본인 학원)만
@@ -348,6 +362,14 @@ CREATE POLICY "Seats Staff Write" ON seats
     FOR UPDATE TO authenticated
     USING (is_approved_staff_of(academy_id));
 
+CREATE POLICY "Seats Staff Insert" ON seats
+    FOR INSERT TO authenticated
+    WITH CHECK (is_approved_staff_of(academy_id));
+
+CREATE POLICY "Seats Staff Delete" ON seats
+    FOR DELETE TO authenticated
+    USING (is_approved_staff_of(academy_id));
+
 -- 키오스크 태블릿은 보통 로그인 세션이 없으므로, 실제 입·퇴실 처리는
 -- backend가 SUPABASE_SERVICE_ROLE_KEY로 RLS를 우회해 수행하는 것을 권장합니다.
 
@@ -405,6 +427,10 @@ CREATE POLICY "Seat Reports Create" ON seat_reports
 
 CREATE POLICY "Seat Reports Staff Read" ON seat_reports
     FOR SELECT TO authenticated
+    USING (is_approved_staff_of(academy_id));
+
+CREATE POLICY "Seat Reports Staff Update" ON seat_reports
+    FOR UPDATE TO authenticated
     USING (is_approved_staff_of(academy_id));
 
 -- ============================================================

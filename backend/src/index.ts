@@ -10,10 +10,13 @@ import kioskRoutes from './routes/kiosk';
 import parentRoutes from './routes/parent';
 import academyRoutes from './routes/academy';
 import authRoutes from './routes/auth';
+import adminRoutes from './routes/admin';
+import ownerRoutes from './routes/owner';
 
 import { scheduleAwayTimeout } from './cron/awayTimeout';
 import { scheduleAutoCheckout } from './cron/autoCheckout';
 import { scheduleWeeklyReport } from './cron/weeklyReport';
+import { scheduleLateDetection } from './cron/lateDetection';
 
 const app = express();
 const PORT = process.env.PORT ?? 5000;
@@ -35,11 +38,14 @@ app.use('/api/kiosk', kioskRoutes);
 app.use('/api/parent', parentRoutes);
 app.use('/api/academy', academyRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/owner', ownerRoutes);
 
 // Cron 작업 등록 (무료 티어 Cold Start 대응은 별도 외부 핑 서비스 권장)
 scheduleAwayTimeout();
 scheduleAutoCheckout();
 scheduleWeeklyReport();
+scheduleLateDetection();
 
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console

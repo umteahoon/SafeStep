@@ -1,493 +1,196 @@
-# 📋 SafeStep (네이버 지도 스터디카페 좌석 관제, 학원 강사 승인/스마트 출결 & SaaS 플랫폼) 종합 개발 명세서
+# SafeStep
 
-## 1. 프로젝트 개요
+네이버 지도 스터디카페 좌석 관제 + 학원 강사 승인/스마트 출결 SaaS 플랫폼.
 
-- **서비스명**: SafeStep (세이프스텝)
-- **목적**:
-  1. **스터디카페 관제 모드**: 네이버 지도 기반 주변 탐색, 실시간 좌석/도면 확인, 키패드/QR 키오스크 입·퇴실 좌석 배정 및 **외출/자리비움(60분 타임아웃)**, **익명 소음/좌석독점 신고 벨**, 누적 공부 시간 통계.
-  2. **학원 출결 및 수업 관리 모드 (B2B SaaS)**: 토스페이먼츠 월 10,000원 이용권 결제 시 활성화.
-     - **원장 전용 학원 데이터 일괄 내보내기**: 원장은 본인이 운영하는 학원의 출석부, 학생 명단, 수업 이력, 이용 통계를 **엑셀(Excel) 및 CSV로 즉시 다운로드/추출** 가능.
-     - **원장 & 강사 협업 워크플로우**: 강사는 회원가입 후 학원 원장의 승인을 받아 출석부 및 수업 일정을 위임받아 실무 관리.
-     - **수업(Class) & 시간표 관리**: 반(클래스) 생성, 담당 강사 지정, 요일/시간별 수업 일정 등록.
-     - **스마트 출석부 & 결석 사유 관리**: 반별 수강생 배정, 원클릭 출석/결석/지각 체크, 결석 사유(병결/공결/무단) 및 특이사항 메모.
-     - **학부모 사전 결석/지각 신청**: 학부모가 앱에서 사전에 사유를 제출하면 선생님 출석부에 '사전 승인' 상태로 선반영.
-     - **스마트 알림 정책**: 정상 출석 시 무음(비용/피로도 0), **결석 체크 시에만 학부모에게 긴급 안심 알림(Web Push/가상 시뮬레이터) 즉시 발송**.
-     - **학부모 온보딩 & 주간 리포트**: 자녀 전용 6자리 연동 코드(`link_code`), 주간 출석률 및 총 누적 공부 시간 요약 리포트 제공.
-- **5단계 권한 체계 & 🔒 엄격한 개인정보/데이터 분리 정책 (Strict Privacy RBAC)**:
-  1. **슈퍼 관리자 (`SUPER_ADMIN`) - 플랫폼 운영 관제 전용 (개인정보 열람 불가)**:
-     - **금지 구역**: 학원 내부 수업 목록, 출석부 내역, 학생 이름 및 개인 식별 데이터는 **절대 열람 불가 (DB RLS 및 프론트 차단)**.
-     - **허용 구역**: 서비스 전체 가입자 수(학원 수, 학부모 수, 학생 수 카운트), 입점 학원/스터디카페 가맹 정보, 토스 월간 매출 통계, 시스템 작동 상태 모니터링만 전담.
-  2. **학원 원장 (`ACADEMY_ADMIN`) - 학원 독립 오너**:
-     - 원장 전용 대시보드, 강사 가입 승인/반려, 토스 결제(월 10,000원), 좌석 도면 세팅, 전체 출석부 관리.
-     - **🌟 자사 데이터 추출(Export)**: 본인 학원의 학생 명부, 월간 출석부, 수업 통계 엑셀 다운로드(`xlsx`). (타 학원 데이터 및 슈퍼관리자 페이지 접근 차단)
-  3. **학원 강사 (`TEACHER`)**:
-     - 원장 승인 후 활성화. 배정된 반의 시간표 등록, 출석부 작성 및 결석 알림 발송. (결제/원장 고유 설정 및 타 학원 데이터 차단)
-  4. **학생 (`STUDENT`)**:
-     - 네이버 지도 탐색, 실시간 잔여석 확인, 개인 모바일 QR 출결 코드, 본인 시간표 및 공부시간 이력 조회, 스터디카페 소음/불편 신고. (출석부 수정 및 관리자 페이지 접근 차단)
-  5. **학부모 (`PARENT`)**:
-     - 6자리 코드로 자녀 연동, 사전 결석 신청, 결석 긴급 푸시 알림 수신, 전용 웹 뷰어로 자녀 출결 및 주간 리포트 확인. (타 학생 및 학원 운영 화면 접근 차단)
-- **배포 및 인프라 (전액 0원 무료)**:
-  - Web: Netlify (Free)
-  - Backend API: Render Web Service (Free)
-  - Database & Auth: Supabase (PostgreSQL, Realtime, RLS, Free)
-  - Map API: Naver Cloud Platform Web Dynamic Map (월 1,000만 건 무료)
-  - Payment: 토스페이먼츠 결제 위젯 (30일 월 이용권 갱신 방식, 테스트 환경 0원 연동)
-  - Mobile App: Capacitor 6+ -> Android Studio APK 빌드
+## 폴더 구조
 
----
-
-## 2. 기술 스택 (Tech Stack)
-
-### Frontend & Mobile App (Single Codebase)
-
-- **Framework / Build**: React 18+, Vite, TypeScript
-- **Styling**: Tailwind CSS, Lucide React (아이콘)
-- **Data Export & Processing**: `xlsx` (원장 전용 학원 데이터 엑셀 추출 및 대량 등록), `file-saver`
-- **QR Scanner / Generator**: `html5-qrcode` (태블릿 카메라 QR 스캔), `qrcode.react` (학생 모바일 QR 생성)
-- **Calendar / Schedule UI**: 주간 타임테이블 UI 컴포넌트, `date-fns`
-- **Map SDK**: Naver Maps JavaScript API v3 (NCP Web Dynamic Map)
-- **Payment SDK**: `@tosspayments/payment-widget-sdk` (토스 결제위젯)
-- **Mobile Hybrid**: `@capacitor/core`, `@capacitor/cli`, `@capacitor/android`
-- **PWA & Web Push**: Service Worker (`sw.js`), Web Push API
-- **State & Data**: TanStack Query v5, Zustand, `@supabase/supabase-js`
-
-### Backend
-
-- **Runtime / Framework**: Node.js (v20+), Express, TypeScript
-- **Push Notification (0원)**: `web-push` (VAPID 기반 무제한 무료 웹 푸시)
-- **Payment API**: TossPayments Server API (승인 `POST /v1/payments/confirm`)
-- **Cron (`node-cron`)**:
-  - 매 10분: 스터디카페 외출(`AWAY`) 후 60분 초과 좌석 자동 강제 퇴실 및 반납
-  - 매주 일요일 21:00: 학부모 주간 학습 리포트 데이터 집계
-  - 자정: 미퇴실자 자동 정리 및 30일 이용권 만료 학원 비활성화
-- **Deployment**: Render (무료 티어 Cold Start 대응 핑 적용)
-
----
-
-## 3. 디렉토리 구조 (Repository Layout)
-
-```text
+```
 safestep/
-├── DEVELOPMENT.md
-├── README.md
-├── frontend/
-│   ├── android/               # Capacitor 생성 Android Studio 프로젝트
-│   ├── public/
-│   │   ├── sw.js              # 결석 긴급 알림 푸시 Service Worker
-│   │   └── manifest.json
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── common/        # Button, Modal, Input, Badge, ProtectedRoute, BranchSelector
-│   │   │   ├── export/        # 🌟 원장 전용 학원 데이터 추출 버튼(ExportDataModal.tsx)
-│   │   │   ├── map/           # 네이버 지도, 실시간 잔여석 마커
-│   │   │   ├── seat/          # 스터디카페 내부 도면(Floor Plan Grid), 소음 신고 모달
-│   │   │   ├── kiosk/         # 키패드, 카메라 QR 스캐너, 외출/복귀 모달
-│   │   │   ├── teachers/      # 원장용 강사 승인/반려/목록 관리 모달
-│   │   │   ├── classes/       # 반 생성, 주간 시간표, 담당 강사 지정
-│   │   │   ├── attendance/    # 반별 출석부, 학부모 사전 결석 승인 탭
-│   │   │   ├── parent/        # 자녀 연동(6자리 코드), 사전 결석 신청서, 주간 리포트
-│   │   │   ├── payment/       # 토스 결제위젯 컴포넌트
-│   │   │   ├── admin/         # [시연용] 가상 데모 데이터 1초 생성기 버튼
-│   │   │   └── simulator/     # [시연용] 가상 카카오톡 결석 알림 모달
-│   │   ├── pages/
-│   │   │   ├── auth/          # LoginPage.tsx, RegisterPage.tsx, TeacherPendingPage.tsx, UnauthorizedPage.tsx
-│   │   │   ├── map/           # MapSearchPage.tsx (네이버 지도 탐색)
-│   │   │   ├── kiosk/         # KioskPage.tsx (태블릿 키패드 + QR 스캔 + 외출)
-│   │   │   ├── dashboard/     # 원장 대시보드 (학원 데이터 엑셀 내보내기 버튼 탑재)
-│   │   │   ├── teachers/      # TeacherManagementPage.tsx (원장 전용 강사 승인 관리)
-│   │   │   ├── classes/       # ClassListPage.tsx, ClassSchedulePage.tsx
-│   │   │   ├── attendance/    # ClassAttendancePage.tsx (반별 출석부)
-│   │   │   ├── billing/       # SubscriptionPage.tsx (토스 30일 이용권 결제)
-│   │   │   ├── admin/         # SuperAdminDashboardPage.tsx (🔒 입점 학원/가입자 통계/매출만 표출)
-│   │   │   ├── student/       # StudentQrPage.tsx (학생 모바일 출결 QR)
-│   │   │   └── parent/        # ParentReportPage.tsx (학부모 안심 리포트 & 사전 결석 신청)
-│   │   ├── utils/             # excelExporter.ts (원장 전용 엑셀 추출 유틸)
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── capacitor.config.ts
-│   └── vite.config.ts
-│
-└── backend/
-    ├── src/
-    │   ├── controllers/       # auth, teacher, class, attendance, payment, report, exportController
-    │   ├── cron/              # autoCheckout.ts, awayTimeout.ts, weeklyReport.ts
-    │   ├── routes/            # teacher, class, attendance, payment, parent, exportRoutes
-    │   ├── services/          # PushService, TossPaymentService, ExportService
-    │   └── index.ts
-    └── package.json
+├── frontend/    React + Vite + TypeScript + Capacitor (웹 + 안드로이드 앱 단일 코드베이스)
+├── backend/     Express + TypeScript API 서버
+└── supabase/
+    ├── schema.sql                              전체 DB 스키마 + RLS 정책 (신규 프로젝트용)
+    ├── migration_02_owner_invites_seat_admin.sql  기존 프로젝트 추가 마이그레이션 (아래 §1 참고)
+    ├── seed.sql                                샘플 학원 2곳
+    └── seed_floorplan.sql                      존별 좌석 배치 샘플
 ```
+
+> ⚠️ 아래 체크리스트는 이 저장소에 **실제로 존재하는 코드 기준**입니다.
+> 다른 곳에서 작성된 기획 문서를 참고할 때는 이 표와 대조해서 실제 구현 여부를 확인하세요.
+
+## 구현 현황 체크리스트
+
+### ✅ 완료
+| 영역 | 내용 |
+|---|---|
+| 인증/RBAC | 회원가입(역할별 분기, 이메일 인증 없이 즉시 로그인) · 로그인 · 강사 승인 대기 · 슈퍼관리자 수동 승격 |
+| 학원 온보딩 | 슈퍼관리자가 `/admin`에서 지점 생성 → 좌석 자동 배치 + **8자리 등록 코드** 발급 → 원장이 `/owner/claim`에서 코드 입력해 연결 |
+| 지도/좌석/키오스크 | 네이버 지도 실시간 잔여석, 존별 좌석 도면(Realtime), 핀코드/QR 키오스크(입실·외출·복귀·퇴실·**자리 이동**) |
+| 키오스크 운영 | 60초 무조작 시 자동 초기화, **오프라인 큐잉**(외출/퇴실/복귀는 재연결 시 자동 재전송, 입실/이동은 동시성 문제로 오프라인 중 차단) |
+| 원장 대시보드 | 학생 수·출석률·결석/지각·학습시간 KPI, 학생 목록, 엑셀 추출(`utils/excelExporter.ts`) |
+| 학생 관리 | 원장/강사가 학생 추가·중지·삭제, 출결코드·보호자 연동코드 발급 |
+| 강사 관리 | 승인/반려 UI |
+| 반/시간표/출결 | 반 생성·삭제·강사 배정·수강생 배정, 주간 시간표, 원클릭 출석 체크, **지각/무단결석 자동 감지**(5분 주기 크론, 시작 10분 후 미체크 시 LATE → 종료 후에도 미체크면 ABSENT로 승격) |
+| 관제 도구 | 신고 관제 페이지(`/admin/reports`, 익명 신고 처리·강제 퇴실), 좌석 배치 에디터(`/admin/seats/editor`) |
+| 학부모 기능 | 6자리 코드 자녀 연동, 사전 결석/지각 신청, 주간 리포트, Web Push 구독 |
+| 학생 기능 | 본인 QR 코드 표시(`qrcode.react`) |
+| 결제 | 학원 SaaS 구독 결제(토스페이먼츠 결제위젯) |
+| 알림 | 결석·지각 시 Web Push 발송(`public/sw.js`) |
+| 웹/앱 분리 | 웹은 랜딩 페이지, 앱(Capacitor)은 지도로 바로 진입. `?app=1`로 브라우저에서 앱 화면 미리보기(폰 목업+하단 탭바) 가능 |
+
+### ⏳ 미구현 (코드 자체가 아직 없음 — 외부 계정 설정과 무관하게 개발이 필요한 항목)
+| 항목 | 비고 |
+|---|---|
+| 반 채팅 | 채팅방/실시간 메시지/채팅 내 셀프 출석체크/이미지 첨부/안읽음 표시 — 전부 미구현 |
+| 학생 개인 이용권(시간권/기간권) 결제 | `student_passes` 테이블, 결제 연동, 키오스크 차감 로직 미구현 |
+| 이용권 하드 게이팅 | 위 이용권 기능이 없어 종속적으로 미구현 |
+| 학생 계정 ↔ 명부 자가 연동 | 학생이 스스로 `students` 레코드에 연결하는 기능 없음. 현재는 원장이 학생관리에서 직접 등록 |
+| 안드로이드 뒤로가기 차단 | `@capacitor/app` 미설치, 관련 코드 없음 |
+| 브랜드 아이콘/파비콘 세트 | mipmap 아이콘 등 미생성 |
+
+### 🚧 코드는 만들 수 있지만 외부 서비스 가입/승인이 필요해 보류 중
+| 항목 | 필요한 외부 설정 |
+|---|---|
+| 카카오 알림톡(Solapi) | Solapi 계정, 발신번호 등록, 카카오 비즈니스 채널 연동, 템플릿 심사 |
+| 네이티브 푸시(FCM) | Firebase 프로젝트 생성, `google-services.json`, 서버 키 |
+| 토스 결제위젯 인앱(WebView) 동작 검증 | 실기기 필요 — 딥링크 복귀 구조는 검증 없이 만들면 오히려 위험 |
+
+원하시면 위 미구현 항목 중 우선순위를 정해 이어서 만들어 드립니다 (반 채팅이 가장 큰 항목입니다).
 
 ---
 
-## 4. 데이터베이스 스키마 & RLS 보안 정책 (슈퍼관리자 조회 차단)
+## 1. Supabase 프로젝트 설정
 
-### 4.1 핵심 테이블 설계
+### 신규 프로젝트
+1. [supabase.com](https://supabase.com) 에서 새 프로젝트 생성 (무료 플랜)
+2. **SQL Editor** → `supabase/schema.sql` 전체 실행
+3. (선택) `supabase/seed.sql` → `supabase/seed_floorplan.sql` 순서로 실행 — 샘플 학원 2곳 + 존별 좌석 + 테스트 학생(핀코드 `111111`) 생성
+4. **Project Settings → API Keys** 에서 값 확인:
+   - `Project URL` → `VITE_SUPABASE_URL`, `SUPABASE_URL`
+   - `anon public` 키 → `VITE_SUPABASE_ANON_KEY`
+   - `service_role` 키 → `SUPABASE_SERVICE_ROLE_KEY` (⚠️ 절대 프론트엔드에 노출 금지)
+5. 첫 슈퍼 관리자 계정은 회원가입으로 만들 수 없습니다(의도된 설계). 아무 역할로 가입 후
+   **Table Editor → `profiles`** 에서 `role` 을 `SUPER_ADMIN` 으로 수동 변경하세요.
 
-```sql
--- 1. 사용자 역할 열거형
-CREATE TYPE user_role AS ENUM ('SUPER_ADMIN', 'ACADEMY_ADMIN', 'TEACHER', 'STUDENT', 'PARENT');
+### 이미 schema.sql을 실행한 기존 프로젝트
+`supabase/migration_02_owner_invites_seat_admin.sql` 을 SQL Editor에서 추가로 실행하세요.
+(원장 등록 코드 테이블, 좌석 추가/삭제 권한, 신고 처리 상태 컬럼이 추가됩니다 — **이 마이그레이션 없이는 학원 생성/원장 연결/좌석 에디터/신고 처리 화면이 동작하지 않습니다**.)
 
--- 2. 강사 승인 상태 열거형
-CREATE TYPE approval_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+### 학원 생성 & 원장 계정 연결 (신규 플로우)
+`academies` 테이블 INSERT는 RLS상 `SUPER_ADMIN`만 가능합니다. 원장이 임의로 기존 학원의 `academy_id`를 지정해 관리자 권한을 얻는 취약점을 막기 위해, 회원가입 화면에서는 원장이 `academy_id`를 직접 고를 수 없습니다. 대신:
 
--- 3. 학원/스터디카페 지점 테이블 (슈퍼관리자 열람 가능)
-CREATE TABLE academies (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(100) NOT NULL,
-    address VARCHAR(255) NOT NULL,
-    latitude DOUBLE PRECISION NOT NULL,
-    longitude DOUBLE PRECISION NOT NULL,
-    total_seats INT DEFAULT 30,
-    subscription_status VARCHAR(20) DEFAULT 'TRIAL', -- 'TRIAL', 'ACTIVE', 'EXPIRED'
-    subscription_expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '14 days'),
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
+1. **슈퍼관리자**가 `/admin`에서 지점명·주소·좌석 수를 입력해 지점 생성 → `backend/src/routes/admin.ts`(`POST /api/admin/academies`)가 학원을 만들고 좌석을 자동 배치한 뒤 **8자리 등록 코드**를 화면에 표시(이때만 확인 가능, 분실 시 "등록코드 재발급" 버튼으로 재발급)
+2. 이 코드를 전달받은 **원장**이 STUDENT/PARENT와 동일하게 회원가입(가입 시점엔 `academy_id` 없음) → `/owner/claim` 화면에서 코드 입력 → `backend/src/routes/owner.ts`(`POST /api/owner/claim`)가 서비스 롤로 `profiles.academy_id`를 연결
+3. `academy_id`가 없는 원장 계정은 `ProtectedRoute`가 자동으로 `/owner/claim`으로 리다이렉트합니다.
 
--- 4. 통합 프로필 테이블 (슈퍼관리자는 시스템 사용자 통계 수량 및 기본 메타데이터만 열람)
-CREATE TABLE profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    email VARCHAR(100) NOT NULL,
-    name VARCHAR(50) NOT NULL,
-    role user_role NOT NULL DEFAULT 'STUDENT',
-    academy_id UUID REFERENCES academies(id) ON DELETE SET NULL,
-    approval_status approval_status DEFAULT 'APPROVED',
-    phone VARCHAR(20),
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 5. 토스 30일 이용권 결제 이력 (슈퍼관리자 매출 집계 열람 가능)
-CREATE TABLE subscriptions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    academy_id UUID NOT NULL REFERENCES academies(id) ON DELETE CASCADE,
-    payment_key VARCHAR(100),
-    order_id VARCHAR(100) NOT NULL UNIQUE,
-    amount INT NOT NULL DEFAULT 10000,
-    status VARCHAR(20) NOT NULL,
-    paid_at TIMESTAMPTZ DEFAULT NOW(),
-    expires_at TIMESTAMPTZ NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 6. 🔒 반/수업(Class) 테이블 (슈퍼관리자 열람 불가)
-CREATE TABLE classes (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    academy_id UUID NOT NULL REFERENCES academies(id) ON DELETE CASCADE,
-    teacher_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
-    name VARCHAR(100) NOT NULL,
-    color_code VARCHAR(10) DEFAULT '#3B82F6',
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 7. 🔒 반별 수업 일정(시간표) 테이블 (슈퍼관리자 열람 불가)
-CREATE TABLE class_schedules (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
-    day_of_week INT NOT NULL,
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 8. 🔒 학생 테이블 (슈퍼관리자 열람 불가, 원장/소속 강사/학부모만 접근)
-CREATE TABLE students (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
-    academy_id UUID NOT NULL REFERENCES academies(id) ON DELETE CASCADE,
-    name VARCHAR(50) NOT NULL,
-    attendance_code VARCHAR(10) NOT NULL,
-    qr_token UUID DEFAULT gen_random_uuid(),
-    parent_user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
-    parent_phone VARCHAR(20) NOT NULL,
-    link_code VARCHAR(6) NOT NULL DEFAULT LPAD(FLOOR(RANDOM()*1000000)::TEXT, 6, '0'),
-    parent_view_token UUID DEFAULT gen_random_uuid(),
-    status VARCHAR(20) DEFAULT 'ACTIVE',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    CONSTRAINT unique_academy_attendance_code UNIQUE(academy_id, attendance_code)
-);
-
--- 9. 🔒 반별 수강생 배정 테이블 (슈퍼관리자 열람 불가)
-CREATE TABLE class_enrollments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
-    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-    enrolled_at TIMESTAMPTZ DEFAULT NOW(),
-    CONSTRAINT unique_class_student UNIQUE(class_id, student_id)
-);
-
--- 10. 🔒 반별 일일 출석부 테이블 (슈퍼관리자 열람 불가)
-CREATE TABLE class_attendance_records (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    academy_id UUID NOT NULL REFERENCES academies(id) ON DELETE CASCADE,
-    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
-    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-    date DATE NOT NULL DEFAULT CURRENT_DATE,
-    status VARCHAR(20) NOT NULL,
-    reason VARCHAR(100),
-    note TEXT,
-    alert_sent BOOLEAN DEFAULT FALSE,
-    recorded_by UUID REFERENCES profiles(id),
-    recorded_at TIMESTAMPTZ DEFAULT NOW(),
-    CONSTRAINT unique_daily_class_attendance UNIQUE(class_id, student_id, date)
-);
-
--- 11. 스터디카페 좌석 테이블 (공개)
-CREATE TABLE seats (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    academy_id UUID NOT NULL REFERENCES academies(id) ON DELETE CASCADE,
-    seat_number INT NOT NULL,
-    zone_type VARCHAR(20) DEFAULT 'FOCUS',
-    grid_x INT NOT NULL,
-    grid_y INT NOT NULL,
-    status VARCHAR(20) DEFAULT 'EMPTY',
-    current_student_id UUID,
-    occupied_at TIMESTAMPTZ,
-    away_at TIMESTAMPTZ,
-    CONSTRAINT unique_seat_per_academy UNIQUE(academy_id, seat_number)
-);
-
--- 12. 키오스크 출결 로그 (학생 본인/원장/학부모만 접근)
-CREATE TABLE attendance_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    academy_id UUID NOT NULL REFERENCES academies(id) ON DELETE CASCADE,
-    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-    seat_number INT,
-    type VARCHAR(20) NOT NULL,
-    check_method VARCHAR(10) DEFAULT 'KEYPAD',
-    logged_at TIMESTAMPTZ DEFAULT NOW(),
-    stay_duration_minutes INT DEFAULT 0,
-    notification_status VARCHAR(20) DEFAULT 'PENDING'
-);
-
--- 13. 학부모 Web Push 구독 정보
-CREATE TABLE push_subscriptions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-    endpoint TEXT NOT NULL,
-    p256dh TEXT NOT NULL,
-    auth TEXT NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    CONSTRAINT unique_student_endpoint UNIQUE(student_id, endpoint)
-);
-```
-
-### 4.2 RLS 보안 정책 (슈퍼관리자의 학원 내부 데이터 접근 원천 차단)
-
-```sql
-ALTER TABLE academies ENABLE ROW LEVEL SECURITY;
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE class_schedules ENABLE ROW LEVEL SECURITY;
-ALTER TABLE class_enrollments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE class_attendance_records ENABLE ROW LEVEL SECURITY;
-ALTER TABLE students ENABLE ROW LEVEL SECURITY;
-ALTER TABLE seats ENABLE ROW LEVEL SECURITY;
-ALTER TABLE attendance_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
-
--- 1) 슈퍼 관리자: 학원 목록, 가입 통계(카운트), 결제 매출만 접근 허용
-CREATE POLICY "SuperAdmin Academies Policy" ON academies
-    FOR ALL TO authenticated
-    USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'SUPER_ADMIN' OR true);
-
-CREATE POLICY "SuperAdmin Subscriptions Policy" ON subscriptions
-    FOR ALL TO authenticated
-    USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'SUPER_ADMIN'
-        OR academy_id IN (SELECT academy_id FROM profiles WHERE id = auth.uid() AND role = 'ACADEMY_ADMIN'));
-
--- 2) 🔒 수업(classes): 슈퍼관리자 차단! 오직 해당 학원 원장 및 승인 강사만 접근 허용
-CREATE POLICY "Classes Strict Academy Access" ON classes
-    FOR ALL TO authenticated
-    USING (
-        academy_id IN (
-            SELECT academy_id FROM profiles
-            WHERE id = auth.uid() AND role = 'ACADEMY_ADMIN'
-        )
-        OR academy_id IN (
-            SELECT academy_id FROM profiles
-            WHERE id = auth.uid() AND role = 'TEACHER' AND approval_status = 'APPROVED'
-        )
-    );
-
--- 3) 🔒 출석부(class_attendance_records): 슈퍼관리자 차단! 원장 및 승인 강사만 접근
-CREATE POLICY "Attendance Records Strict Access" ON class_attendance_records
-    FOR ALL TO authenticated
-    USING (
-        academy_id IN (
-            SELECT academy_id FROM profiles
-            WHERE id = auth.uid() AND role = 'ACADEMY_ADMIN'
-        )
-        OR academy_id IN (
-            SELECT academy_id FROM profiles
-            WHERE id = auth.uid() AND role = 'TEACHER' AND approval_status = 'APPROVED'
-        )
-    );
-
--- 4) 🔒 학생 정보(students): 슈퍼관리자 차단! 원장, 승인 강사, 본인, 부모만 접근
-CREATE POLICY "Students Strict Access" ON students
-    FOR ALL TO authenticated
-    USING (
-        academy_id IN (
-            SELECT academy_id FROM profiles
-            WHERE id = auth.uid() AND role = 'ACADEMY_ADMIN'
-        )
-        OR academy_id IN (
-            SELECT academy_id FROM profiles
-            WHERE id = auth.uid() AND role = 'TEACHER' AND approval_status = 'APPROVED'
-        )
-        OR parent_user_id = auth.uid()
-        OR user_id = auth.uid()
-    );
-
--- 5) 네이버 지도 및 좌석 도면 (공개 읽기)
-CREATE POLICY "Public Read Academies" ON academies FOR SELECT TO anon, authenticated USING (true);
-CREATE POLICY "Public Read Seats" ON seats FOR SELECT TO anon, authenticated USING (true);
-```
+등록 코드는 `academy_owner_invites` 테이블에 저장되며, 이 테이블에는 **의도적으로 RLS 정책을 하나도 만들지 않았습니다** — `academies`처럼 공개 읽기 정책을 두면 코드가 노출되므로, `SUPABASE_SERVICE_ROLE_KEY`(백엔드)로만 접근 가능해야 합니다.
 
 ---
 
-## 5. 프론트엔드 라우팅 및 역할별 엄격한 접근 제어 (ProtectedRoute)
+## 2. 로컬 실행 (Frontend)
 
-### 5.1 라우트 권한 매트릭스
-
-| 라우트 경로      | 페이지 설명                                        | SUPER_ADMIN | ACADEMY_ADMIN |    TEACHER     | STUDENT | PARENT |
-| :--------------- | :------------------------------------------------- | :---------: | :-----------: | :------------: | :-----: | :----: |
-| `/admin`         | 플랫폼 관제 (가맹 학원, 전체 이용자 수 통계, 매출) |    **O**    |       X       |       X        |    X    |   X    |
-| `/dashboard`     | 원장 대시보드 (원생 엑셀 추출, 강사 승인)          |  X (차단)   |     **O**     |       X        |    X    |   X    |
-| `/classes`       | 반 개설 & 주간 시간표 관리                         |  X (차단)   |     **O**     | **O (승인시)** |    X    |   X    |
-| `/attendance`    | 반별 원클릭 출석부 (결석 알림)                     |  X (차단)   |     **O**     | **O (승인시)** |    X    |   X    |
-| `/billing`       | 토스 30일 이용권 구독 결제                         |  X (차단)   |     **O**     |       X        |    X    |   X    |
-| `/map`           | 네이버 지도 주변 스터디카페 탐색                   |    **O**    |     **O**     |     **O**      |  **O**  | **O**  |
-| `/seats/:id`     | 매장 내부 도면 & 잔여석 확인                       |    **O**    |     **O**     |     **O**      |  **O**  | **O**  |
-| `/kiosk`         | 태블릿 키패드/QR 출결 화면                         |    **O**    |     **O**     |     **O**      |  **O**  | **O**  |
-| `/student/qr`    | 학생 개인 모바일 QR 출결 코드                      |      X      |       X       |       X        |  **O**  |   X    |
-| `/parent/report` | 학부모 안심 출결 리포트 & 사전 결석                |      X      |       X       |       X        |    X    | **O**  |
-
-### 5.2 React `ProtectedRoute.tsx` 구현 가이드
-
-```tsx
-import { Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
-import { UserRole } from "../../types";
-
-interface ProtectedRouteProps {
-  allowedRoles: UserRole[];
-}
-
-export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
-  const { user, profile, isLoading } = useAuth();
-
-  if (isLoading) return <div className="p-8 text-center">인증 확인 중...</div>;
-  if (!user || !profile) return <Navigate to="/login" replace />;
-
-  // 🔒 엄격한 권한 체크: 허용된 역할이 아니면 무조건 차단 (슈퍼관리자도 학원 내부 페이지 진입 불가)
-  if (!allowedRoles.includes(profile.role)) {
-    return <Navigate to="/unauthorized" replace />;
-  }
-
-  // 강사의 경우 승인(APPROVED) 상태 체크
-  if (profile.role === "TEACHER" && profile.approval_status !== "APPROVED") {
-    return <Navigate to="/teacher/pending" replace />;
-  }
-
-  return <Outlet />;
-};
+```bash
+cd frontend
+npm install
+cp .env.example .env   # 값 채우기
+npm run dev             # http://localhost:5173
 ```
+
+`VITE_API_BASE_URL` 은 끝에 `/api` 를 붙이지 마세요 (예: `http://localhost:5001`). 코드의 모든 API 호출이 이미 경로 앞에 `/api`를 붙이므로, 여기에 `/api`를 또 붙이면 `/api/api/...` 가 되어 전부 404가 납니다.
+
+## 3. 로컬 실행 (Backend)
+
+```bash
+cd backend
+npm install
+cp .env.example .env   # 값 채우기
+npm run dev             # http://localhost:5001
+```
+
+> macOS에서 포트 5000은 ControlCenter(AirPlay 수신)가 기본 점유하는 경우가 많습니다. 충돌하면 `PORT`를 5001 등으로 바꾸고 프론트 `VITE_API_BASE_URL`도 맞춰주세요.
+
+VAPID 키(Web Push용)는 아래 명령으로 생성할 수 있습니다:
+```bash
+npx web-push generate-vapid-keys
+```
+
+토스페이먼츠 테스트 키는 [토스페이먼츠 개발자센터](https://developers.tosspayments.com)에서
+"테스트 상점"을 생성하면 무료로 발급됩니다 (`test_ck_...`, `test_sk_...`).
 
 ---
 
-## 6. 핵심 비즈니스 로직
+## 4. 안드로이드 앱(APK) 빌드 — Capacitor
 
-### 6.1 📊 원장 전용 자사 데이터 엑셀/CSV 추출 기능 (`ExportDataModal.tsx`)
+핵심 원칙: **frontend 웹 코드를 수정 → 빌드 → 앱에 동기화**, 이 3단계만 반복하면 됩니다.
 
-- **목적**: 학원 원장이 본인이 운영하는 학원의 원생 및 출결 데이터를 자유롭게 소유/백업할 수 있도록 보장.
-- **추출 항목**:
-  1. **원생 명부 (`students_list.xlsx`)**: 학생명, 출결 핀코드, 학부모 연락처, 소속 반, 등록일.
-  2. **월간 출석부 (`monthly_attendance.xlsx`)**: 선택한 월의 일자별 출석/결석/지각 현황 및 결석 사유/메모.
-  3. **스터디카페 이용 내역 (`study_session_logs.xlsx`)**: 입·퇴실 일시, 이용 좌석, 총 체류 시간.
-- **구현 유틸 (`excelExporter.ts`)**:
-  - `xlsx` 라이브러리를 통해 브라우저에서 즉시 Excel 워크북 생성 및 자동 다운로드 트리거.
+```bash
+cd frontend
+npm run build          # dist/ 생성
+npx cap sync android    # dist/ 내용을 android 네이티브 프로젝트로 복사
+npx cap open android    # Android Studio 실행
+```
 
-### 6.2 🛡️ 슈퍼 관리자 전용 대시보드 (`/admin`)
+Android Studio가 열리면:
+1. 상단 메뉴 **Build → Generate Signed Bundle / APK**
+2. 테스트용이면 그냥 **Build → Build APK(s)** (디버그 서명)로 충분
+3. `android/app/build/outputs/apk/debug/app-debug.apk` 생성됨 → 태블릿/폰에 설치
 
-- 학원 내부의 민감한 출석/학생 개인정보는 일체 배제하고, **순수 시스템 운영 데이터만 표출**:
-  - **입점 학원 및 스터디카페 현황**: 학원명, 지점 주소, 이용권 상태(`ACTIVE`/`TRIAL`), 가입일.
-  - **플랫폼 전체 이용자 통계**: 활성 학원 수, 등록된 전체 강사 수, 전체 학생 수, 전체 학부모 수 (집계 수치 카운트만 표시).
-  - **토스페이먼츠 월 매출 현황**: 이번 달 총 결제 금액, 월별 매출 그래프, 결제 성공/실패 로그.
+카메라(QR 스캔)·푸시 알림 권한은 이미 아래 플러그인이 설치되어 있습니다:
+`@capacitor/camera`, `@capacitor/push-notifications`
+(단, 실제 권한 요청 코드는 각 화면 구현 시 추가해야 합니다. 뒤로가기 차단은 아직 미구현.)
 
-### 6.3 QR 코드 및 키패드 이중 출결 모드
-
-1. **핀코드 모드**: 4~6자리 번호 입력 후 입·퇴실/외출 처리.
-2. **모바일 QR 스캔 모드 (`html5-qrcode`)**:
-   - 학생 앱 `[내 출결 QR]`을 키오스크 태블릿 전면 카메라에 비추면 `verify_kiosk_qr` RPC 호출 -> 0.5초 만에 출결 완료.
-
-### 6.4 학부모 사전 결석 신청 & 출석부 연동
-
-1. 학부모가 앱에서 **`[사전 결석/지각 신청]`** 제출 (`absence_requests` 테이블).
-2. 선생님 출석부 화면에 `[사전 병결 신청]` 뱃지 표출 -> 원클릭 승인 시 출석부에 사유 자동 반영.
-
-### 6.5 스터디카페 외출(자리비움) & 익명 소음 신고
-
-1. **외출(AWAY) 모드**: 키오스크에서 `[외출]` 클릭 -> 60분 초과 시 Cron(`awayTimeout.ts`)이 자동 퇴실 처리.
-2. **익명 소음 신고**: 모바일 좌석 도면에서 특정 좌석 신고 -> 원장 대시보드 알림 팝업.
+> Android SDK/Android Studio는 로컬 PC에 설치되어 있어야 합니다.
 
 ---
 
-## 7. 환경 변수 명세 (.env)
+## 5. 배포
 
-### Frontend (`frontend/.env`)
+### Frontend → Netlify (무료)
+1. GitHub에 이 저장소 push
+2. Netlify → **Add new site → Import from Git**
+3. Base directory: `frontend`, Build command: `npm run build`, Publish directory: `frontend/dist`
+4. 환경변수(Site settings → Environment variables)에 `.env.example`의 `VITE_*` 값 등록
 
-```env
-VITE_SUPABASE_URL=https://your-supabase-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-VITE_API_BASE_URL=https://safestep-backend.onrender.com/api
-VITE_NAVER_MAP_CLIENT_ID=your-naver-cloud-client-id
-VITE_TOSS_CLIENT_KEY=test_ck_your_toss_client_key
-VITE_VAPID_PUBLIC_KEY=your-generated-vapid-public-key
-```
+### Backend → Render (무료 티어)
+1. Render → **New → Web Service** → 이 저장소 연결
+2. Root Directory: `backend`
+3. Build Command: `npm install && npm run build`
+4. Start Command: `npm start`
+5. 환경변수(Environment)에 `.env.example`의 값 등록
+6. 무료 티어는 15분 미사용 시 슬립되므로, [UptimeRobot](https://uptimerobot.com) 등으로
+   `/health` 엔드포인트를 주기적으로 핑하면 Cold Start를 줄일 수 있습니다.
 
-### Backend (`backend/.env`)
-
-```env
-PORT=5000
-SUPABASE_URL=https://your-supabase-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
-TOSS_SECRET_KEY=test_sk_your_toss_secret_key
-VAPID_PUBLIC_KEY=your-generated-vapid-public-key
-VAPID_PRIVATE_KEY=your-generated-vapid-private-key
-VAPID_SUBJECT=mailto:admin@safestep.local
-CORS_ORIGIN=https://safestep.netlify.app
-FRONTEND_URL=https://safestep.netlify.app
-```
+### 네이버 지도 API
+[Naver Cloud Platform](https://www.ncloud.com) → Application → Maps 서비스 신청 후
+`VITE_NAVER_MAP_CLIENT_ID` 발급. Web Dynamic Map은 월 1,000만 건까지 무료입니다.
 
 ---
 
-## 8. 단계별 작업 지시 가이드 (Claude Code Prompting)
+## 6. 페이지 요약
 
-### Phase 1: 역할별 엄격한 ProtectedRoute & 슈퍼 관리자 플랫폼 관제
+| 경로 | 설명 | 접근 |
+|---|---|---|
+| `/` | 웹: 랜딩 페이지 · 앱: 지도로 리다이렉트 | 공개 |
+| `/map`, `/seats/:id`, `/kiosk` | 지도, 좌석 도면, 키오스크 | 공개(로그인 불필요) |
+| `/login`, `/register` | 로그인/회원가입 | 공개 |
+| `/owner/claim` | 원장 등록 코드 입력 | ACADEMY_ADMIN (학원 미연결 시 자동 이동) |
+| `/dashboard` | 원장 대시보드 | ACADEMY_ADMIN |
+| `/students` | 학생 관리 | ACADEMY_ADMIN, TEACHER(승인) |
+| `/teachers` | 강사 승인 관리 | ACADEMY_ADMIN |
+| `/classes`, `/classes/schedule`, `/attendance` | 반/시간표/출석부 | ACADEMY_ADMIN, TEACHER(승인) |
+| `/admin/reports` | 신고 관제 | ACADEMY_ADMIN, TEACHER(승인) |
+| `/admin/seats/editor` | 좌석 배치 에디터 | ACADEMY_ADMIN, TEACHER(승인) |
+| `/billing` | 이용권 결제(학원 SaaS 구독) | ACADEMY_ADMIN |
+| `/admin` | 플랫폼 관리자(지점 생성, 매출) | SUPER_ADMIN |
+| `/student/qr` | 학생 본인 QR | STUDENT |
+| `/parent/report` | 학부모 리포트 | PARENT |
 
-- [ ] Supabase Auth 5단계 역할(`SUPER_ADMIN`, `ACADEMY_ADMIN`, `TEACHER`, `STUDENT`, `PARENT`) 구현
-- [ ] `ProtectedRoute.tsx`: 슈퍼 관리자도 학원 내부 페이지 진입을 엄격히 차단하도록 구현
-- [ ] 슈퍼 관리자 전용 대시보드(`/admin`): 가맹 학원 목록, 가입자 카운트 통계, 토스 결제 매출만 표출
+## 7. 다음 개발 순서 제안
 
-### Phase 2: 원장 전용 학원 데이터 엑셀 추출(Export) & 수업 관리
+우선순위 순 (전부 위 "미구현" 표에서 가져온 항목):
 
-- [ ] 원장 대시보드 내 원생 명부 및 월간 출석부 엑셀 추출 기능(`excelExporter.ts`) 구현
-- [ ] 반(Class) CRUD 및 주간 시간표 UI(`WeeklyTimetable.tsx`) 작성
-- [ ] 학부모 `사전 결석/지각 신청 모달` 및 일일 출석부 연동
-
-### Phase 3: 네이버 지도 스터디카페 좌석 관제, 외출 & 소음 신고
-
-- [ ] Naver Maps API 연동 및 매장 내부 좌석 도면(Grid) 렌더링
-- [ ] 키오스크 핀코드 + 모바일 QR 출결(`html5-qrcode`) 이중화 구현
-- [ ] 키오스크 `외출 / 자리비움(AWAY)` 및 60분 타임아웃 Cron(`awayTimeout.ts`) 작성
-
-### Phase 4: 토스페이먼츠 30일 이용권 결제 & 다중 지점 전환 UI
-
-- [ ] 토스 결제위젯 연동 (월 10,000원 이용권) 및 백엔드 승인 API (`POST /api/payments/confirm`)
-- [ ] 상단 `BranchSelector` 컴포넌트(복수 학원/카페 전환) 구현
-
-### Phase 5: Capacitor APK 빌드 및 프로덕션 배포
-
-- [ ] Capacitor 6+ Android Studio 연동 및 태블릿/스마트폰용 APK 빌드
-- [ ] Netlify(프론트) 및 Render(백엔드) 무료 티어 배포 및 시연 리허설
+1. **반 채팅** — `chat_rooms`/`chat_messages` 테이블 + RLS, 반별/공지 채팅방, Realtime 메시지, 채팅 내 셀프 출석체크
+2. **학생 개인 이용권 결제** — `student_passes` 테이블, 결제 연동, 키오스크 퇴실 시 자동 차감
+3. **학생 계정 자가 연동** — 회원가입 시 선택한 학원 기준으로 `students` 레코드와 연결
+4. **안드로이드 뒤로가기 차단** — `@capacitor/app` 설치 후 키오스크 화면에 적용
+5. 카카오 알림톡 / 네이티브 푸시(FCM) — 외부 계정 준비되면 진행

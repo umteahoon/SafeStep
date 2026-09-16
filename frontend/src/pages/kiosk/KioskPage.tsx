@@ -1,8 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api';
 import { QrScanner } from '../../components/kiosk/QrScanner';
+import {
+  enqueueKioskAction,
+  flushKioskQueue,
+  queuedActionCount,
+} from '../../utils/offlineQueue';
 import type { Academy, Seat } from '../../types';
 
 interface VerifyResult {
@@ -11,6 +16,10 @@ interface VerifyResult {
 }
 
 type Mode = 'PIN' | 'QR';
+
+const IDLE_TIMEOUT_MS = 60_000;
+// 오프라인 중에도 안전하게 큐잉 가능한 액션 (이미 배정된 좌석만 바꾸는 동작)
+const QUEUEABLE_ACTIONS = { 'check-out': '퇴실', away: '외출', return: '복귀' } as const;
 
 export default function KioskPage() {
   const [searchParams] = useSearchParams();
@@ -22,8 +31,57 @@ export default function KioskPage() {
   const [pin, setPin] = useState('');
   const [verified, setVerified] = useState<VerifyResult | null>(null);
   const [emptySeats, setEmptySeats] = useState<Seat[]>([]);
+  const [isMoving, setIsMoving] = useState(false);
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [pendingCount, setPendingCount] = useState(queuedActionCount());
+
+  const lastActivityRef = useRef(Date.now());
+  const bumpActivity = () => {
+    lastActivityRef.current = Date.now();
+  };
+
+  const resetToIdle = useCallback(() => {
+    setPin('');
+    setVerified(null);
+    setEmptySeats([]);
+    setIsMoving(false);
+  }, []);
+
+  // 60초간 조작이 없으면 자동으로 핀코드 입력 화면으로 리셋 (키오스크 공용 화면 보호)
+  useEffect(() => {
+    bumpActivity();
+    const interval = setInterval(() => {
+      if (Date.now() - lastActivityRef.current > IDLE_TIMEOUT_MS) {
+        resetToIdle();
+        bumpActivity();
+      }
+    }, 5_000);
+    return () => clearInterval(interval);
+  }, [resetToIdle, pin, verified, isMoving]);
+
+  // 오프라인/온라인 감지 + 재연결 시 큐 재전송
+  useEffect(() => {
+    const handleOnline = async () => {
+      setIsOffline(false);
+      const { sent, remaining } = await flushKioskQueue();
+      setPendingCount(remaining);
+      if (sent > 0) {
+        showMessage('success', `오프라인 중 처리 ${sent}건을 재전송했습니다.`);
+      }
+    };
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    if (navigator.onLine) handleOnline();
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 학원 미지정 시 선택 목록 로드
   useEffect(() => {
@@ -33,12 +91,6 @@ export default function KioskPage() {
       .select('*')
       .then(({ data }) => setAcademies((data as Academy[]) ?? []));
   }, [academyId]);
-
-  const resetToIdle = () => {
-    setPin('');
-    setVerified(null);
-    setEmptySeats([]);
-  };
 
   const showMessage = (type: 'error' | 'success', text: string) => {
     setMessage({ type, text });
@@ -90,8 +142,13 @@ export default function KioskPage() {
     }
   };
 
+  // 입실/자리이동: 동시성 민감 액션 — 오프라인이면 아예 막음 (큐잉 대상 아님)
   const checkIn = async (seatNumber: number) => {
     if (!academyId || !verified) return;
+    if (isOffline) {
+      showMessage('error', '오프라인 상태에서는 입실 처리를 할 수 없습니다.');
+      return;
+    }
     setIsBusy(true);
     try {
       await apiFetch(`/api/kiosk/${academyId}/check-in`, {
@@ -112,20 +169,54 @@ export default function KioskPage() {
     }
   };
 
-  const doAction = async (action: 'check-out' | 'away' | 'return') => {
+  const moveSeat = async (seatNumber: number) => {
     if (!academyId || !verified) return;
+    if (isOffline) {
+      showMessage('error', '오프라인 상태에서는 자리 이동을 할 수 없습니다.');
+      return;
+    }
     setIsBusy(true);
     try {
-      await apiFetch(`/api/kiosk/${academyId}/${action}`, {
+      await apiFetch(`/api/kiosk/${academyId}/move`, {
         method: 'POST',
         auth: false,
-        body: JSON.stringify({ studentId: verified.student.id }),
+        body: JSON.stringify({ studentId: verified.student.id, seatNumber }),
       });
-      const labels = { 'check-out': '퇴실', away: '외출', return: '복귀' };
-      showMessage('success', `${labels[action]} 처리되었습니다.`);
+      showMessage('success', `${seatNumber}번 좌석으로 이동했습니다.`);
       resetToIdle();
     } catch (e) {
-      showMessage('error', e instanceof Error ? e.message : '처리 실패');
+      showMessage('error', e instanceof Error ? e.message : '자리 이동 실패');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  // 외출/퇴실/복귀: 오프라인이면 큐에 쌓아뒀다가 재연결 시 자동 재전송
+  const doAction = async (action: keyof typeof QUEUEABLE_ACTIONS) => {
+    if (!academyId || !verified) return;
+    const path = `/api/kiosk/${academyId}/${action}`;
+    const body = { studentId: verified.student.id };
+    const label = QUEUEABLE_ACTIONS[action];
+
+    if (isOffline) {
+      enqueueKioskAction(path, body, label);
+      setPendingCount(queuedActionCount());
+      showMessage('success', `오프라인 상태 — 재연결되면 자동으로 ${label} 처리됩니다.`);
+      resetToIdle();
+      return;
+    }
+
+    setIsBusy(true);
+    try {
+      await apiFetch(path, { method: 'POST', auth: false, body: JSON.stringify(body) });
+      showMessage('success', `${label} 처리되었습니다.`);
+      resetToIdle();
+    } catch (e) {
+      // 요청 중 갑자기 끊긴 경우도 큐에 넣어 유실 방지
+      enqueueKioskAction(path, body, label);
+      setPendingCount(queuedActionCount());
+      showMessage('error', e instanceof Error ? e.message : `${label} 처리 실패 — 재시도 대기열에 저장했습니다.`);
+      resetToIdle();
     } finally {
       setIsBusy(false);
     }
@@ -155,11 +246,20 @@ export default function KioskPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 p-6">
+    <div
+      onClick={bumpActivity}
+      onKeyDown={bumpActivity}
+      className="flex min-h-screen flex-col items-center justify-center bg-gray-900 p-6"
+    >
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-        <h1 className="mb-4 text-center text-lg font-bold text-gray-900">
-          SafeStep 키오스크
-        </h1>
+        <div className="mb-2 flex items-center justify-between">
+          <h1 className="text-lg font-bold text-gray-900">SafeStep 키오스크</h1>
+          {(isOffline || pendingCount > 0) && (
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600">
+              {isOffline ? '오프라인' : `대기열 ${pendingCount}건`}
+            </span>
+          )}
+        </div>
 
         {message && (
           <p
@@ -265,8 +365,18 @@ export default function KioskPage() {
               </>
             )}
 
-            {verified.currentSeat?.status === 'OCCUPIED' && (
-              <div className="grid grid-cols-2 gap-2">
+            {verified.currentSeat?.status === 'OCCUPIED' && !isMoving && (
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => {
+                    setIsMoving(true);
+                    if (academyId) loadEmptySeats(academyId);
+                  }}
+                  disabled={isBusy || isOffline}
+                  className="rounded-lg bg-gray-700 py-3 text-sm font-medium text-white disabled:opacity-40"
+                >
+                  자리 이동
+                </button>
                 <button
                   onClick={() => doAction('away')}
                   disabled={isBusy}
@@ -282,6 +392,35 @@ export default function KioskPage() {
                   퇴실
                 </button>
               </div>
+            )}
+
+            {verified.currentSeat?.status === 'OCCUPIED' && isMoving && (
+              <>
+                <p className="mb-2 text-sm text-gray-500">이동할 좌석을 선택해주세요</p>
+                <div className="grid max-h-60 grid-cols-4 gap-2 overflow-y-auto">
+                  {emptySeats.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => moveSeat(s.seat_number)}
+                      disabled={isBusy}
+                      className="rounded-lg border border-gray-200 py-2 text-sm font-medium hover:border-blue-400 disabled:opacity-40"
+                    >
+                      {s.seat_number}
+                    </button>
+                  ))}
+                  {emptySeats.length === 0 && (
+                    <p className="col-span-4 py-4 text-center text-sm text-gray-400">
+                      빈 좌석이 없습니다.
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setIsMoving(false)}
+                  className="mt-2 w-full text-center text-sm text-gray-400"
+                >
+                  취소
+                </button>
+              </>
             )}
 
             {verified.currentSeat?.status === 'AWAY' && (

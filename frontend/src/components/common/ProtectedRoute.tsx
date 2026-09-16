@@ -32,13 +32,13 @@ export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/teacher/pending" replace />;
   }
 
-  // 원장인데 아직 학원이 없으면 온보딩으로
+  // 원장인데 아직 학원이 없으면 등록 코드 입력 화면으로
   if (
     profile.role === 'ACADEMY_ADMIN' &&
     !profile.academy_id &&
-    location.pathname !== '/onboarding'
+    location.pathname !== '/owner/claim'
   ) {
-    return <Navigate to="/onboarding" replace />;
+    return <Navigate to="/owner/claim" replace />;
   }
 
   return <Outlet />;
