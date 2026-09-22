@@ -147,6 +147,18 @@ export default function DashboardPage() {
           >
             이용권 결제
           </Link>
+          <Link
+            to="/admin/reports"
+            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm hover:border-blue-400"
+          >
+            신고 관제
+          </Link>
+          <Link
+            to="/admin/seats/editor"
+            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm hover:border-blue-400"
+          >
+            좌석 배치 에디터
+          </Link>
           <input
             type="month"
             value={month}

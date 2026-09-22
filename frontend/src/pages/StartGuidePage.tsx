@@ -4,12 +4,16 @@ import { useAuth } from '../hooks/useAuth';
 
 const STEPS = [
   {
+    title: '도입 문의 남기기',
+    desc: '학원·카페 정보를 남겨주시면 SafeStep팀이 지점을 생성하고 8자리 등록 코드를 발급해드립니다.',
+  },
+  {
     title: '원장 계정 만들기',
     desc: '회원가입에서 "학원 원장" 유형을 선택해 계정을 만듭니다. 이메일 인증 없이 바로 시작할 수 있어요.',
   },
   {
-    title: '학원·카페 정보 등록',
-    desc: '학원 이름, 주소, 위치, 총 좌석 수를 입력하면 좌석이 존별로 자동 배치됩니다. (14일 무료 체험 시작)',
+    title: '등록 코드로 학원 연결',
+    desc: '전달받은 8자리 등록 코드를 입력하면 계정이 학원에 연결되고 좌석이 존별로 자동 배치됩니다.',
   },
   {
     title: '강사·학생 등록',
@@ -47,10 +51,10 @@ export default function StartGuidePage() {
     cta = (
       <>
         <Link
-          to={profile.academy_id ? '/dashboard' : '/onboarding'}
+          to={profile.academy_id ? '/dashboard' : '/owner/claim'}
           className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
         >
-          {profile.academy_id ? '내 대시보드로 이동' : '학원·카페 정보 등록하기'}
+          {profile.academy_id ? '내 대시보드로 이동' : '등록 코드 입력하기'}
         </Link>
         {profile.academy_id && (
           <Link
@@ -77,7 +81,7 @@ export default function StartGuidePage() {
 
       <div className="mx-auto max-w-4xl px-6 py-10">
         <h1 className="text-3xl font-extrabold text-gray-900">무료로 시작하기</h1>
-        <p className="mt-2 text-gray-500">4단계면 학원·카페 도입이 끝납니다.</p>
+        <p className="mt-2 text-gray-500">아래 단계를 따라오시면 학원·카페 도입이 끝납니다.</p>
 
         <ol className="mt-8 space-y-3">
           {STEPS.map((s, i) => (

@@ -8,6 +8,7 @@ import logo from '../assets/logo.png';
 
 // 로그인 없이 원장/강사 화면을 바로 체험할 수 있는 데모 전용 계정.
 // 시드 데이터(SafeStep 강남점, "중3 수학 데모반")에 연결되어 있습니다.
+// 계정 생성: `node supabase/seed_demo_accounts.mjs` (backend/.env 필요)
 // 실제 로그인은 백엔드 POST /api/auth/demo-login(매직링크 토큰 발급) 을 거치므로
 // 비밀번호는 프론트 어디에도 존재하지 않습니다.
 const DEMO_ACCOUNTS: Record<'admin' | 'teacher', { redirect: string }> = {
@@ -159,8 +160,8 @@ export default function LandingPage() {
         <div className="flex flex-col items-center justify-center">
           <img src={logo} alt="SafeStep" className="w-full max-w-lg" />
 
-          {/* 데모 체험하기 한 줄 */}
-          <div className="mt-6 grid w-full max-w-lg grid-cols-4 gap-2">
+          {/* 데모 체험하기 */}
+          <div className="mt-6 grid w-full max-w-lg grid-cols-2 gap-2 md:grid-cols-4">
             <Link
               to="/map"
               className="rounded-lg border border-gray-300 px-2 py-2.5 text-center text-xs font-medium text-gray-700 hover:bg-gray-50"
@@ -189,7 +190,7 @@ export default function LandingPage() {
             </button>
           </div>
           {demoError && <p className="mt-2 text-sm text-red-500">{demoError}</p>}
-          <p className="mt-2 max-w-lg whitespace-nowrap text-center text-xs text-gray-400">
+          <p className="mt-2 max-w-lg text-center text-xs text-gray-400">
             원장/강사 데모는 예시 데이터를 함께 쓰는 공용 체험 계정입니다.
           </p>
         </div>

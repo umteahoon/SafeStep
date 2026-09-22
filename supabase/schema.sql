@@ -181,8 +181,21 @@ CREATE TABLE seat_reports (
     academy_id UUID NOT NULL REFERENCES academies(id) ON DELETE CASCADE,
     seat_number INT NOT NULL,
     reason VARCHAR(50) NOT NULL, -- 'NOISE' | 'MONOPOLY' | 'OTHER'
+    resolved BOOLEAN DEFAULT FALSE,
+    resolved_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
     -- 익명성 보장을 위해 신고자 식별 정보는 저장하지 않음
+);
+
+-- 원장 초대코드: 슈퍼관리자가 지점 생성 시 발급하는 8자리 등록 코드
+-- ⚠️ 의도적으로 RLS 정책을 하나도 만들지 않음 (서비스 롤 전용, 공개 읽기 정책을 두면 코드가 노출됨)
+CREATE TABLE academy_owner_invites (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    academy_id UUID NOT NULL REFERENCES academies(id) ON DELETE CASCADE,
+    code VARCHAR(8) NOT NULL UNIQUE,
+    used_by UUID REFERENCES profiles(id),
+    used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 로그인 시도 기록 (관리자 접속 감사용)
@@ -198,6 +211,40 @@ CREATE TABLE login_attempts (
 
 CREATE INDEX idx_login_attempts_email_created ON login_attempts(email, created_at DESC);
 CREATE INDEX idx_login_attempts_created ON login_attempts(created_at DESC);
+
+-- 반 채팅방(CLASS) / 학원 공지방(ANNOUNCEMENT)
+CREATE TABLE chat_rooms (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    academy_id UUID NOT NULL REFERENCES academies(id) ON DELETE CASCADE,
+    class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+    type VARCHAR(20) NOT NULL, -- 'CLASS' | 'ANNOUNCEMENT'
+    name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+-- 반 하나당 채팅방 하나, 학원당 공지방 하나
+CREATE UNIQUE INDEX uniq_chat_room_class ON chat_rooms(class_id) WHERE class_id IS NOT NULL;
+CREATE UNIQUE INDEX uniq_chat_room_announcement ON chat_rooms(academy_id) WHERE type = 'ANNOUNCEMENT';
+
+CREATE TABLE chat_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    room_id UUID NOT NULL REFERENCES chat_rooms(id) ON DELETE CASCADE,
+    sender_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    type VARCHAR(20) NOT NULL DEFAULT 'TEXT', -- 'TEXT' | 'IMAGE' | 'ATTENDANCE_CHECK' | 'ATTENDANCE_RESPONSE' | 'SYSTEM'
+    content TEXT,
+    image_url TEXT,
+    edited_at TIMESTAMPTZ,
+    metadata JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_chat_messages_room_created ON chat_messages(room_id, created_at);
+
+-- 채팅방별 마지막 열람 시각 (안읽음 표시용)
+CREATE TABLE chat_room_reads (
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    room_id UUID NOT NULL REFERENCES chat_rooms(id) ON DELETE CASCADE,
+    last_read_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, room_id)
+);
 
 -- ------------------------------------------------------------
 -- 3. Helper 함수: 현재 로그인 사용자의 role / academy_id
@@ -232,6 +279,64 @@ AS $$
   );
 $$;
 
+-- 해당 학원 소속인가 (직원/학생은 profiles.academy_id, 학부모는 연동된 자녀 기준)
+CREATE OR REPLACE FUNCTION is_academy_member(target_academy_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profiles WHERE id = auth.uid() AND academy_id = target_academy_id
+  ) OR EXISTS (
+    SELECT 1 FROM students WHERE academy_id = target_academy_id AND parent_user_id = auth.uid()
+  );
+$$;
+
+-- 이 채팅방을 열람할 수 있는가 (공지방=학원 구성원 전체, 반방=담당직원+수강생 본인/학부모)
+CREATE OR REPLACE FUNCTION is_chat_room_participant(target_room_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM chat_rooms r
+    WHERE r.id = target_room_id
+      AND (
+        (r.type = 'ANNOUNCEMENT' AND is_academy_member(r.academy_id))
+        OR (
+          r.type = 'CLASS' AND (
+            is_approved_staff_of(r.academy_id)
+            OR EXISTS (
+              SELECT 1 FROM class_enrollments ce
+              JOIN students s ON s.id = ce.student_id
+              WHERE ce.class_id = r.class_id
+                AND (s.user_id = auth.uid() OR s.parent_user_id = auth.uid())
+            )
+          )
+        )
+      )
+  );
+$$;
+
+-- 이 채팅방에 발신할 수 있는가 (직원은 어디든, 학생은 본인이 수강 중인 반. 학부모는 읽기 전용)
+CREATE OR REPLACE FUNCTION can_post_in_chat_room(target_room_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM chat_rooms r
+    WHERE r.id = target_room_id
+      AND (
+        is_approved_staff_of(r.academy_id)
+        OR (
+          r.type = 'CLASS' AND EXISTS (
+            SELECT 1 FROM class_enrollments ce
+            JOIN students s ON s.id = ce.student_id
+            WHERE ce.class_id = r.class_id AND s.user_id = auth.uid()
+          )
+        )
+      )
+  );
+$$;
+
 -- ------------------------------------------------------------
 -- 4. RLS 활성화
 -- ------------------------------------------------------------
@@ -248,7 +353,11 @@ ALTER TABLE attendance_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE absence_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE seat_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE academy_owner_invites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE login_attempts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_room_reads ENABLE ROW LEVEL SECURITY;
 
 -- ------------------------------------------------------------
 -- 5. academies: 공개 읽기 + 쓰기는 슈퍼관리자/원장(본인 학원)만
@@ -363,6 +472,14 @@ CREATE POLICY "Seats Staff Write" ON seats
     FOR UPDATE TO authenticated
     USING (is_approved_staff_of(academy_id));
 
+CREATE POLICY "Seats Staff Insert" ON seats
+    FOR INSERT TO authenticated
+    WITH CHECK (is_approved_staff_of(academy_id));
+
+CREATE POLICY "Seats Staff Delete" ON seats
+    FOR DELETE TO authenticated
+    USING (is_approved_staff_of(academy_id));
+
 -- 키오스크 태블릿은 보통 로그인 세션이 없으므로, 실제 입·퇴실 처리는
 -- backend가 SUPABASE_SERVICE_ROLE_KEY로 RLS를 우회해 수행하는 것을 권장합니다.
 
@@ -422,12 +539,108 @@ CREATE POLICY "Seat Reports Staff Read" ON seat_reports
     FOR SELECT TO authenticated
     USING (is_approved_staff_of(academy_id));
 
+CREATE POLICY "Seat Reports Staff Update" ON seat_reports
+    FOR UPDATE TO authenticated
+    USING (is_approved_staff_of(academy_id));
+
 -- ------------------------------------------------------------
 -- 15. login_attempts: 슈퍼관리자만 조회. 쓰기는 백엔드가 service role로만 수행
 -- ------------------------------------------------------------
 CREATE POLICY "Login Attempts SuperAdmin Read" ON login_attempts
     FOR SELECT TO authenticated
     USING (current_user_role() = 'SUPER_ADMIN');
+
+-- ------------------------------------------------------------
+-- 16. chat_rooms / chat_messages: 반 채팅 · 공지방
+-- ------------------------------------------------------------
+CREATE POLICY "Chat Rooms Select" ON chat_rooms
+    FOR SELECT TO authenticated
+    USING (
+        is_approved_staff_of(academy_id)
+        OR (type = 'ANNOUNCEMENT' AND is_academy_member(academy_id))
+        OR (
+            type = 'CLASS' AND EXISTS (
+                SELECT 1 FROM class_enrollments ce
+                JOIN students s ON s.id = ce.student_id
+                WHERE ce.class_id = chat_rooms.class_id
+                  AND (s.user_id = auth.uid() OR s.parent_user_id = auth.uid())
+            )
+        )
+    );
+
+CREATE POLICY "Chat Rooms Staff Create" ON chat_rooms
+    FOR INSERT TO authenticated
+    WITH CHECK (is_approved_staff_of(academy_id));
+
+CREATE POLICY "Chat Messages Select" ON chat_messages
+    FOR SELECT TO authenticated
+    USING (is_chat_room_participant(room_id));
+
+CREATE POLICY "Chat Messages Insert" ON chat_messages
+    FOR INSERT TO authenticated
+    WITH CHECK (can_post_in_chat_room(room_id) AND sender_id = auth.uid());
+
+-- 같은 채팅방에 실제로 메시지를 보낸 사람의 프로필(이름)은 다른 참여자도 볼 수 있어야 함
+-- (학부모는 profiles.academy_id 가 없어 기존 "같은 학원 직원" 정책만으로는 발신자 이름을 못 봄)
+CREATE POLICY "Profiles Chat Participant Read" ON profiles
+    FOR SELECT TO authenticated
+    USING (
+        EXISTS (
+            SELECT 1 FROM chat_messages m
+            WHERE m.sender_id = profiles.id
+              AND is_chat_room_participant(m.room_id)
+        )
+    );
+
+-- 삭제: 본인 메시지는 누구나, 그 외 메시지는 학원 직원이 삭제 가능
+CREATE POLICY "Chat Messages Delete" ON chat_messages
+    FOR DELETE TO authenticated
+    USING (
+        sender_id = auth.uid()
+        OR EXISTS (
+            SELECT 1 FROM chat_rooms r
+            WHERE r.id = chat_messages.room_id AND is_approved_staff_of(r.academy_id)
+        )
+    );
+
+-- 수정: 본인이 보낸 TEXT 메시지만 (이미지·출석체크 등은 수정 불가)
+CREATE POLICY "Chat Messages Own Edit" ON chat_messages
+    FOR UPDATE TO authenticated
+    USING (sender_id = auth.uid() AND type = 'TEXT')
+    WITH CHECK (sender_id = auth.uid() AND type = 'TEXT');
+
+-- chat_room_reads: 본인 것만 읽고 쓸 수 있음 (안읽음 표시 계산용)
+CREATE POLICY "Chat Room Reads Own" ON chat_room_reads
+    FOR ALL TO authenticated
+    USING (user_id = auth.uid())
+    WITH CHECK (user_id = auth.uid());
+
+-- ------------------------------------------------------------
+-- 17. Storage: 채팅 이미지 첨부용 공개 버킷
+--     업로드 경로는 "<room_id>/<파일명>" 규칙을 강제해 발신 권한과 동일한 기준으로 제한
+-- ------------------------------------------------------------
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('chat-uploads', 'chat-uploads', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Chat Uploads Public Read" ON storage.objects
+    FOR SELECT TO public
+    USING (bucket_id = 'chat-uploads');
+
+CREATE POLICY "Chat Uploads Participant Insert" ON storage.objects
+    FOR INSERT TO authenticated
+    WITH CHECK (
+        bucket_id = 'chat-uploads'
+        AND can_post_in_chat_room((storage.foldername(name))[1]::uuid)
+    );
+
+-- ------------------------------------------------------------
+-- 18. Realtime 활성화: seats(잔여석), chat_messages(채팅), class_attendance_records(출결)
+--     테이블을 SQL로만 만들면 Realtime 발행 목록에 자동 포함되지 않아 별도로 추가해야 함
+-- ------------------------------------------------------------
+ALTER PUBLICATION supabase_realtime ADD TABLE seats;
+ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE class_attendance_records;
 
 -- ============================================================
 -- 끝. 실행 후 Supabase Dashboard > Authentication > Policies 에서

@@ -127,6 +127,52 @@ router.post('/:academyId/check-out', async (req, res) => {
   res.json({ success: true, stayMinutes });
 });
 
+// POST /api/kiosk/:academyId/move  { studentId, seatNumber }
+// 입실 중인 학생을 다른 빈 좌석으로 이동 (최초 입실 시각은 유지 → 총 이용시간 정확히 계산)
+router.post('/:academyId/move', async (req, res) => {
+  const { academyId } = req.params;
+  const { studentId, seatNumber } = req.body;
+
+  const oldSeat = await findCurrentSeat(academyId, studentId);
+  if (!oldSeat) return res.status(404).json({ error: '입실 중인 좌석이 없습니다.' });
+  if (oldSeat.seat_number === seatNumber) {
+    return res.status(400).json({ error: '같은 좌석으로는 이동할 수 없습니다.' });
+  }
+
+  const { data: newSeat, error: newSeatError } = await supabaseAdmin
+    .from('seats')
+    .update({
+      status: 'OCCUPIED',
+      current_student_id: studentId,
+      occupied_at: oldSeat.occupied_at, // 최초 입실 시각 유지
+      away_at: null,
+    })
+    .eq('academy_id', academyId)
+    .eq('seat_number', seatNumber)
+    .eq('status', 'EMPTY') // 🔒 동시성: 이미 사용중인 좌석으로는 이동 불가
+    .select()
+    .maybeSingle();
+
+  if (newSeatError) return res.status(500).json({ error: newSeatError.message });
+  if (!newSeat) {
+    return res.status(409).json({ error: '이미 사용 중이거나 존재하지 않는 좌석입니다.' });
+  }
+
+  await supabaseAdmin
+    .from('seats')
+    .update({ status: 'EMPTY', current_student_id: null, occupied_at: null, away_at: null })
+    .eq('id', oldSeat.id);
+
+  await supabaseAdmin.from('attendance_logs').insert({
+    academy_id: academyId,
+    student_id: studentId,
+    seat_number: seatNumber,
+    type: 'MOVE',
+  });
+
+  res.json({ success: true, seat: newSeat });
+});
+
 // POST /api/kiosk/:academyId/away  { studentId }
 router.post('/:academyId/away', async (req, res) => {
   const { academyId } = req.params;

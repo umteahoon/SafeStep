@@ -15,7 +15,7 @@ import MapSearchPage from './pages/map/MapSearchPage';
 import SeatFloorPlanPage from './pages/seats/SeatFloorPlanPage';
 import KioskPage from './pages/kiosk/KioskPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
-import OnboardingPage from './pages/onboarding/OnboardingPage';
+import OwnerClaimPage from './pages/owner/OwnerClaimPage';
 import StudentManagementPage from './pages/students/StudentManagementPage';
 import TeacherManagementPage from './pages/teachers/TeacherManagementPage';
 import ClassListPage from './pages/classes/ClassListPage';
@@ -31,6 +31,10 @@ import StartGuidePage from './pages/StartGuidePage';
 import TeamsPage from './pages/teams/TeamsPage';
 import TeamRoomPage from './pages/teams/TeamRoomPage';
 import JoinTeamPage from './pages/teams/JoinTeamPage';
+import ReportsPage from './pages/admin/ReportsPage';
+import SeatEditorPage from './pages/admin/SeatEditorPage';
+import ChatListPage from './pages/chat/ChatListPage';
+import ChatRoomPage from './pages/chat/ChatRoomPage';
 
 function App() {
   // 세션/프로필 구독은 앱 최상단에서 한 번만
@@ -76,11 +80,13 @@ function App() {
           <Route path="/classes" element={<ClassListPage />} />
           <Route path="/classes/schedule" element={<ClassSchedulePage />} />
           <Route path="/attendance" element={<ClassAttendancePage />} />
+          <Route path="/admin/reports" element={<ReportsPage />} />
+          <Route path="/admin/seats/editor" element={<SeatEditorPage />} />
         </Route>
 
         {/* 원장 전용 */}
         <Route element={<ProtectedRoute allowedRoles={['ACADEMY_ADMIN']} />}>
-          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/owner/claim" element={<OwnerClaimPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/teachers" element={<TeacherManagementPage />} />
           <Route path="/billing" element={<SubscriptionPage />} />
@@ -104,6 +110,18 @@ function App() {
         {/* 학부모 전용 */}
         <Route element={<ProtectedRoute allowedRoles={['PARENT']} />}>
           <Route path="/parent/report" element={<ParentReportPage />} />
+        </Route>
+
+        {/* 채팅: 슈퍼관리자를 제외한 전체 역할 */}
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={['ACADEMY_ADMIN', 'TEACHER', 'STUDENT', 'PARENT']}
+            />
+          }
+        >
+          <Route path="/chat" element={<ChatListPage />} />
+          <Route path="/chat/:roomId" element={<ChatRoomPage />} />
         </Route>
 
         <Route

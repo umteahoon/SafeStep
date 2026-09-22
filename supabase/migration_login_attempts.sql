@@ -2,6 +2,7 @@
 -- SafeStep - 로그인 시도 기록 (관리자 접속 감사용)
 -- 이미 schema.sql을 적용한 프로젝트에 이 파일만 추가로 실행하세요.
 -- (schema.sql에도 동일한 내용이 반영되어 있어 신규 설치 시에는 별도 실행 불필요)
+-- migration_02_owner_invites_seat_admin.sql 과는 독립적이라 순서 상관없이 실행 가능합니다.
 -- ============================================================
 
 CREATE TABLE login_attempts (

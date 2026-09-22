@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { inviteLink } from '../../lib/teams';
-import type { ChatMessage, ChatRoom, Team, TeamMember } from '../../types';
+import type { TeamChatMessage, TeamChatRoom, Team, TeamMember } from '../../types';
 
 const ROLE_LABEL: Record<string, string> = {
   ACADEMY_ADMIN: '원장',
@@ -32,9 +32,9 @@ export default function TeamRoomPage() {
 
   const [team, setTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
-  const [rooms, setRooms] = useState<ChatRoom[]>([]);
+  const [rooms, setRooms] = useState<TeamChatRoom[]>([]);
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<TeamChatMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -56,11 +56,11 @@ export default function TeamRoomPage() {
   const loadRooms = useCallback(async () => {
     if (!teamId) return [];
     const { data } = await supabase
-      .from('chat_rooms')
+      .from('team_chat_rooms')
       .select('*')
       .eq('team_id', teamId)
       .order('created_at');
-    const list = (data as ChatRoom[]) ?? [];
+    const list = (data as TeamChatRoom[]) ?? [];
     setRooms(list);
     return list;
   }, [teamId]);
@@ -100,14 +100,14 @@ export default function TeamRoomPage() {
     setMessages([]);
 
     supabase
-      .from('chat_messages')
+      .from('team_chat_messages')
       .select('*')
       .eq('room_id', activeRoomId)
       .order('created_at', { ascending: false })
       .limit(100)
       .then(({ data }) => {
         if (cancelled) return;
-        const list = ((data as ChatMessage[]) ?? []).reverse();
+        const list = ((data as TeamChatMessage[]) ?? []).reverse();
         setMessages((prev) => {
           const seen = new Set(list.map((m) => m.id));
           return [...list, ...prev.filter((m) => !seen.has(m.id))];
@@ -115,17 +115,17 @@ export default function TeamRoomPage() {
       });
 
     const channel = supabase
-      .channel(`chat-room-${activeRoomId}`)
+      .channel(`team-chat-room-${activeRoomId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'chat_messages',
+          table: 'team_chat_messages',
           filter: `room_id=eq.${activeRoomId}`,
         },
         (payload) => {
-          const msg = payload.new as ChatMessage;
+          const msg = payload.new as TeamChatMessage;
           setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
         }
       )
@@ -160,7 +160,7 @@ export default function TeamRoomPage() {
 
   const teamRoom = rooms.find((r) => r.type === 'TEAM');
   const directRooms = rooms.filter((r) => r.type === 'DIRECT');
-  const otherOf = (r: ChatRoom) => (r.user_a === myId ? r.user_b : r.user_a) ?? '';
+  const otherOf = (r: TeamChatRoom) => (r.user_a === myId ? r.user_b : r.user_a) ?? '';
   const activeRoom = rooms.find((r) => r.id === activeRoomId) ?? null;
   const activeTitle = !activeRoom
     ? ''
@@ -190,7 +190,7 @@ export default function TeamRoomPage() {
     setIsSending(true);
     setError(null);
     const { data, error: sendError } = await supabase
-      .from('chat_messages')
+      .from('team_chat_messages')
       .insert({ room_id: activeRoomId, sender_id: myId, content })
       .select()
       .single();
@@ -200,7 +200,7 @@ export default function TeamRoomPage() {
       return;
     }
     setDraft('');
-    const msg = data as ChatMessage;
+    const msg = data as TeamChatMessage;
     setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
   };
 

@@ -30,7 +30,7 @@ CREATE TABLE team_members (
 CREATE INDEX idx_team_members_user ON team_members(user_id);
 
 -- 채팅방: 팀 단체방(TEAM, 팀당 1개) / 팀 내 1:1 개인방(DIRECT, user_a < user_b 로 정규화)
-CREATE TABLE chat_rooms (
+CREATE TABLE team_chat_rooms (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
     type VARCHAR(10) NOT NULL, -- 'TEAM' | 'DIRECT'
@@ -42,17 +42,17 @@ CREATE TABLE chat_rooms (
         OR (type = 'DIRECT' AND user_a IS NOT NULL AND user_b IS NOT NULL AND user_a < user_b)
     )
 );
-CREATE UNIQUE INDEX uq_chat_room_team ON chat_rooms(team_id) WHERE type = 'TEAM';
-CREATE UNIQUE INDEX uq_chat_room_direct ON chat_rooms(team_id, user_a, user_b) WHERE type = 'DIRECT';
+CREATE UNIQUE INDEX uq_team_chat_room_team ON team_chat_rooms(team_id) WHERE type = 'TEAM';
+CREATE UNIQUE INDEX uq_team_chat_room_direct ON team_chat_rooms(team_id, user_a, user_b) WHERE type = 'DIRECT';
 
-CREATE TABLE chat_messages (
+CREATE TABLE team_chat_messages (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    room_id UUID NOT NULL REFERENCES chat_rooms(id) ON DELETE CASCADE,
+    room_id UUID NOT NULL REFERENCES team_chat_rooms(id) ON DELETE CASCADE,
     sender_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     content TEXT NOT NULL CHECK (char_length(content) BETWEEN 1 AND 2000),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX idx_chat_messages_room ON chat_messages(room_id, created_at);
+CREATE INDEX idx_team_chat_messages_room ON team_chat_messages(room_id, created_at);
 
 -- 학원·카페 도입 문의 (랜딩 페이지 /inquiry 폼)
 CREATE TABLE inquiries (
@@ -98,7 +98,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
 AS $$
   SELECT EXISTS (
     SELECT 1
-    FROM chat_rooms r
+    FROM team_chat_rooms r
     JOIN team_members m ON m.team_id = r.team_id AND m.user_id = auth.uid()
     WHERE r.id = p_room
       AND (r.type = 'TEAM' OR auth.uid() IN (r.user_a, r.user_b))
@@ -133,8 +133,8 @@ $$;
 -- ------------------------------------------------------------
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE chat_rooms ENABLE ROW LEVEL SECURITY;
-ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE team_chat_rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE team_chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inquiries ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Teams Member Read" ON teams
@@ -150,15 +150,15 @@ CREATE POLICY "Team Members Leave" ON team_members
     FOR DELETE TO authenticated
     USING (user_id = auth.uid());
 
-CREATE POLICY "Chat Rooms Read" ON chat_rooms
+CREATE POLICY "Team Chat Rooms Read" ON team_chat_rooms
     FOR SELECT TO authenticated
     USING (can_access_room(id));
 
-CREATE POLICY "Chat Messages Read" ON chat_messages
+CREATE POLICY "Team Chat Messages Read" ON team_chat_messages
     FOR SELECT TO authenticated
     USING (can_access_room(room_id));
 
-CREATE POLICY "Chat Messages Send" ON chat_messages
+CREATE POLICY "Team Chat Messages Send" ON team_chat_messages
     FOR INSERT TO authenticated
     WITH CHECK (sender_id = auth.uid() AND can_access_room(room_id));
 
@@ -203,7 +203,7 @@ BEGIN
   RETURNING * INTO v_team;
 
   INSERT INTO team_members (team_id, user_id, role) VALUES (v_team.id, auth.uid(), 'OWNER');
-  INSERT INTO chat_rooms (team_id, type) VALUES (v_team.id, 'TEAM');
+  INSERT INTO team_chat_rooms (team_id, type) VALUES (v_team.id, 'TEAM');
 
   RETURN v_team;
 END;
@@ -283,11 +283,11 @@ BEGIN
   v_a := LEAST(auth.uid(), p_other);
   v_b := GREATEST(auth.uid(), p_other);
 
-  INSERT INTO chat_rooms (team_id, type, user_a, user_b)
+  INSERT INTO team_chat_rooms (team_id, type, user_a, user_b)
   VALUES (p_team, 'DIRECT', v_a, v_b)
   ON CONFLICT (team_id, user_a, user_b) WHERE type = 'DIRECT' DO NOTHING;
 
-  SELECT id INTO v_room FROM chat_rooms
+  SELECT id INTO v_room FROM team_chat_rooms
    WHERE team_id = p_team AND type = 'DIRECT' AND user_a = v_a AND user_b = v_b;
   RETURN v_room;
 END;
@@ -310,7 +310,7 @@ GRANT EXECUTE ON FUNCTION start_direct_chat(UUID, UUID) TO authenticated;
 -- ------------------------------------------------------------
 DO $$
 BEGIN
-  ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages;
+  ALTER PUBLICATION supabase_realtime ADD TABLE team_chat_messages;
 EXCEPTION WHEN duplicate_object THEN
   NULL;
 END $$;
