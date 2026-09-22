@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { apiFetch } from '../lib/api';
-import { TeamActionButtons } from '../components/team/TeamActionButtons';
 import logo from '../assets/logo.png';
 
 // 로그인 없이 원장/강사 화면을 바로 체험할 수 있는 데모 전용 계정.
@@ -93,7 +92,6 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <img src={logo} alt="SafeStep" className="h-8 w-auto" />
           <nav className="flex items-center gap-2 text-sm">
-            <TeamActionButtons />
             <Link
               to="/map"
               className="rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50"
