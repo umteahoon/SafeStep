@@ -26,6 +26,11 @@ import SuperAdminDashboardPage from './pages/admin/SuperAdminDashboardPage';
 import AdminAccessLogsPage from './pages/admin/AdminAccessLogsPage';
 import StudentQrPage from './pages/student/StudentQrPage';
 import ParentReportPage from './pages/parent/ParentReportPage';
+import InquiryPage from './pages/InquiryPage';
+import StartGuidePage from './pages/StartGuidePage';
+import TeamsPage from './pages/teams/TeamsPage';
+import TeamRoomPage from './pages/teams/TeamRoomPage';
+import JoinTeamPage from './pages/teams/JoinTeamPage';
 
 function App() {
   // 세션/프로필 구독은 앱 최상단에서 한 번만
@@ -40,6 +45,9 @@ function App() {
           path="/"
           element={isNativeApp ? <Navigate to="/map" replace /> : <LandingPage />}
         />
+        <Route path="/inquiry" element={<InquiryPage />} />
+        <Route path="/start" element={<StartGuidePage />} />
+        <Route path="/teams/join/:code" element={<JoinTeamPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
@@ -76,6 +84,16 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/teachers" element={<TeacherManagementPage />} />
           <Route path="/billing" element={<SubscriptionPage />} />
+        </Route>
+
+        {/* 팀·채팅: 학원 소속 원장·강사·학생 */}
+        <Route
+          element={
+            <ProtectedRoute allowedRoles={['ACADEMY_ADMIN', 'TEACHER', 'STUDENT']} />
+          }
+        >
+          <Route path="/teams" element={<TeamsPage />} />
+          <Route path="/teams/:teamId" element={<TeamRoomPage />} />
         </Route>
 
         {/* 학생 전용 */}

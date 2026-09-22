@@ -121,6 +121,7 @@ safestep/
     ├── seed.sql                      # 데모 데이터
     ├── seed_floorplan.sql            # 좌석 도면 데모 재배치 스크립트
     ├── migration_login_attempts.sql  # login_attempts 테이블 추가 마이그레이션
+    ├── migration_teams_chat.sql      # 팀/채팅/도입 문의 테이블 + RLS + RPC + Realtime (9장 참고)
     └── seed_demo_accounts.mjs        # 원장/강사 데모 로그인 계정 생성 스크립트 (9.1 참고)
 ```
 
@@ -233,6 +234,10 @@ $$;
 | `/billing` | 토스 30일 이용권 결제 | | | **O** | | | |
 | `/student/qr` | 학생 개인 모바일 QR | | | | | **O** | |
 | `/parent/report` | 자녀 연동/사전결석/주간 리포트 | | | | | | **O** |
+| `/inquiry` | 학원·카페 도입 문의 폼 + 요금/기능 안내 (`inquiries` 테이블 저장) | **O** | | | | | |
+| `/start` | 무료로 시작하기 가이드 (원장이면 온보딩/대시보드로 안내) | **O** | | | | | |
+| `/teams/join/:code` | 팀 초대 링크 (비로그인이면 `/login?next=`로 보냈다가 복귀) | **O** | | | | | |
+| `/teams`, `/teams/:teamId` | 팀 목록·만들기·참가 / 팀 채팅방 (학원 소속만) | | | **O** | **O** | **O** | |
 
 ### 5.2 `ProtectedRoute.tsx` (실제 구현)
 
@@ -295,6 +300,7 @@ export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
 | --- | --- | --- | --- |
 | POST | `/api/auth/register` | 공개 | 이메일 인증 없이 계정+프로필 즉시 생성. 강사는 `academyId` 필수, 승인 대기(`PENDING`)로 시작 |
 | POST | `/api/auth/login-log` | 공개 | 로그인 성공/실패를 `login_attempts`에 기록 (IP, User-Agent 포함). `LoginPage.tsx`가 로그인 시도 직후 호출 |
+| POST | `/api/auth/demo-login` | 공개 | `{ role: 'admin' \| 'teacher' }`를 받아 고정 데모 계정의 매직링크 1회용 토큰(`tokenHash`)을 발급. 비밀번호는 응답에 포함되지 않음. `DEMO_LOGIN_ENABLED=false`면 404 |
 | GET | `/api/academy` | 로그인 | 현재 사용자의 소속 학원 정보 조회 |
 | POST | `/api/academy/onboard` | ACADEMY_ADMIN | 학원 최초 생성 + 프로필 연결 + 지정 좌석 수만큼 존별 좌석 자동 생성 |
 | GET | `/api/teachers/pending` | ACADEMY_ADMIN | 본인 학원 소속 승인 대기 강사 목록 |
@@ -392,9 +398,11 @@ VAPID_PRIVATE_KEY=your-generated-vapid-private-key
 VAPID_SUBJECT=mailto:admin@safestep.local
 CORS_ORIGIN=https://safestep.netlify.app
 FRONTEND_URL=https://safestep.netlify.app
+DEMO_LOGIN_ENABLED=true
 ```
 
 > VAPID 키가 비어 있어도 백엔드는 정상 기동하며(경고 로그만 출력), Web Push만 비활성화됩니다.
+> `DEMO_LOGIN_ENABLED=false`로 설정하면 `POST /api/auth/demo-login`이 차단됩니다 — 실서비스 배포 시 권장 (11.9 참고).
 
 ---
 
@@ -404,6 +412,7 @@ FRONTEND_URL=https://safestep.netlify.app
 # 1) Supabase 프로젝트에 스키마 적용 (Supabase SQL Editor에서 순서대로, 각각 별도 실행)
 #    supabase/schema.sql → supabase/seed.sql → (선택) supabase/seed_floorplan.sql
 #    이미 schema.sql을 예전 버전으로 적용한 프로젝트라면 supabase/migration_login_attempts.sql 도 추가 실행
+#    팀/채팅/도입 문의 기능을 쓰려면 supabase/migration_teams_chat.sql 도 반드시 1회 실행 (미적용 시 /teams 가 오류 표시)
 
 # 2) 백엔드
 cd backend
@@ -501,15 +510,33 @@ node ../supabase/seed_demo_accounts.mjs
 - 의심 탐지 시 관리자에게 알림(현재는 대시보드에 직접 들어와야 확인 가능)
 - `login_attempts` 오래된 행 자동 정리(Cron 없음 — 계속 쌓임)
 
-### 11.9 데모 계정 보안
-- `demo-admin@safestep.local` / `demo-teacher@safestep.local` 비밀번호가 `LandingPage.tsx` 소스에 평문으로 노출되어 있음 (누구나 로그인해서 시드 데이터를 수정/삭제 가능). 로컬/데모용으로만 의도됨 — 실 서비스 배포 시 반드시 제거하거나 읽기 전용 데모 DB로 분리해야 함.
-- 데모 로그인 버튼을 누르면 **현재 로그인된 세션이 데모 계정으로 즉시 교체**됩니다(로그아웃 확인 없음).
+### 11.9 데모 계정 보안 (✅ 부분 해결 — 2026-09-16)
+- ~~비밀번호 프론트 노출~~: `LandingPage.tsx`에 하드코딩돼 있던 평문 비밀번호를 제거. `POST /api/auth/demo-login`이 `role`만 받아 서버가 고정 이메일로 매핑하고, `supabaseAdmin.auth.admin.generateLink()`로 1회용 매직링크 토큰을 발급 → 프론트는 `supabase.auth.verifyOtp()`로 세션만 수립. 비밀번호는 어떤 응답에도 포함되지 않음.
+- ~~세션 무확인 교체~~: 데모가 아닌 계정으로 로그인된 상태에서 데모 버튼을 누르면 `window.confirm()`으로 세션 전환 여부를 먼저 확인.
+- `DEMO_LOGIN_ENABLED=false` 환경변수로 실서비스 배포 시 데모 로그인 API 자체를 코드 변경 없이 차단 가능.
+- ⚠️ **남은 한계**: 데모 계정(`ACADEMY_ADMIN`/`TEACHER`)은 여전히 시드 데이터에 대한 전체 쓰기 권한을 가지고 있음. 데모 로그인 경로 자체(비밀번호 노출)는 막았지만, 데모 계정으로 로그인한 사람이 공유 시드 데이터를 수정/삭제하는 것은 여전히 가능 — RLS로 읽기 전용화하거나 주기적 리셋 Cron을 추가하는 것은 아직 미구현.
 
 ---
 
 ## 12. 변경 이력 (Changelog)
 
 > 날짜순으로 최신이 위에 오도록 기록합니다. 새로 작업할 때마다 이 섹션에 이어서 추가해주세요.
+
+### 2026-09-22
+- **[신규] 팀 & 채팅 (Teams 스타일)**: 학원 소속 원장·승인 강사·학생 전용. `supabase/migration_teams_chat.sql`(⚠️ SQL Editor에서 1회 실행 필요)로 `teams`/`team_members`/`chat_rooms`/`chat_messages` + RLS + RPC(`create_team`, `join_team_by_code`, `team_preview_by_code`, `list_team_members`, `start_direct_chat`) + Realtime 추가.
+  - 팀 만들기: 알파벳+숫자 조합 8자리 랜덤 참가 코드 자동 발급(헷갈리는 I/O/0/1 제외), 단체 채팅방 자동 생성. 참가는 같은 학원 소속만 가능.
+  - 참가 코드 또는 초대 링크(`/teams/join/:code`)로 초대. 팀 안에서 단체 채팅방 + 멤버 클릭으로 1:1 개인 채팅.
+  - 랜딩 상단("스터디카페 찾기" 왼쪽)과 내 페이지 상단(`PageHeader`)에 "팀 참가 / 팀 만들기" 버튼, 앱 하단 탭에 "팀" 탭 추가.
+  - 프론트: `pages/teams/{TeamsPage,TeamRoomPage,JoinTeamPage}.tsx`, `components/team/TeamActionButtons.tsx`, `lib/teams.ts`. 로그인 페이지가 `?next=` 복귀 경로를 지원.
+- **[개선] 랜딩 버튼 동선 정리**: "학원·카페 도입 문의" → 신규 `/inquiry`(문의 폼), "무료로 시작하기" → 신규 `/start`(가이드, 원장이면 온보딩/대시보드로 안내). 더 이상 로그인한 원장을 회원가입으로 보내지 않음. 문의는 `inquiries` 테이블(슈퍼관리자만 조회)에 저장.
+- **[변경] 키오스크 데모**: 랜딩 "키오스크 데모"(`/kiosk?demo=1`)는 핀코드 없이 QR 스캔 전용. 일반 `/kiosk`는 기존대로 핀코드+QR.
+- **[변경] 파비콘 교체**(Vite 기본 아이콘 → SafeStep 계단 로고), 푸터 문구를 "© {연도} SafeStep. All rights reserved."로 수정.
+
+### 2026-09-16
+- **[보안] 데모 계정 로그인 방식 전환 (11.9)**: `LandingPage.tsx`에 평문으로 하드코딩돼 있던 데모 계정 비밀번호를 제거. 백엔드에 `POST /api/auth/demo-login`을 신규 추가해 `role`만 받고 이메일은 서버 고정값으로만 매핑, `supabaseAdmin.auth.admin.generateLink()`로 1회용 매직링크 토큰을 발급하면 프론트가 `supabase.auth.verifyOtp()`로 세션을 수립하는 방식으로 변경 (`backend/src/routes/auth.ts`, `frontend/src/pages/LandingPage.tsx`).
+- **[보안] 데모 로그인 운영 차단 플래그 추가**: `DEMO_LOGIN_ENABLED=false` 환경변수 하나로 `/api/auth/demo-login`을 차단할 수 있도록 함 (`backend/.env.example`).
+- **[UX] 데모 세션 전환 확인 다이얼로그 추가**: 데모가 아닌 계정으로 로그인된 상태에서 데모 버튼을 누르면 세션을 교체하기 전에 확인을 받도록 수정 (`LandingPage.tsx`).
+- 프론트/백엔드 빌드(`tsc`) 및 프로덕션 번들 검증 완료 — 빌드된 JS에 `safestepdemo`/데모 이메일 문자열이 더 이상 포함되지 않음을 확인.
 
 ### 2026-09-09
 - **README 전면 재작성**: 실제 `frontend/`/`backend`/`supabase` 코드를 페이지·라우트·API 단위로 전부 대조 검증하고, 명세서 내용을 구현 기준으로 100% 정합화. 미구현 기능은 11장으로 분리.

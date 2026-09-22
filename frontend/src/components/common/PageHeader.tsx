@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from '../../hooks/useAuth';
+import { TeamActionButtons } from '../team/TeamActionButtons';
 
 interface PageHeaderProps {
   title: string;
@@ -26,7 +27,8 @@ export function PageHeader({ title, subtitle, backTo, right }: PageHeaderProps) 
         <h1 className="text-xl font-bold text-gray-900">{title}</h1>
         {subtitle && <p className="text-sm text-gray-400">{subtitle}</p>}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <TeamActionButtons />
         {right}
         <button
           onClick={async () => {

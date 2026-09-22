@@ -2,28 +2,17 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
+import { apiFetch } from '../lib/api';
+import { TeamActionButtons } from '../components/team/TeamActionButtons';
 import logo from '../assets/logo.png';
 
 // 로그인 없이 원장/강사 화면을 바로 체험할 수 있는 데모 전용 계정.
 // 시드 데이터(SafeStep 강남점, "중3 수학 데모반")에 연결되어 있습니다.
-// ⚠️ 프론트에 하드코딩된 공개 데모 계정입니다 — 실제 서비스 데이터가 섞인
-// 프로덕션 DB에는 절대 이 방식을 그대로 쓰지 마세요.
-const DEMO_ACCOUNTS: Record<
-  'admin' | 'teacher',
-  { email: string; password: string; redirect: string; label: string }
-> = {
-  admin: {
-    email: 'demo-admin@safestep.local',
-    password: 'safestepdemo',
-    redirect: '/dashboard',
-    label: '원장 데모 체험하기',
-  },
-  teacher: {
-    email: 'demo-teacher@safestep.local',
-    password: 'safestepdemo',
-    redirect: '/attendance',
-    label: '강사 데모 체험하기',
-  },
+// 실제 로그인은 백엔드 POST /api/auth/demo-login(매직링크 토큰 발급) 을 거치므로
+// 비밀번호는 프론트 어디에도 존재하지 않습니다.
+const DEMO_ACCOUNTS: Record<'admin' | 'teacher', { redirect: string }> = {
+  admin: { redirect: '/dashboard' },
+  teacher: { redirect: '/attendance' },
 };
 
 const CONSUMER_FEATURES = [
@@ -67,16 +56,33 @@ export default function LandingPage() {
   const [demoError, setDemoError] = useState<string | null>(null);
 
   const tryDemo = async (kind: 'admin' | 'teacher') => {
+    const isAlreadyDemo = profile?.email?.startsWith('demo-');
+    if (user && !isAlreadyDemo) {
+      const ok = window.confirm(
+        '현재 로그인된 계정에서 로그아웃하고 데모 계정으로 전환합니다. 계속할까요?'
+      );
+      if (!ok) return;
+    }
+
     setDemoError(null);
     setDemoLoading(kind);
-    const { email, password, redirect } = DEMO_ACCOUNTS[kind];
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setDemoLoading(null);
-    if (error) {
+    try {
+      const { email, tokenHash } = await apiFetch<{ email: string; tokenHash: string }>(
+        '/api/auth/demo-login',
+        { method: 'POST', auth: false, body: JSON.stringify({ role: kind }) }
+      );
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: tokenHash,
+        type: 'magiclink',
+      });
+      if (error) throw error;
+      navigate(DEMO_ACCOUNTS[kind].redirect);
+    } catch {
       setDemoError('데모 계정 접속에 실패했습니다. 잠시 후 다시 시도해주세요.');
-      return;
+    } finally {
+      setDemoLoading(null);
     }
-    navigate(redirect);
   };
 
   return (
@@ -86,6 +92,7 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <img src={logo} alt="SafeStep" className="h-8 w-auto" />
           <nav className="flex items-center gap-2 text-sm">
+            <TeamActionButtons />
             <Link
               to="/map"
               className="rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50"
@@ -142,7 +149,7 @@ export default function LandingPage() {
               지도에서 빈자리 찾기
             </Link>
             <Link
-              to="/register"
+              to="/inquiry"
               className="rounded-xl border border-gray-300 px-6 py-3 font-semibold text-gray-700 hover:bg-gray-50"
             >
               학원·카페 도입 문의
@@ -161,7 +168,7 @@ export default function LandingPage() {
               이용자 데모
             </Link>
             <Link
-              to="/kiosk"
+              to="/kiosk?demo=1"
               className="rounded-lg border border-gray-300 px-2 py-2.5 text-center text-xs font-medium text-gray-700 hover:bg-gray-50"
             >
               키오스크 데모
@@ -227,7 +234,7 @@ export default function LandingPage() {
           </div>
           <div className="mt-10">
             <Link
-              to="/register"
+              to="/start"
               className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
             >
               무료로 시작하기
@@ -237,7 +244,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-gray-100 py-10 text-center text-sm text-gray-400">
-        © {new Date().getFullYear()} SafeStep
+        © {new Date().getFullYear()} SafeStep. All rights reserved.
       </footer>
     </div>
   );

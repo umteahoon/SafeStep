@@ -7,6 +7,7 @@ import { homeForRole } from '../../pages/LandingPage';
 const TABS = [
   { to: '/map', label: '지도', icon: '🗺️' },
   { to: '/kiosk', label: '키오스크', icon: '🪑' },
+  { to: '/teams', label: '팀', icon: '💬' },
   { to: '__me__', label: '내 정보', icon: '👤' },
 ];
 
@@ -21,7 +22,7 @@ function BottomTabBar() {
         const to = t.to === '__me__' ? meTo : t.to;
         const active =
           t.to === '__me__'
-            ? !['/map', '/kiosk', '/seats'].some((p) => pathname.startsWith(p))
+            ? !['/map', '/kiosk', '/seats', '/teams'].some((p) => pathname.startsWith(p))
             : pathname.startsWith(t.to);
         return (
           <Link

@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api';
+import { safeNextPath } from '../../lib/teams';
 import { homeForRole } from '../LandingPage';
 
 // 로그인 성공/실패를 기록합니다. 실패해도 로그인 흐름을 막지 않습니다.
@@ -15,6 +16,7 @@ function logLoginAttempt(email: string, success: boolean, reason?: string) {
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +48,8 @@ export default function LoginPage() {
       .single();
 
     setIsSubmitting(false);
-    navigate(homeForRole(prof?.role ?? 'STUDENT'));
+    const next = safeNextPath(searchParams.get('next'));
+    navigate(next ?? homeForRole(prof?.role ?? 'STUDENT'));
   };
 
   return (

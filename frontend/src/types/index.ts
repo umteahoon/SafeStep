@@ -128,3 +128,37 @@ export interface Seat {
   occupied_at: string | null;
   away_at: string | null;
 }
+
+// ── 팀 / 채팅 ──────────────────────────────────────────────
+export interface Team {
+  id: string;
+  academy_id: string;
+  name: string;
+  description: string | null;
+  join_code: string;
+  created_by: string;
+  created_at: string;
+}
+
+export interface TeamMember {
+  member_id: string;
+  member_name: string;
+  team_role: 'OWNER' | 'MEMBER';
+  account_role: UserRole;
+}
+
+export interface ChatRoom {
+  id: string;
+  team_id: string;
+  type: 'TEAM' | 'DIRECT';
+  user_a: string | null;
+  user_b: string | null;
+}
+
+export interface ChatMessage {
+  id: number;
+  room_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+}

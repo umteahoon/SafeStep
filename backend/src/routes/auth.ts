@@ -81,4 +81,39 @@ router.post('/login-log', async (req, res) => {
   res.json({ success: true });
 });
 
+// 랜딩 페이지 "원장/강사 데모 체험하기" 버튼이 사용할 고정 데모 계정.
+// supabase/seed_demo_accounts.mjs 가 생성하는 계정과 반드시 동일해야 합니다.
+const DEMO_EMAILS: Record<'admin' | 'teacher', string> = {
+  admin: 'demo-admin@safestep.local',
+  teacher: 'demo-teacher@safestep.local',
+};
+
+// POST /api/auth/demo-login  { role: 'admin' | 'teacher' }
+// 비밀번호를 프론트에 절대 노출하지 않기 위해, 백엔드(service role)가 매직링크용
+// 1회용 토큰만 발급하고 프론트는 그 토큰으로 supabase.auth.verifyOtp()를 호출합니다.
+// role만 받고 이메일은 서버가 고정값으로 매핑합니다 — 임의 이메일을 받으면 이 API가
+// "아무 계정이나 로그인시키는 API"가 되어버리므로 절대 클라이언트 입력을 이메일에 쓰지 않습니다.
+router.post('/demo-login', async (req, res) => {
+  if (process.env.DEMO_LOGIN_ENABLED === 'false') {
+    return res.status(404).json({ error: '데모 로그인이 비활성화되어 있습니다.' });
+  }
+
+  const role: unknown = (req.body ?? {}).role;
+  if (role !== 'admin' && role !== 'teacher') {
+    return res.status(400).json({ error: 'role은 admin 또는 teacher여야 합니다.' });
+  }
+
+  const email = DEMO_EMAILS[role];
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: 'magiclink',
+    email,
+  });
+
+  if (error || !data?.properties?.hashed_token) {
+    return res.status(500).json({ error: '데모 로그인 링크 생성에 실패했습니다.' });
+  }
+
+  res.json({ email, tokenHash: data.properties.hashed_token });
+});
+
 export default router;

@@ -15,10 +15,12 @@ type Mode = 'PIN' | 'QR';
 export default function KioskPage() {
   const [searchParams] = useSearchParams();
   const queryAcademyId = searchParams.get('academy');
+  // 랜딩의 "키오스크 데모"로 들어온 경우: 핀코드 없이 QR 스캔만 제공
+  const isDemo = searchParams.get('demo') === '1';
 
   const [academyId, setAcademyId] = useState<string | null>(queryAcademyId);
   const [academies, setAcademies] = useState<Academy[]>([]);
-  const [mode, setMode] = useState<Mode>('PIN');
+  const [mode, setMode] = useState<Mode>(isDemo ? 'QR' : 'PIN');
   const [pin, setPin] = useState('');
   const [verified, setVerified] = useState<VerifyResult | null>(null);
   const [emptySeats, setEmptySeats] = useState<Seat[]>([]);
@@ -157,9 +159,15 @@ export default function KioskPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 p-6">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-        <h1 className="mb-4 text-center text-lg font-bold text-gray-900">
-          SafeStep 키오스크
+        <h1 className="mb-1 text-center text-lg font-bold text-gray-900">
+          SafeStep 키오스크{isDemo && ' 데모'}
         </h1>
+        {isDemo && !verified && (
+          <p className="mb-4 text-center text-xs text-gray-400">
+            학생 앱의 출결 QR 코드를 카메라에 비춰주세요.
+          </p>
+        )}
+        {!isDemo && <div className="mb-3" />}
 
         {message && (
           <p
@@ -175,6 +183,7 @@ export default function KioskPage() {
 
         {!verified && (
           <>
+            {!isDemo && (
             <div className="mb-4 flex rounded-lg bg-gray-100 p-1">
               <button
                 onClick={() => setMode('PIN')}
@@ -193,8 +202,9 @@ export default function KioskPage() {
                 QR 스캔
               </button>
             </div>
+            )}
 
-            {mode === 'PIN' ? (
+            {mode === 'PIN' && !isDemo ? (
               <>
                 <div className="mb-4 rounded-lg border border-gray-200 p-3 text-center text-2xl tracking-[0.5em] text-gray-900">
                   {pin.padEnd(6, '·')}
