@@ -11,6 +11,86 @@ interface AssignedInvite {
   academies: { name: string } | { name: string }[] | null;
 }
 
+interface AssignedCode {
+  code: string;
+  academyName: string;
+}
+
+function NotificationBell({
+  assigned,
+  isChecking,
+  isSubmitting,
+  onClaim,
+}: {
+  assigned: AssignedCode | null;
+  isChecking: boolean;
+  isSubmitting: boolean;
+  onClaim: (code: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [hasSeen, setHasSeen] = useState(false);
+  const hasUnread = !!assigned && !hasSeen;
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => {
+          setIsOpen((v) => !v);
+          if (assigned) setHasSeen(true);
+        }}
+        aria-label="알림"
+        className="relative rounded-lg border border-gray-300 p-2 text-gray-500 hover:bg-gray-50"
+      >
+        🔔
+        {hasUnread && (
+          <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500" />
+        )}
+      </button>
+
+      {isOpen && (
+        <>
+          {/* 바깥 클릭 시 닫기 */}
+          <button
+            type="button"
+            aria-label="알림 닫기"
+            onClick={() => setIsOpen(false)}
+            className="fixed inset-0 z-40 cursor-default"
+          />
+          <div className="absolute right-0 z-50 mt-2 w-80 rounded-xl border border-gray-200 bg-white p-4 shadow-lg">
+            <p className="mb-2 text-xs font-semibold text-gray-400">알림</p>
+            {isChecking ? (
+              <p className="py-4 text-center text-sm text-gray-400">확인 중...</p>
+            ) : assigned ? (
+              <div className="rounded-lg bg-blue-50 p-3">
+                <p className="text-sm font-medium text-blue-700">
+                  {assigned.academyName ? `${assigned.academyName} 지점의 ` : ''}
+                  등록 코드가 발급되었습니다
+                </p>
+                <p className="mt-1 font-mono text-xl font-bold tracking-widest text-blue-900">
+                  {assigned.code}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onClaim(assigned.code)}
+                  disabled={isSubmitting}
+                  className="mt-3 w-full rounded-lg bg-blue-600 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isSubmitting ? '연결 중...' : '이 코드로 바로 연결하기'}
+                </button>
+              </div>
+            ) : (
+              <p className="py-4 text-center text-sm text-gray-400">
+                아직 새로운 알림이 없습니다.
+              </p>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function OwnerClaimPage() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
@@ -18,8 +98,8 @@ export default function OwnerClaimPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 슈퍼관리자가 나에게 배정해준, 아직 안 쓴 등록 코드가 있는지 확인 (알림처럼 보여줌)
-  const [assigned, setAssigned] = useState<{ code: string; academyName: string } | null>(null);
+  // 슈퍼관리자가 나에게 배정해준, 아직 안 쓴 등록 코드가 있는지 확인 (알림 벨로 노출)
+  const [assigned, setAssigned] = useState<AssignedCode | null>(null);
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
@@ -73,34 +153,32 @@ export default function OwnerClaimPage() {
       <PageHeader
         title="내 페이지"
         subtitle={profile ? `${profile.name}님, 학원 등록 대기 중입니다` : undefined}
+        right={
+          <NotificationBell
+            assigned={assigned}
+            isChecking={isChecking}
+            isSubmitting={isSubmitting}
+            onClaim={claim}
+          />
+        }
       />
 
       <div className="mx-auto max-w-sm p-6">
         <div className="rounded-2xl border border-gray-200 bg-white p-6">
           {!isChecking && assigned ? (
             <>
-              <p className="text-sm font-medium text-blue-700">
-                🔔 {assigned.academyName ? `${assigned.academyName} 지점의 ` : ''}
-                등록 코드가 발급되었습니다
+              <h2 className="font-semibold text-gray-900">🔔 새 알림이 있어요</h2>
+              <p className="mt-1 text-sm text-gray-400">
+                학원 등록 코드가 발급됐습니다. 오른쪽 위 알림 버튼을 눌러 확인하고
+                바로 연결하세요.
               </p>
-              <p className="mt-1 font-mono text-2xl font-bold tracking-widest text-blue-900">
-                {assigned.code}
-              </p>
-              <button
-                type="button"
-                onClick={() => claim(assigned.code)}
-                disabled={isSubmitting}
-                className="mt-4 w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {isSubmitting ? '연결 중...' : '이 코드로 바로 연결하기'}
-              </button>
             </>
           ) : (
             <>
               <h2 className="font-semibold text-gray-900">학원 등록을 기다리는 중이에요</h2>
               <p className="mt-1 text-sm text-gray-400">
                 SafeStep 플랫폼팀이 지점을 등록하면, 원장님 전용{' '}
-                <strong>8자리 등록 코드</strong>가 이 페이지에 알림으로 자동 표시됩니다.
+                <strong>8자리 등록 코드</strong>가 알림으로 도착합니다.
               </p>
             </>
           )}
