@@ -9,6 +9,7 @@ import { useAuth } from '../../hooks/useAuth';
 interface StudentRow {
   name: string;
   attendance_code: string;
+  link_code: string;
   parent_phone: string;
   created_at: string;
 }
@@ -200,6 +201,7 @@ export default function DashboardPage() {
                 <tr>
                   <th className="px-4 py-2">이름</th>
                   <th className="px-4 py-2">출결코드</th>
+                  <th className="px-4 py-2">연동코드</th>
                   <th className="px-4 py-2">보호자 연락처</th>
                   <th className="px-4 py-2">등록일</th>
                 </tr>
@@ -212,6 +214,9 @@ export default function DashboardPage() {
                     </td>
                     <td className="px-4 py-2 text-gray-500">
                       {s.attendance_code}
+                    </td>
+                    <td className="px-4 py-2 font-mono text-blue-600">
+                      {s.link_code}
                     </td>
                     <td className="px-4 py-2 text-gray-500">{s.parent_phone}</td>
                     <td className="px-4 py-2 text-gray-400">

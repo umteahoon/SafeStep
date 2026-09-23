@@ -10,7 +10,7 @@ router.use(requireAuth, requireRole('ACADEMY_ADMIN'));
 router.get('/students', async (req: AuthedRequest, res) => {
   const { data, error } = await supabaseAdmin
     .from('students')
-    .select('name, attendance_code, parent_phone, academy_id, created_at')
+    .select('name, attendance_code, link_code, parent_phone, academy_id, created_at')
     .eq('academy_id', req.academyId);
 
   if (error) return res.status(500).json({ error: error.message });
