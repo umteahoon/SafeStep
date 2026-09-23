@@ -5,13 +5,23 @@ import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api';
 import type { Academy, Subscription } from '../../types';
 
+interface PendingOwner {
+  id: string;
+  name: string;
+  email: string;
+  created_at: string;
+  pendingInvite: { code: string; academyName: string } | null;
+}
+
 export default function SuperAdminDashboardPage() {
   const [academies, setAcademies] = useState<Academy[]>([]);
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [userCount, setUserCount] = useState<number | null>(null);
+  const [pendingOwners, setPendingOwners] = useState<PendingOwner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [targetOwner, setTargetOwner] = useState<PendingOwner | null>(null);
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [latitude, setLatitude] = useState('37.5665');
@@ -23,20 +33,28 @@ export default function SuperAdminDashboardPage() {
   const [issued, setIssued] = useState<{ academyName: string; code: string } | null>(null);
 
   const load = useCallback(async () => {
-    const [{ data: a }, { data: s }, { count }] = await Promise.all([
+    const [{ data: a }, { data: s }, { count }, owners] = await Promise.all([
       supabase.from('academies').select('*').order('created_at', { ascending: false }),
       supabase.from('subscriptions').select('*'),
       supabase.from('profiles').select('id', { count: 'exact', head: true }),
+      apiFetch<{ data: PendingOwner[] }>('/api/admin/owner-signups').catch(() => ({ data: [] })),
     ]);
     setAcademies((a as Academy[]) ?? []);
     setSubs((s as Subscription[]) ?? []);
     setUserCount(count ?? null);
+    setPendingOwners(owners.data ?? []);
     setIsLoading(false);
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  const startAcademyFor = (owner: PendingOwner) => {
+    setTargetOwner(owner);
+    setName(`${owner.name} 원장 지점`);
+    document.getElementById('academy-create-form')?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const createAcademy = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,12 +71,14 @@ export default function SuperAdminDashboardPage() {
             latitude: Number(latitude),
             longitude: Number(longitude),
             totalSeats,
+            ownerId: targetOwner?.id,
           }),
         }
       );
       setIssued({ academyName: res.academy.name, code: res.inviteCode });
       setName('');
       setAddress('');
+      setTargetOwner(null);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : '학원 생성 실패');
@@ -104,7 +124,8 @@ export default function SuperAdminDashboardPage() {
             <div>
               <p className="text-sm text-blue-700">
                 <strong>{issued.academyName}</strong> 원장 등록 코드가 발급됐습니다.
-                이 코드는 지금만 확인 가능하니 원장에게 바로 전달하세요.
+                대상 원장을 지정했다면 그 원장의 내 페이지(등록 화면)에 자동으로
+                표시됩니다. 지정하지 않았다면 이 코드를 직접 전달해주세요.
               </p>
               <p className="mt-1 font-mono text-2xl font-bold tracking-widest text-blue-900">
                 {issued.code}
@@ -144,13 +165,71 @@ export default function SuperAdminDashboardPage() {
               />
             </div>
 
+            <div className="mt-6 rounded-xl border border-gray-200 bg-white">
+              <h2 className="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-700">
+                승인 대기 원장 {pendingOwners.length > 0 && `(${pendingOwners.length})`}
+              </h2>
+              {pendingOwners.length === 0 ? (
+                <p className="px-4 py-6 text-center text-sm text-gray-400">
+                  학원 연결을 기다리는 원장이 없습니다.
+                </p>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {pendingOwners.map((owner) => (
+                    <li
+                      key={owner.id}
+                      className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-900">{owner.name}</p>
+                        <p className="text-xs text-gray-400">
+                          {owner.email} · {owner.created_at.slice(0, 10)} 가입
+                        </p>
+                      </div>
+                      {owner.pendingInvite ? (
+                        <div className="text-right">
+                          <p className="text-xs text-gray-400">
+                            {owner.pendingInvite.academyName} 코드 발급됨
+                          </p>
+                          <p className="font-mono text-sm font-bold tracking-widest text-blue-700">
+                            {owner.pendingInvite.code}
+                          </p>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => startAcademyFor(owner)}
+                          className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                        >
+                          학원 만들고 승인
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             <form
+              id="academy-create-form"
               onSubmit={createAcademy}
               className="mt-6 rounded-xl border border-gray-200 bg-white p-4"
             >
               <h2 className="mb-3 text-sm font-semibold text-gray-700">
                 학원 추가 (좌석 자동 생성 + 원장 등록 코드 발급)
               </h2>
+              {targetOwner && (
+                <p className="mb-3 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                  <strong>{targetOwner.name}</strong> 원장님에게 코드가 자동 배정됩니다
+                  (내 페이지에 알림으로 표시됨).
+                  <button
+                    type="button"
+                    onClick={() => setTargetOwner(null)}
+                    className="ml-auto text-xs text-blue-400 hover:text-blue-600"
+                  >
+                    선택 해제
+                  </button>
+                </p>
+              )}
               <div className="flex flex-wrap items-end gap-2">
                 <div className="flex-1">
                   <label className="mb-1 block text-xs text-gray-400">이름</label>

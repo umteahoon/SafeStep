@@ -20,6 +20,7 @@ safestep/
     ├── migration_07_student_passes.sql         기존 프로젝트 추가 마이그레이션 (학생 개인 이용권 결제·키오스크 게이팅, §1 참고)
     ├── migration_08_student_self_link.sql      기존 프로젝트 추가 마이그레이션 (학생 계정 자가 연동용 link_code UNIQUE 제약, §1 참고)
     ├── migration_09_inquiry_tracking.sql       기존 프로젝트 추가 마이그레이션 ("내 문의 내역" 조회용 submitted_by 컬럼, §1 참고)
+    ├── migration_10_owner_invite_assignment.sql 기존 프로젝트 추가 마이그레이션 (원장 등록 코드를 특정 원장에게 배정해 알림처럼 노출, §1 참고)
     ├── seed.sql                                샘플 학원 2곳
     ├── seed_floorplan.sql                      존별 좌석 배치 샘플
     ├── seed_chowol_sanbon.sql                  실제 매장 사진 기반 좌석 배치 데모(초월 스터디카페 산본점, 62석)
@@ -35,7 +36,7 @@ safestep/
 | 영역 | 내용 |
 |---|---|
 | 인증/RBAC | 회원가입(역할별 분기, 이메일 인증 없이 즉시 로그인) · 로그인 · 강사 승인 대기 · 슈퍼관리자 수동 승격 |
-| 학원 온보딩 | 슈퍼관리자가 `/admin`에서 지점 생성 → 좌석 자동 배치 + **8자리 등록 코드** 발급 → 원장이 `/owner/claim`에서 코드 입력해 연결 |
+| 학원 온보딩 | 슈퍼관리자가 `/admin`에서 지점 생성 → 좌석 자동 배치 + **8자리 등록 코드** 발급 → 원장이 `/owner/claim`에서 코드 입력해 연결. `/admin`의 "승인 대기 원장" 목록에서 특정 원장을 지정해 학원을 만들면, 그 코드가 원장 본인의 `/owner/claim` 화면에 알림처럼 자동으로 표시됨(`migration_10_owner_invite_assignment.sql`) — 지정하지 않으면 기존처럼 관리자가 코드를 직접 전달 |
 | 지도/좌석/키오스크 | 네이버 지도 실시간 잔여석, 존별 좌석 도면(Realtime), 핀코드/QR 키오스크(입실·외출·복귀·퇴실·**자리 이동**). 랜딩의 "키오스크 데모"(`/kiosk?demo=1`)는 핀코드 없이 QR 스캔만 노출 |
 | 키오스크 운영 | 60초 무조작 시 자동 초기화, **오프라인 큐잉**(외출/퇴실/복귀는 재연결 시 자동 재전송, 입실/이동은 동시성 문제로 오프라인 중 차단) |
 | 원장 대시보드 | 학생 수·출석률·결석/지각·학습시간 KPI, 학생 목록, 엑셀 추출(`utils/excelExporter.ts`) |
@@ -115,6 +116,7 @@ safestep/
 - `supabase/migration_07_student_passes.sql` — 학생 개인 이용권(`student_passes`) 테이블 + 시간권 차감 함수 (**없으면 `/student/passes` 화면이 에러 나고, 백엔드의 이용권 보유 확인 쿼리도 실패해 키오스크 입실 자체가 막힙니다** — 적용 전 기존 프로젝트라면 반드시 함께 적용하세요)
 - `supabase/migration_08_student_self_link.sql` — `students.link_code`에 UNIQUE 제약 추가 (학생 자가 연동이 보호자 연동코드와 같은 값을 공유하게 되어 충돌 방지 필요. **기존 데이터에 중복 코드가 있으면 실패하니 파일 내 안내 주석 참고**)
 - `supabase/migration_09_inquiry_tracking.sql` — `inquiries.submitted_by` 컬럼 + 본인 조회 RLS (**없으면 `/my/inquiries` 화면이 에러 납니다**)
+- `supabase/migration_10_owner_invite_assignment.sql` — `academy_owner_invites.assigned_user_id` 컬럼 + 본인에게 배정된 미사용 코드만 읽을 수 있는 RLS (**없으면 `/admin`에서 원장을 지정해 학원을 만들어도 그 원장의 `/owner/claim` 화면에 코드가 표시되지 않습니다** — 코드 자체는 발급되므로 관리자가 직접 전달하는 기존 방식은 계속 동작)
 
 ### 데모 체험 계정 만들기 (선택)
 랜딩 페이지의 "원장 데모 체험하기" / "강사 데모 체험하기" 버튼이 로그인할 계정을 생성합니다.
@@ -131,11 +133,12 @@ node ../supabase/seed_demo_accounts.mjs
 ### 학원 생성 & 원장 계정 연결 (신규 플로우)
 `academies` 테이블 INSERT는 RLS상 `SUPER_ADMIN`만 가능합니다. 원장이 임의로 기존 학원의 `academy_id`를 지정해 관리자 권한을 얻는 취약점을 막기 위해, 회원가입 화면에서는 원장이 `academy_id`를 직접 고를 수 없습니다. 대신:
 
-1. **슈퍼관리자**가 `/admin`에서 지점명·주소·좌석 수를 입력해 지점 생성 → `backend/src/routes/admin.ts`(`POST /api/admin/academies`)가 학원을 만들고 좌석을 자동 배치한 뒤 **8자리 등록 코드**를 화면에 표시(이때만 확인 가능, 분실 시 "등록코드 재발급" 버튼으로 재발급)
-2. 이 코드를 전달받은 **원장**이 STUDENT/PARENT와 동일하게 회원가입(가입 시점엔 `academy_id` 없음) → `/owner/claim` 화면에서 코드 입력 → `backend/src/routes/owner.ts`(`POST /api/owner/claim`)가 서비스 롤로 `profiles.academy_id`를 연결
-3. `academy_id`가 없는 원장 계정은 `ProtectedRoute`가 자동으로 `/owner/claim`으로 리다이렉트합니다.
+1. **원장**이 STUDENT/PARENT와 동일하게 먼저 회원가입(가입 시점엔 `academy_id` 없음) → `academy_id`가 없으므로 `ProtectedRoute`가 자동으로 `/owner/claim`으로 리다이렉트.
+2. **슈퍼관리자**가 `/admin`의 "승인 대기 원장" 목록(학원 미연결 상태인 ACADEMY_ADMIN 전체, `GET /api/admin/owner-signups`)에서 그 원장을 찾아 "학원 만들고 승인"을 누르고 지점명·주소·좌석 수를 입력 → `backend/src/routes/admin.ts`(`POST /api/admin/academies`, `ownerId` 포함)가 학원을 만들고 좌석을 자동 배치한 뒤 **8자리 등록 코드**를 그 원장에게 배정(`academy_owner_invites.assigned_user_id`).
+3. 배정된 원장은 자신의 `/owner/claim` 화면을 열면 코드가 알림 배너로 자동 표시되어 "이 코드로 바로 연결하기" 버튼 한 번으로 연결됩니다(`backend/src/routes/owner.ts`, `POST /api/owner/claim`이 서비스 롤로 `profiles.academy_id`를 연결). 코드를 직접 받은 경우 기존처럼 수동 입력도 가능합니다.
+4. 대상 원장을 지정하지 않고 학원을 만들면(예: 원장이 아직 가입 전) 코드는 관리자 화면에만 표시되며, "등록코드 재발급" 버튼으로 언제든 다시 발급할 수 있습니다.
 
-등록 코드는 `academy_owner_invites` 테이블에 저장되며, 이 테이블에는 **의도적으로 RLS 정책을 하나도 만들지 않았습니다** — `academies`처럼 공개 읽기 정책을 두면 코드가 노출되므로, `SUPABASE_SERVICE_ROLE_KEY`(백엔드)로만 접근 가능해야 합니다.
+등록 코드는 `academy_owner_invites` 테이블에 저장됩니다. 기본적으로 **RLS 정책이 없어** 아무도 조회할 수 없고 `SUPABASE_SERVICE_ROLE_KEY`(백엔드)로만 접근 가능하며, 유일한 예외로 "본인에게 배정되고 아직 사용되지 않은 코드"만 읽을 수 있는 정책 하나가 있습니다(`migration_10_owner_invite_assignment.sql`) — 전체 코드 목록은 여전히 누구에게도 공개되지 않습니다.
 
 ### 팀 만들기/참가/채팅 (선택 기능)
 `supabase/migration_teams_chat.sql` 실행 후 바로 사용할 수 있습니다. 학원에 소속된 원장·승인 강사·학원에 등록된 학생만 팀을 만들거나 참가할 수 있고(`current_user_team_academy_id()` 헬퍼로 판별), 모든 쓰기는 `create_team`/`join_team_by_code`/`start_direct_chat` 등 `SECURITY DEFINER` RPC 함수를 통해서만 이루어집니다. 참가 코드는 팀당 하나이며 재사용/무기한 유효 — 코드 재발급 기능은 아직 없습니다.
