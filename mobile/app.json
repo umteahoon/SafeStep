@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "SafeStep",
+    "slug": "safestep-mobile",
+    "scheme": "safestep",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#2563EB"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.safestep.mobile"
+    },
+    "android": {
+      "package": "com.safestep.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#2563EB"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}

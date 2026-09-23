@@ -7,6 +7,7 @@
 ```
 safestep/
 ├── frontend/    React + Vite + TypeScript + Capacitor (웹 + 안드로이드 앱 단일 코드베이스)
+├── mobile/      React Native(Expo) 별도 네이티브 앱 — frontend와 무관한 코드베이스, 같은 Supabase 프로젝트 공유 (자세한 내용은 mobile/README.md)
 ├── backend/     Express + TypeScript API 서버
 └── supabase/
     ├── schema.sql                              전체 DB 스키마 + RLS 정책 (신규 프로젝트용)
