@@ -17,6 +17,7 @@ const SHAPE: Record<string, string> = {
   FOCUS: 'h-14 w-11 rounded-b-md border-t-4',
   OPEN: 'h-11 w-11 rounded-lg',
   LAPTOP: 'h-11 w-14 rounded-lg',
+  DESK: 'h-11 w-11 rounded-md',
   ROOM: 'h-10 w-10 rounded-full',
 };
 

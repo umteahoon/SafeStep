@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import type { Seat } from '../../types';
+import type { AcademyLandmark, Seat } from '../../types';
 import { SeatCell } from './SeatCell';
 
 interface FloorPlanGridProps {
@@ -30,7 +30,17 @@ function metaFor(zone: string): ZoneMeta {
 
 export function FloorPlanGrid({ academyId, onSelectSeat }: FloorPlanGridProps) {
   const [seats, setSeats] = useState<Seat[]>([]);
+  const [landmarks, setLandmarks] = useState<AcademyLandmark[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // 랜드마크가 하나라도 있으면 실제 매장 배치를 재현한 "자유 배치" 모드
+  useEffect(() => {
+    supabase
+      .from('academy_landmarks')
+      .select('*')
+      .eq('academy_id', academyId)
+      .then(({ data }) => setLandmarks((data as AcademyLandmark[]) ?? []));
+  }, [academyId]);
 
   useEffect(() => {
     let mounted = true;
@@ -128,37 +138,92 @@ export function FloorPlanGrid({ academyId, onSelectSeat }: FloorPlanGridProps) {
       </div>
 
       {/* 도면 캔버스 */}
-      <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 md:p-6">
-        {/* 입구 / 프론트 */}
-        <div className="mb-5 flex items-center justify-between rounded-xl border border-dashed border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-500">
-          <span>🚪 입구</span>
-          <span>프론트데스크 · 키오스크</span>
-        </div>
+      <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-gray-50 p-4 md:p-6">
+        {landmarks.length > 0 ? (
+          // 자유 배치 모드: 실제 매장 사진을 기준으로 좌석·통로·시설을 절대 좌표로 재현
+          <FreeFormPlan seats={seats} landmarks={landmarks} onSelectSeat={onSelectSeat} />
+        ) : (
+          <>
+            {/* 입구 / 프론트 */}
+            <div className="mb-5 flex items-center justify-between rounded-xl border border-dashed border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-500">
+              <span>🚪 입구</span>
+              <span>프론트데스크 · 키오스크</span>
+            </div>
 
-        {/* 존별 배치 */}
-        <div className="grid gap-4 md:grid-cols-2">
-          {zones.map(({ zone, seats: zoneSeats }) => (
-            <ZoneBox
-              key={zone}
-              zone={zone}
-              seats={zoneSeats}
-              onSelectSeat={onSelectSeat}
-            />
-          ))}
-        </div>
+            {/* 존별 배치 */}
+            <div className="grid gap-4 md:grid-cols-2">
+              {zones.map(({ zone, seats: zoneSeats }) => (
+                <ZoneBox
+                  key={zone}
+                  zone={zone}
+                  seats={zoneSeats}
+                  onSelectSeat={onSelectSeat}
+                />
+              ))}
+            </div>
 
-        {/* 편의시설 */}
-        <div className="mt-5 flex flex-wrap gap-2 text-xs text-gray-400">
-          <span className="rounded-lg bg-white px-3 py-1">🥤 정수기</span>
-          <span className="rounded-lg bg-white px-3 py-1">🚻 화장실</span>
-          <span className="rounded-lg bg-white px-3 py-1">🔒 사물함</span>
-          <span className="rounded-lg bg-white px-3 py-1">☕ 휴게실</span>
-        </div>
+            {/* 편의시설 */}
+            <div className="mt-5 flex flex-wrap gap-2 text-xs text-gray-400">
+              <span className="rounded-lg bg-white px-3 py-1">🥤 정수기</span>
+              <span className="rounded-lg bg-white px-3 py-1">🚻 화장실</span>
+              <span className="rounded-lg bg-white px-3 py-1">🔒 사물함</span>
+              <span className="rounded-lg bg-white px-3 py-1">☕ 휴게실</span>
+            </div>
+          </>
+        )}
       </div>
 
       <p className="mt-3 text-xs text-gray-400">
         좌석을 누르면 소음·자리 독점을 익명으로 신고할 수 있습니다.
       </p>
+    </div>
+  );
+}
+
+// 자유 배치 모드: 존 상자로 나누지 않고, 좌석·랜드마크를 학원 전체 기준
+// 절대 좌표(grid_x, grid_y) 하나의 격자에 함께 배치해 실제 매장 배치(통로 포함)에
+// 가깝게 재현합니다.
+function FreeFormPlan({
+  seats,
+  landmarks,
+  onSelectSeat,
+}: {
+  seats: Seat[];
+  landmarks: AcademyLandmark[];
+  onSelectSeat?: (seat: Seat) => void;
+}) {
+  const xs = [...seats.map((s) => s.grid_x), ...landmarks.map((l) => l.grid_x)];
+  const ys = [...seats.map((s) => s.grid_y), ...landmarks.map((l) => l.grid_y)];
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const cols = Math.max(...xs) - minX + 1;
+  const rows = Math.max(...ys) - minY + 1;
+
+  return (
+    <div
+      className="grid w-max gap-2"
+      style={{
+        gridTemplateColumns: `repeat(${cols}, minmax(2.75rem, max-content))`,
+        gridTemplateRows: `repeat(${rows}, min-content)`,
+      }}
+    >
+      {seats.map((s) => (
+        <div
+          key={s.id}
+          style={{ gridColumn: s.grid_x - minX + 1, gridRow: s.grid_y - minY + 1 }}
+        >
+          <SeatCell seat={s} onClick={onSelectSeat} />
+        </div>
+      ))}
+      {landmarks.map((l) => (
+        <div
+          key={l.id}
+          style={{ gridColumn: l.grid_x - minX + 1, gridRow: l.grid_y - minY + 1 }}
+          className="flex items-center whitespace-nowrap rounded-lg bg-white/90 px-2 py-1 text-[11px] font-medium text-gray-500"
+        >
+          {l.icon} {l.label}
+        </div>
+      ))}
     </div>
   );
 }
