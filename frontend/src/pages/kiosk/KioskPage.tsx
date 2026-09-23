@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api';
 import { QrScanner } from '../../components/kiosk/QrScanner';
@@ -9,6 +9,7 @@ import {
   queuedActionCount,
 } from '../../utils/offlineQueue';
 import { useBlockBackButton } from '../../hooks/useBlockBackButton';
+import { useAuth } from '../../hooks/useAuth';
 import type { Academy, Seat } from '../../types';
 
 interface VerifyResult {
@@ -25,10 +26,15 @@ const QUEUEABLE_ACTIONS = { 'check-out': '퇴실', away: '외출', return: '복�
 
 export default function KioskPage() {
   useBlockBackButton();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const queryAcademyId = searchParams.get('academy');
   // 랜딩의 "키오스크 데모"로 들어온 경우: 핀코드 없이 QR 스캔만 제공
   const isDemo = searchParams.get('demo') === '1';
+  // 학생이 본인 스터디카페 화면에서 "출석 체크인" 버튼으로 들어온 경우:
+  // 핀코드/카메라 스캔 없이 로그인된 본인 QR 토큰으로 자동 인증
+  const isSelf = searchParams.get('self') === '1';
 
   const [academyId, setAcademyId] = useState<string | null>(queryAcademyId);
   const [academies, setAcademies] = useState<Academy[]>([]);
@@ -42,6 +48,7 @@ export default function KioskPage() {
   const [isBusy, setIsBusy] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [pendingCount, setPendingCount] = useState(queuedActionCount());
+  const [selfLinkError, setSelfLinkError] = useState<string | null>(null);
 
   const lastActivityRef = useRef(Date.now());
   const bumpActivity = () => {
@@ -150,6 +157,33 @@ export default function KioskPage() {
       setIsBusy(false);
     }
   };
+
+  // 셀프 체크인: 본인 QR 토큰으로 카메라 스캔/핀코드 없이 자동 인증
+  useEffect(() => {
+    if (!isSelf || !academyId || !user || verified || isBusy) return;
+    let cancelled = false;
+    (async () => {
+      const { data: own } = await supabase
+        .from('students')
+        .select('qr_token, academy_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (!own) {
+        setSelfLinkError('아직 학원 명부와 연동되지 않았습니다.');
+        return;
+      }
+      if (own.academy_id !== academyId) {
+        setSelfLinkError('이 학원에 연동된 계정이 아닙니다.');
+        return;
+      }
+      await verifyByQr(own.qr_token);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSelf, academyId, user, verified]);
 
   // 입실/자리이동: 동시성 민감 액션 — 오프라인이면 아예 막음 (큐잉 대상 아님)
   const checkIn = async (seatNumber: number) => {
@@ -272,7 +306,7 @@ export default function KioskPage() {
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
         <div className="mb-1 flex items-center justify-between">
           <h1 className="text-lg font-bold text-gray-900">
-            SafeStep 키오스크{isDemo && ' 데모'}
+            {isSelf ? '출석 체크인' : `SafeStep 키오스크${isDemo ? ' 데모' : ''}`}
           </h1>
           {(isOffline || pendingCount > 0) && (
             <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600">
@@ -280,7 +314,15 @@ export default function KioskPage() {
             </span>
           )}
         </div>
-        {isDemo && !verified ? (
+        {isSelf ? (
+          <button
+            type="button"
+            onClick={() => navigate(`/seats/${academyId}`)}
+            className="mb-4 text-xs text-gray-400 hover:text-gray-600"
+          >
+            ← 좌석 도면으로 돌아가기
+          </button>
+        ) : isDemo && !verified ? (
           <p className="mb-4 text-center text-xs text-gray-400">
             학생 앱의 출결 QR 코드를 카메라에 비춰주세요.
           </p>
@@ -300,7 +342,22 @@ export default function KioskPage() {
           </p>
         )}
 
-        {!verified && (
+        {!verified && isSelf && (
+          <div className="py-6 text-center">
+            {selfLinkError ? (
+              <>
+                <p className="mb-3 text-sm text-red-500">{selfLinkError}</p>
+                <Link to="/student/qr" className="text-sm font-medium text-blue-600">
+                  학생 명부 연동하러 가기 →
+                </Link>
+              </>
+            ) : (
+              <p className="text-sm text-gray-400">본인 확인 중...</p>
+            )}
+          </div>
+        )}
+
+        {!verified && !isSelf && (
           <>
             {!isDemo && (
             <div className="mb-4 flex rounded-lg bg-gray-100 p-1">

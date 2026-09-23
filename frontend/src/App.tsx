@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthListener } from './hooks/useAuth';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
+import { RequireStudentLink } from './components/common/RequireStudentLink';
 import { isNativeApp } from './lib/platform';
 import { AppShell } from './components/common/AppShell';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
@@ -96,14 +97,16 @@ function App() {
           <Route path="/billing" element={<SubscriptionPage />} />
         </Route>
 
-        {/* 팀·채팅: 학원 소속 원장·강사·학생 */}
+        {/* 팀·채팅: 학원 소속 원장·강사·학생 (학생은 명부 연동 후에만 접근) */}
         <Route
           element={
             <ProtectedRoute allowedRoles={['ACADEMY_ADMIN', 'TEACHER', 'STUDENT']} />
           }
         >
-          <Route path="/teams" element={<TeamsPage />} />
-          <Route path="/teams/:teamId" element={<TeamRoomPage />} />
+          <Route element={<RequireStudentLink />}>
+            <Route path="/teams" element={<TeamsPage />} />
+            <Route path="/teams/:teamId" element={<TeamRoomPage />} />
+          </Route>
         </Route>
 
         {/* 학생 전용 */}
@@ -117,7 +120,7 @@ function App() {
           <Route path="/parent/report" element={<ParentReportPage />} />
         </Route>
 
-        {/* 채팅: 슈퍼관리자를 제외한 전체 역할 */}
+        {/* 채팅: 슈퍼관리자를 제외한 전체 역할 (학생은 명부 연동 후에만 접근) */}
         <Route
           element={
             <ProtectedRoute
@@ -125,8 +128,10 @@ function App() {
             />
           }
         >
-          <Route path="/chat" element={<ChatListPage />} />
-          <Route path="/chat/:roomId" element={<ChatRoomPage />} />
+          <Route element={<RequireStudentLink />}>
+            <Route path="/chat" element={<ChatListPage />} />
+            <Route path="/chat/:roomId" element={<ChatRoomPage />} />
+          </Route>
         </Route>
 
         {/* 로그인한 전체 역할: 내 문의 내역 */}

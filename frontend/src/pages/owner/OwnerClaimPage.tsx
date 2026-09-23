@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PageHeader } from '../../components/common/PageHeader';
 import { apiFetch } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
-import { refreshProfile, signOut, useAuth } from '../../hooks/useAuth';
+import { refreshProfile, useAuth } from '../../hooks/useAuth';
 import type { Academy } from '../../types';
 
 interface AssignedInvite {
@@ -12,7 +13,7 @@ interface AssignedInvite {
 
 export default function OwnerClaimPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,80 +69,73 @@ export default function OwnerClaimPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
-      <form
-        onSubmit={submit}
-        className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 shadow-sm"
-      >
-        <h1 className="text-2xl font-bold text-gray-900">학원 등록</h1>
-        <p className="mb-4 mt-1 text-sm text-gray-400">
-          SafeStep 플랫폼팀이 발급한 <strong>8자리 등록 코드</strong>를 입력하면
-          해당 지점의 원장 계정으로 연결됩니다.
-        </p>
+    <div className="min-h-screen bg-gray-50">
+      <PageHeader
+        title="내 페이지"
+        subtitle={profile ? `${profile.name}님, 학원 등록 대기 중입니다` : undefined}
+      />
 
-        {!isChecking && assigned && (
-          <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-            <p className="text-sm font-medium text-blue-700">
-              🔔 {assigned.academyName ? `${assigned.academyName} 지점의 ` : ''}
-              등록 코드가 발급되었습니다
-            </p>
-            <p className="mt-1 font-mono text-xl font-bold tracking-widest text-blue-900">
-              {assigned.code}
-            </p>
-            <button
-              type="button"
-              onClick={() => claim(assigned.code)}
-              disabled={isSubmitting}
-              className="mt-3 w-full rounded-lg bg-blue-600 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isSubmitting ? '연결 중...' : '이 코드로 바로 연결하기'}
-            </button>
-          </div>
-        )}
+      <div className="mx-auto max-w-sm p-6">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6">
+          {!isChecking && assigned ? (
+            <>
+              <p className="text-sm font-medium text-blue-700">
+                🔔 {assigned.academyName ? `${assigned.academyName} 지점의 ` : ''}
+                등록 코드가 발급되었습니다
+              </p>
+              <p className="mt-1 font-mono text-2xl font-bold tracking-widest text-blue-900">
+                {assigned.code}
+              </p>
+              <button
+                type="button"
+                onClick={() => claim(assigned.code)}
+                disabled={isSubmitting}
+                className="mt-4 w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isSubmitting ? '연결 중...' : '이 코드로 바로 연결하기'}
+              </button>
+            </>
+          ) : (
+            <>
+              <h2 className="font-semibold text-gray-900">학원 등록을 기다리는 중이에요</h2>
+              <p className="mt-1 text-sm text-gray-400">
+                SafeStep 플랫폼팀이 지점을 등록하면, 원장님 전용{' '}
+                <strong>8자리 등록 코드</strong>가 이 페이지에 알림으로 자동 표시됩니다.
+              </p>
+            </>
+          )}
+        </div>
 
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          등록 코드 직접 입력
-        </label>
-        <input
-          required
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 8))}
-          placeholder="예: 7F3KQ9ZT"
-          className="mb-4 w-full rounded-lg border border-gray-300 px-3 py-2 text-center font-mono text-lg tracking-widest outline-none focus:border-blue-500"
-        />
-
-        {error && (
-          <p className="mb-4 text-sm text-red-500" role="alert">
-            {error}
+        <form onSubmit={submit} className="mt-4 rounded-2xl border border-gray-200 bg-white p-6">
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            등록 코드 직접 입력
+          </label>
+          <p className="mb-3 text-xs text-gray-400">
+            플랫폼 운영팀에게 코드를 따로 전달받았다면 여기에 입력하세요.
           </p>
-        )}
+          <input
+            required
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 8))}
+            placeholder="예: 7F3KQ9ZT"
+            className="mb-4 w-full rounded-lg border border-gray-300 px-3 py-2 text-center font-mono text-lg tracking-widest outline-none focus:border-blue-500"
+          />
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full rounded-lg bg-blue-600 py-2.5 font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
-        >
-          {isSubmitting ? '확인 중...' : '등록하기'}
-        </button>
+          {error && (
+            <p className="mb-4 text-sm text-red-500" role="alert">
+              {error}
+            </p>
+          )}
 
-        {!isChecking && !assigned && (
-          <p className="mt-4 text-center text-xs text-gray-400">
-            코드를 아직 못 받으셨나요? 플랫폼 운영팀이 승인하면 이 페이지에 코드가
-            자동으로 표시됩니다.
-          </p>
-        )}
-
-        <button
-          type="button"
-          onClick={async () => {
-            await signOut();
-            navigate('/login');
-          }}
-          className="mt-3 w-full text-center text-sm text-gray-400"
-        >
-          로그아웃
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full rounded-lg bg-blue-600 py-2.5 font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+          >
+            {isSubmitting ? '확인 중...' : '등록하기'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

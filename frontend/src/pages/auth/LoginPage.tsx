@@ -58,6 +58,19 @@ export default function LoginPage() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 shadow-sm"
       >
+        <div className="mb-4 flex items-center justify-between text-sm">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            ← 뒤로
+          </button>
+          <Link to="/" className="text-gray-400 hover:text-gray-600">
+            홈으로
+          </Link>
+        </div>
+
         <h1 className="mb-1 text-2xl font-bold text-gray-900">SafeStep 로그인</h1>
         <p className="mb-6 text-sm text-gray-400">
           스터디카페 · 학원 통합 관리 플랫폼

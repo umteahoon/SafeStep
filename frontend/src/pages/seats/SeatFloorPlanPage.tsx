@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { FloorPlanGrid } from '../../components/seat/FloorPlanGrid';
 import { NoiseReportModal } from '../../components/seat/NoiseReportModal';
+import { useAuth } from '../../hooks/useAuth';
+import logo from '../../assets/logo.png';
 import type { Academy, Seat } from '../../types';
 
 export default function SeatFloorPlanPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [academy, setAcademy] = useState<Academy | null>(null);
   const [reportSeat, setReportSeat] = useState<Seat | null>(null);
 
@@ -27,9 +30,12 @@ export default function SeatFloorPlanPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
         <div>
+          <Link to="/" className="mb-1 inline-block">
+            <img src={logo} alt="SafeStep" className="h-5 w-auto" />
+          </Link>
           <button
             onClick={() => navigate('/map')}
-            className="text-sm text-gray-400 hover:text-gray-600"
+            className="block text-sm text-gray-400 hover:text-gray-600"
           >
             ← 지도로 돌아가기
           </button>
@@ -38,12 +44,22 @@ export default function SeatFloorPlanPage() {
           </h1>
           {academy && <p className="text-sm text-gray-400">{academy.address}</p>}
         </div>
-        <button
-          onClick={() => navigate(`/kiosk?academy=${id}`)}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          키오스크로 입/퇴실하기
-        </button>
+        <div className="flex flex-col items-end gap-2">
+          <button
+            onClick={() => navigate(`/kiosk?academy=${id}`)}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            키오스크로 입/퇴실하기
+          </button>
+          {profile?.role === 'STUDENT' && (
+            <button
+              onClick={() => navigate(`/kiosk?academy=${id}&self=1`)}
+              className="rounded-lg border border-blue-300 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
+            >
+              QR 없이 바로 출석 체크인
+            </button>
+          )}
+        </div>
       </header>
 
       <FloorPlanGrid academyId={id} onSelectSeat={(seat) => setReportSeat(seat)} />

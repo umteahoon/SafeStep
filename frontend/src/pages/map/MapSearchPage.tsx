@@ -2,10 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useNaverMaps } from '../../hooks/useNaverMaps';
 import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../hooks/useAuth';
 import { isNativeApp } from '../../lib/platform';
-import { homeForRole } from '../LandingPage';
-import { canUseTeams } from '../../lib/teams';
 import logo from '../../assets/logo.png';
 import type { Academy } from '../../types';
 
@@ -17,7 +14,6 @@ const DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 }; // 서울시청 (위치 �
 
 export default function MapSearchPage() {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
   const { isLoaded, error: mapError } = useNaverMaps();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
@@ -144,35 +140,10 @@ export default function MapSearchPage() {
   return (
     <div className={`flex flex-col ${isNativeApp ? 'h-full' : 'h-screen'}`}>
       {!isNativeApp && (
-        <header className="flex items-center justify-between border-b border-gray-100 px-6 py-3">
+        <header className="flex items-center border-b border-gray-100 px-6 py-3">
           <Link to="/">
             <img src={logo} alt="SafeStep" className="h-7 w-auto" />
           </Link>
-          <nav className="flex items-center gap-2 text-sm">
-            {profile && canUseTeams(profile.role) && (
-              <Link
-                to="/teams"
-                className="rounded-lg border border-gray-300 px-3 py-2 text-gray-600 hover:bg-gray-50"
-              >
-                팀 만들기·참가
-              </Link>
-            )}
-            {user ? (
-              <Link
-                to={profile ? homeForRole(profile.role) : '/map'}
-                className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
-              >
-                내 페이지
-              </Link>
-            ) : (
-              <Link
-                to="/login"
-                className="rounded-lg border border-gray-300 px-4 py-2 text-gray-600 hover:bg-gray-50"
-              >
-                로그인
-              </Link>
-            )}
-          </nav>
         </header>
       )}
 
