@@ -205,6 +205,15 @@ export interface Seat {
   away_at: string | null;
 }
 
+export interface AcademyLandmark {
+  id: string;
+  academy_id: string;
+  label: string;
+  icon: string | null;
+  grid_x: number;
+  grid_y: number;
+}
+
 // ── 팀 / 채팅 ──────────────────────────────────────────────
 export interface Team {
   id: string;
