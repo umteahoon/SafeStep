@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { isNativeApp } from '../../lib/platform';
 import { homeForRole } from '../LandingPage';
+import { canUseTeams } from '../../lib/teams';
 import logo from '../../assets/logo.png';
 import type { Academy } from '../../types';
 
@@ -25,6 +26,7 @@ export default function MapSearchPage() {
   const [academies, setAcademies] = useState<AcademyWithSeats[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [center, setCenter] = useState(DEFAULT_CENTER);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // 사용자 위치
   useEffect(() => {
@@ -121,6 +123,24 @@ export default function MapSearchPage() {
     });
   }, [isLoaded, academies]);
 
+  const filteredAcademies = academies.filter((a) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return a.name.toLowerCase().includes(q) || a.address.toLowerCase().includes(q);
+  });
+
+  const focusAcademy = (academy: AcademyWithSeats) => {
+    if (!mapInstance.current || !window.naver) return;
+    const position = new window.naver.maps.LatLng(academy.latitude, academy.longitude);
+    mapInstance.current.panTo(position);
+    mapInstance.current.setZoom(16);
+  };
+
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (filteredAcademies.length > 0) focusAcademy(filteredAcademies[0]);
+  };
+
   return (
     <div className={`flex flex-col ${isNativeApp ? 'h-full' : 'h-screen'}`}>
       {!isNativeApp && (
@@ -129,9 +149,17 @@ export default function MapSearchPage() {
             <img src={logo} alt="SafeStep" className="h-7 w-auto" />
           </Link>
           <nav className="flex items-center gap-2 text-sm">
-            {user && profile ? (
+            {profile && canUseTeams(profile.role) && (
               <Link
-                to={homeForRole(profile.role)}
+                to="/teams"
+                className="rounded-lg border border-gray-300 px-3 py-2 text-gray-600 hover:bg-gray-50"
+              >
+                팀 만들기·참가
+              </Link>
+            )}
+            {user ? (
+              <Link
+                to={profile ? homeForRole(profile.role) : '/map'}
                 className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
               >
                 내 페이지
@@ -167,6 +195,14 @@ export default function MapSearchPage() {
         <div className="border-b border-gray-100 p-4">
           <h1 className="text-lg font-bold text-gray-900">주변 스터디카페 · 학원</h1>
           <p className="text-sm text-gray-400">실시간 잔여석을 확인하고 입장하세요</p>
+          <form onSubmit={submitSearch} className="mt-3">
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="지점명 또는 주소로 검색"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </form>
         </div>
 
         {isLoadingList && (
@@ -174,7 +210,7 @@ export default function MapSearchPage() {
         )}
 
         <ul className="divide-y divide-gray-100">
-          {academies.map((a) => (
+          {filteredAcademies.map((a) => (
             <li
               key={a.id}
               className="cursor-pointer p-4 transition hover:bg-gray-50"
@@ -197,6 +233,9 @@ export default function MapSearchPage() {
           ))}
           {!isLoadingList && academies.length === 0 && (
             <li className="p-4 text-sm text-gray-400">등록된 지점이 없습니다.</li>
+          )}
+          {!isLoadingList && academies.length > 0 && filteredAcademies.length === 0 && (
+            <li className="p-4 text-sm text-gray-400">"{searchQuery}"와 일치하는 지점이 없습니다.</li>
           )}
         </ul>
       </div>

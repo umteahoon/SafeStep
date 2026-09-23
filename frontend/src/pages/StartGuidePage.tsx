@@ -27,10 +27,10 @@ const STEPS = [
 
 export default function StartGuidePage() {
   const { user, profile } = useAuth();
-  const isOwner = user && profile?.role === 'ACADEMY_ADMIN';
+  const isOwner = profile?.role === 'ACADEMY_ADMIN';
 
   let cta;
-  if (!user || !profile) {
+  if (!user) {
     cta = (
       <>
         <Link
@@ -47,6 +47,8 @@ export default function StartGuidePage() {
         </Link>
       </>
     );
+  } else if (!profile) {
+    cta = <p className="text-sm text-gray-400">불러오는 중...</p>;
   } else if (isOwner) {
     cta = (
       <>

@@ -79,7 +79,7 @@ export default function StudentManagementPage() {
     <div className="min-h-screen bg-gray-50">
       <PageHeader
         title="학생 관리"
-        subtitle="학생 등록 · 출결코드 · 보호자 연동코드"
+        subtitle="학생 등록 · 출결코드 · 연동코드"
         backTo="/dashboard"
       />
 
@@ -152,7 +152,7 @@ export default function StudentManagementPage() {
                 <tr>
                   <th className="px-4 py-2">이름</th>
                   <th className="px-4 py-2">출결코드</th>
-                  <th className="px-4 py-2">보호자 연동코드</th>
+                  <th className="px-4 py-2">연동코드</th>
                   <th className="px-4 py-2">보호자 연락처</th>
                   <th className="px-4 py-2">상태</th>
                   <th className="px-4 py-2" />
@@ -161,7 +161,16 @@ export default function StudentManagementPage() {
               <tbody className="divide-y divide-gray-100">
                 {students.map((s) => (
                   <tr key={s.id}>
-                    <td className="px-4 py-2 font-medium text-gray-900">{s.name}</td>
+                    <td className="px-4 py-2 font-medium text-gray-900">
+                      {s.name}
+                      <span
+                        className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                          s.user_id ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-400'
+                        }`}
+                      >
+                        {s.user_id ? '계정 연동됨' : '미연동'}
+                      </span>
+                    </td>
                     <td className="px-4 py-2 font-mono text-gray-700">
                       {s.attendance_code}
                     </td>
@@ -197,7 +206,7 @@ export default function StudentManagementPage() {
         </div>
 
         <p className="mt-3 text-xs text-gray-400">
-          · 출결코드: 키오스크 핀 입력용 (학생에게 전달) · 보호자 연동코드: 학부모 앱에서 자녀 연동 시 입력
+          · 출결코드: 키오스크 핀 입력용 (학생에게 전달) · 연동코드: 학생 본인 계정 연동(`/student/qr`) 또는 학부모 앱에서 자녀 연동 시 입력 (동일 코드)
         </p>
       </div>
     </div>

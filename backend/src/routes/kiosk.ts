@@ -19,6 +19,20 @@ async function findCurrentSeat(academyId: string, studentId: string) {
   return data;
 }
 
+// 이용 가능한 이용권(시간권: 잔여 시간 > 0 / 기간권: 만료 전) 보유 여부
+async function hasValidPass(studentId: string): Promise<boolean> {
+  const nowIso = new Date().toISOString();
+  const { data } = await supabaseAdmin
+    .from('student_passes')
+    .select('id')
+    .eq('student_id', studentId)
+    .eq('status', 'ACTIVE')
+    .or(`and(pass_type.eq.TIME,remaining_minutes.gt.0),and(pass_type.eq.PERIOD,expires_at.gt.${nowIso})`)
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
+
 // POST /api/kiosk/:academyId/verify-pin  { code }
 router.post('/:academyId/verify-pin', async (req, res) => {
   const { academyId } = req.params;
@@ -35,7 +49,8 @@ router.post('/:academyId/verify-pin', async (req, res) => {
   if (!student) return res.status(404).json({ error: '등록되지 않은 코드입니다.' });
 
   const seat = await findCurrentSeat(academyId, student.id);
-  res.json({ student, currentSeat: seat ?? null });
+  const hasPass = await hasValidPass(student.id);
+  res.json({ student, currentSeat: seat ?? null, hasValidPass: hasPass });
 });
 
 // POST /api/kiosk/:academyId/verify-qr  { qrToken }
@@ -54,13 +69,20 @@ router.post('/:academyId/verify-qr', async (req, res) => {
   if (!student) return res.status(404).json({ error: '유효하지 않은 QR입니다.' });
 
   const seat = await findCurrentSeat(academyId, student.id);
-  res.json({ student, currentSeat: seat ?? null });
+  const hasPass = await hasValidPass(student.id);
+  res.json({ student, currentSeat: seat ?? null, hasValidPass: hasPass });
 });
 
 // POST /api/kiosk/:academyId/check-in  { studentId, seatNumber }
 router.post('/:academyId/check-in', async (req, res) => {
   const { academyId } = req.params;
   const { studentId, seatNumber } = req.body;
+
+  if (!(await hasValidPass(studentId))) {
+    return res.status(402).json({
+      error: '이용 가능한 이용권이 없습니다. 이용권을 구매한 후 다시 시도해주세요.',
+    });
+  }
 
   const { data: seat, error: seatError } = await supabaseAdmin
     .from('seats')
@@ -123,6 +145,16 @@ router.post('/:academyId/check-out', async (req, res) => {
     type: 'CHECK_OUT',
     stay_duration_minutes: stayMinutes,
   });
+
+  // 시간권 보유 시 이용 시간만큼 차감 (기간권/미보유 학생은 영향 없음)
+  const { error: deductError } = await supabaseAdmin.rpc('deduct_time_pass', {
+    p_student: studentId,
+    p_minutes: stayMinutes,
+  });
+  if (deductError) {
+    // eslint-disable-next-line no-console
+    console.error('[kiosk] 시간권 차감 실패:', deductError.message);
+  }
 
   res.json({ success: true, stayMinutes });
 });

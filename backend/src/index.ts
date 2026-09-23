@@ -13,11 +13,14 @@ import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import ownerRoutes from './routes/owner';
 import chatRoutes from './routes/chat';
+import studentPassRoutes from './routes/studentPass';
+import studentLinkRoutes from './routes/studentLink';
 
 import { scheduleAwayTimeout } from './cron/awayTimeout';
 import { scheduleAutoCheckout } from './cron/autoCheckout';
 import { scheduleWeeklyReport } from './cron/weeklyReport';
 import { scheduleLateDetection } from './cron/lateDetection';
+import { scheduleExpirePasses } from './cron/expirePasses';
 
 const app = express();
 const PORT = process.env.PORT ?? 5000;
@@ -42,12 +45,15 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/owner', ownerRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/student-passes', studentPassRoutes);
+app.use('/api/student-link', studentLinkRoutes);
 
 // Cron 작업 등록 (무료 티어 Cold Start 대응은 별도 외부 핑 서비스 권장)
 scheduleAwayTimeout();
 scheduleAutoCheckout();
 scheduleWeeklyReport();
 scheduleLateDetection();
+scheduleExpirePasses();
 
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console

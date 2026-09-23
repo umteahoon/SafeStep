@@ -16,8 +16,21 @@ function loadNaverMapScript(clientId: string): Promise<void> {
     const script = document.createElement('script');
     script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${clientId}`;
     script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('네이버 지도 스크립트 로드 실패'));
+    script.onload = () => {
+      // 스크립트 응답은 200이어도 클라이언트 ID가 잘못되면 window.naver.maps가
+      // 정의되지 않을 수 있음 — 이 경우를 실패로 처리하지 않으면 지도 초기화 시
+      // "Cannot read properties of null (reading 'Map')" 크래시로 이어짐.
+      if (window.naver?.maps) {
+        resolve();
+      } else {
+        loadPromise = null;
+        reject(new Error('네이버 지도 클라이언트 ID가 올바르지 않습니다.'));
+      }
+    };
+    script.onerror = () => {
+      loadPromise = null;
+      reject(new Error('네이버 지도 스크립트 로드 실패'));
+    };
     document.head.appendChild(script);
   });
 

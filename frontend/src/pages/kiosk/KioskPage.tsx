@@ -8,11 +8,13 @@ import {
   flushKioskQueue,
   queuedActionCount,
 } from '../../utils/offlineQueue';
+import { useBlockBackButton } from '../../hooks/useBlockBackButton';
 import type { Academy, Seat } from '../../types';
 
 interface VerifyResult {
   student: { id: string; name: string; academy_id: string };
   currentSeat: Seat | null;
+  hasValidPass: boolean;
 }
 
 type Mode = 'PIN' | 'QR';
@@ -22,6 +24,7 @@ const IDLE_TIMEOUT_MS = 60_000;
 const QUEUEABLE_ACTIONS = { 'check-out': '퇴실', away: '외출', return: '복귀' } as const;
 
 export default function KioskPage() {
+  useBlockBackButton();
   const [searchParams] = useSearchParams();
   const queryAcademyId = searchParams.get('academy');
   // 랜딩의 "키오스크 데모"로 들어온 경우: 핀코드 없이 QR 스캔만 제공
@@ -29,6 +32,7 @@ export default function KioskPage() {
 
   const [academyId, setAcademyId] = useState<string | null>(queryAcademyId);
   const [academies, setAcademies] = useState<Academy[]>([]);
+  const [isLoadingAcademies, setIsLoadingAcademies] = useState(true);
   const [mode, setMode] = useState<Mode>(isDemo ? 'QR' : 'PIN');
   const [pin, setPin] = useState('');
   const [verified, setVerified] = useState<VerifyResult | null>(null);
@@ -91,7 +95,10 @@ export default function KioskPage() {
     supabase
       .from('academies')
       .select('*')
-      .then(({ data }) => setAcademies((data as Academy[]) ?? []));
+      .then(({ data }) => {
+        setAcademies((data as Academy[]) ?? []);
+        setIsLoadingAcademies(false);
+      });
   }, [academyId]);
 
   const showMessage = (type: 'error' | 'success', text: string) => {
@@ -230,18 +237,27 @@ export default function KioskPage() {
       <div className="flex min-h-screen items-center justify-center bg-gray-900 p-6">
         <div className="w-full max-w-sm rounded-2xl bg-white p-6">
           <h1 className="mb-4 text-lg font-bold text-gray-900">키오스크 지점 선택</h1>
-          <ul className="space-y-2">
-            {academies.map((a) => (
-              <li key={a.id}>
-                <button
-                  onClick={() => setAcademyId(a.id)}
-                  className="w-full rounded-lg border border-gray-200 p-3 text-left hover:border-blue-400"
-                >
-                  {a.name}
-                </button>
-              </li>
-            ))}
-          </ul>
+          {isLoadingAcademies ? (
+            <p className="text-sm text-gray-400">불러오는 중...</p>
+          ) : academies.length === 0 ? (
+            <p className="text-sm text-gray-400">
+              등록된 지점이 없습니다. Supabase 프로젝트 연결(frontend/.env)과
+              academies 데이터를 확인해주세요.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {academies.map((a) => (
+                <li key={a.id}>
+                  <button
+                    onClick={() => setAcademyId(a.id)}
+                    className="w-full rounded-lg border border-gray-200 p-3 text-left hover:border-blue-400"
+                  >
+                    {a.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     );
@@ -355,7 +371,13 @@ export default function KioskPage() {
               {verified.student.name}님 안녕하세요
             </p>
 
-            {!verified.currentSeat && (
+            {!verified.currentSeat && !verified.hasValidPass && (
+              <p className="rounded-lg bg-amber-50 p-4 text-center text-sm text-amber-700">
+                이용 가능한 이용권이 없습니다. 학생 앱의 "이용권"에서 구매한 후 다시 이용해주세요.
+              </p>
+            )}
+
+            {!verified.currentSeat && verified.hasValidPass && (
               <>
                 <p className="mb-2 text-sm text-gray-500">좌석을 선택해주세요</p>
                 <div className="grid max-h-60 grid-cols-4 gap-2 overflow-y-auto">

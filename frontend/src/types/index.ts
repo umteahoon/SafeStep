@@ -7,6 +7,17 @@ export type UserRole =
 
 export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
+export interface Inquiry {
+  id: string;
+  name: string;
+  contact: string;
+  business_name: string | null;
+  business_type: string | null;
+  message: string | null;
+  submitted_by: string | null;
+  created_at: string;
+}
+
 export interface Profile {
   id: string;
   email: string;
@@ -40,6 +51,34 @@ export interface Subscription {
   paid_at: string;
   expires_at: string;
   created_at: string;
+}
+
+export type PassType = 'TIME' | 'PERIOD';
+export type PassStatus = 'ACTIVE' | 'DEPLETED' | 'EXPIRED';
+
+export interface StudentPass {
+  id: string;
+  academy_id: string;
+  student_id: string;
+  pass_type: PassType;
+  product_name: string;
+  remaining_minutes: number | null;
+  expires_at: string | null;
+  status: PassStatus;
+  payment_key: string | null;
+  order_id: string;
+  amount: number;
+  paid_at: string;
+  created_at: string;
+}
+
+export interface PassPlan {
+  id: string;
+  passType: PassType;
+  name: string;
+  amount: number;
+  minutes?: number;
+  days?: number;
 }
 
 export interface Class {

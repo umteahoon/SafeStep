@@ -27,6 +27,7 @@ export default function InquiryPage() {
       business_name: businessName.trim() || null,
       business_type: businessType,
       message: message.trim() || null,
+      submitted_by: user?.id ?? null,
     });
     setIsSubmitting(false);
     if (insertError) {
@@ -52,12 +53,22 @@ export default function InquiryPage() {
               <div className="rounded-2xl border border-green-200 bg-green-50 p-8 text-center">
                 <p className="text-lg font-bold text-green-700">문의가 접수되었습니다</p>
                 <p className="mt-2 text-sm text-green-600">남겨주신 연락처로 곧 안내드리겠습니다.</p>
-                <Link
-                  to="/start"
-                  className="mt-5 inline-block rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
-                >
-                  바로 시작하는 방법 보기
-                </Link>
+                <div className="mt-5 flex flex-wrap justify-center gap-2">
+                  <Link
+                    to="/start"
+                    className="inline-block rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+                  >
+                    바로 시작하는 방법 보기
+                  </Link>
+                  {user && (
+                    <Link
+                      to="/my/inquiries"
+                      className="inline-block rounded-lg border border-green-300 bg-white px-5 py-2.5 text-sm font-medium text-green-700 hover:bg-green-50"
+                    >
+                      내 문의 내역 보기
+                    </Link>
+                  )}
+                </div>
               </div>
             ) : (
               <form
@@ -70,7 +81,11 @@ export default function InquiryPage() {
                     <Link to="/start" className="font-medium underline">
                       바로 시작
                     </Link>
-                    할 수 있어요.
+                    할 수 있어요. 이전에 남긴 문의는{' '}
+                    <Link to="/my/inquiries" className="font-medium underline">
+                      내 문의 내역
+                    </Link>
+                    에서 확인하세요.
                   </p>
                 )}
 

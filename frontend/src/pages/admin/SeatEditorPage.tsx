@@ -8,6 +8,7 @@ const ZONE_OPTIONS = [
   { value: 'FOCUS', label: '집중석(1인 칸막이)' },
   { value: 'OPEN', label: '자유석' },
   { value: 'LAPTOP', label: '노트북존' },
+  { value: 'DESK', label: '컴퓨터책상' },
   { value: 'ROOM_A', label: '스터디룸 A' },
   { value: 'ROOM_B', label: '스터디룸 B' },
 ];

@@ -47,6 +47,8 @@ export default function TeamRoomPage() {
     return (id: string) => map.get(id) ?? '알 수 없음';
   }, [members]);
 
+  const isOwner = members.some((m) => m.member_id === myId && m.team_role === 'OWNER');
+
   const loadMembers = useCallback(async () => {
     if (!teamId) return;
     const { data } = await supabase.rpc('list_team_members', { p_team: teamId });
@@ -232,6 +234,51 @@ export default function TeamRoomPage() {
     navigate('/teams');
   };
 
+  const kickMember = async (userId: string, name: string) => {
+    if (!teamId || !window.confirm(`${name}님을 팀에서 내보낼까요?`)) return;
+    setError(null);
+    const { error: kickError } = await supabase.rpc('kick_team_member', {
+      p_team: teamId,
+      p_user: userId,
+    });
+    if (kickError) {
+      setError(kickError.message ?? '멤버를 내보내지 못했습니다.');
+      return;
+    }
+    if (activeRoom?.type === 'DIRECT' && otherOf(activeRoom) === userId) {
+      setActiveRoomId(teamRoom?.id ?? null);
+    }
+    await loadMembers();
+    await loadRooms();
+    flash(`${name}님을 내보냈습니다.`);
+  };
+
+  const deleteTeam = async () => {
+    if (!teamId) return;
+    if (!window.confirm('이 팀을 삭제할까요? 모든 채팅 기록이 함께 사라지며 되돌릴 수 없습니다.')) return;
+    setError(null);
+    const { error: deleteError } = await supabase.rpc('delete_team', { p_team: teamId });
+    if (deleteError) {
+      setError(deleteError.message ?? '팀 삭제에 실패했습니다.');
+      return;
+    }
+    navigate('/teams');
+  };
+
+  const regenerateCode = async () => {
+    if (!teamId || !window.confirm('참가 코드를 재발급할까요? 기존 코드는 즉시 사용할 수 없게 됩니다.')) return;
+    setError(null);
+    const { data, error: regenError } = await supabase.rpc('regenerate_team_code', {
+      p_team: teamId,
+    });
+    if (regenError || !data) {
+      setError(regenError?.message ?? '참가 코드 재발급에 실패했습니다.');
+      return;
+    }
+    setTeam((prev) => (prev ? { ...prev, join_code: data as string } : prev));
+    flash('참가 코드를 재발급했습니다.');
+  };
+
   if (isLoading) {
     return <p className="p-6 text-sm text-gray-400">불러오는 중...</p>;
   }
@@ -308,11 +355,11 @@ export default function TeamRoomPage() {
           </p>
           <ul>
             {members.map((m) => (
-              <li key={m.member_id}>
+              <li key={m.member_id} className="flex items-center">
                 <button
                   disabled={m.member_id === myId}
                   onClick={() => openDirect(m.member_id)}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-default disabled:hover:bg-transparent"
+                  className="flex min-w-0 flex-1 items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-default disabled:hover:bg-transparent"
                 >
                   <span className="truncate">
                     {m.member_name}
@@ -324,6 +371,15 @@ export default function TeamRoomPage() {
                     {m.team_role === 'OWNER' ? '팀장' : ROLE_LABEL[m.account_role] ?? ''}
                   </span>
                 </button>
+                {isOwner && m.member_id !== myId && (
+                  <button
+                    onClick={() => kickMember(m.member_id, m.member_name)}
+                    className="shrink-0 px-2 py-2 text-xs text-gray-400 hover:text-red-500"
+                    title="팀에서 내보내기"
+                  >
+                    추방
+                  </button>
+                )}
               </li>
             ))}
             {otherMembers.length === 0 && (
@@ -354,12 +410,29 @@ export default function TeamRoomPage() {
               초대 링크 복사
             </button>
           </div>
-          <button
-            onClick={leaveTeam}
-            className="mt-3 w-full text-center text-xs text-gray-400 hover:text-red-500"
-          >
-            팀 나가기
-          </button>
+          {isOwner && (
+            <button
+              onClick={regenerateCode}
+              className="mt-2 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+            >
+              참가 코드 재발급
+            </button>
+          )}
+          {isOwner ? (
+            <button
+              onClick={deleteTeam}
+              className="mt-3 w-full text-center text-xs text-gray-400 hover:text-red-500"
+            >
+              팀 삭제
+            </button>
+          ) : (
+            <button
+              onClick={leaveTeam}
+              className="mt-3 w-full text-center text-xs text-gray-400 hover:text-red-500"
+            >
+              팀 나가기
+            </button>
+          )}
         </div>
       </aside>
 

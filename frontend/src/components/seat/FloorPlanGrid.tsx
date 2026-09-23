@@ -16,11 +16,12 @@ interface ZoneMeta {
 
 // zone_type → 표시 정보. 시드에 없는 값은 기본값으로 렌더됩니다.
 const ZONE_META: Record<string, ZoneMeta> = {
-  FOCUS: { label: '집중존 · 1인 칸막이석', note: '정숙 구역', order: 1 },
+  FOCUS: { label: '포커스존 · 1인 칸막이석', note: '정숙 구역', order: 1 },
   OPEN: { label: '자유존 · 오픈席', note: '가벼운 대화 가능', order: 2 },
-  LAPTOP: { label: '노트북존', note: '타이핑 허용', order: 3 },
-  ROOM_A: { label: '스터디룸 A', note: '4인 · 예약제', order: 4 },
-  ROOM_B: { label: '스터디룸 B', note: '4인 · 예약제', order: 5 },
+  LAPTOP: { label: '카페존(노트북)', note: '타이핑 허용', order: 3 },
+  DESK: { label: '컴퓨터책상', note: 'PC 이용석', order: 4 },
+  ROOM_A: { label: '스터디룸 A', note: '4인 · 예약제', order: 5 },
+  ROOM_B: { label: '스터디룸 B', note: '4인 · 예약제', order: 6 },
 };
 
 function metaFor(zone: string): ZoneMeta {

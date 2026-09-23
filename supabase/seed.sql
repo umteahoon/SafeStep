@@ -17,3 +17,17 @@ VALUES
 INSERT INTO students (academy_id, name, attendance_code, parent_phone)
 VALUES
   ((SELECT id FROM academies WHERE name = 'SafeStep 강남점'), '홍길동', '111111', '010-1234-5678');
+
+-- 이용권 하드 게이팅(migration_07_student_passes.sql) 적용 후에도 키오스크 입실 테스트가 되도록
+-- 테스트 학생에게 시간권을 하나 지급해둡니다. student_passes 테이블이 아직 없으면(마이그레이션 전)
+-- 이 블록은 조용히 건너뜁니다 — 나중에 migration_07을 적용한 뒤 이 파일만 다시 실행해도 됩니다.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'student_passes') THEN
+    INSERT INTO student_passes (academy_id, student_id, pass_type, product_name, remaining_minutes, order_id, amount, status)
+    SELECT s.academy_id, s.id, 'TIME', '테스트용 30시간 이용권', 30 * 60, 'seed_test_pass_hong', 39000, 'ACTIVE'
+    FROM students s
+    WHERE s.attendance_code = '111111'
+    ON CONFLICT (order_id) DO NOTHING;
+  END IF;
+END $$;

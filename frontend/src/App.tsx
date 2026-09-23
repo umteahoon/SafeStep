@@ -3,6 +3,7 @@ import { useAuthListener } from './hooks/useAuth';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { isNativeApp } from './lib/platform';
 import { AppShell } from './components/common/AppShell';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { AdminLayout } from './components/admin/AdminLayout';
 
 import LandingPage from './pages/LandingPage';
@@ -25,8 +26,10 @@ import SubscriptionPage from './pages/billing/SubscriptionPage';
 import SuperAdminDashboardPage from './pages/admin/SuperAdminDashboardPage';
 import AdminAccessLogsPage from './pages/admin/AdminAccessLogsPage';
 import StudentQrPage from './pages/student/StudentQrPage';
+import StudentPassPage from './pages/student/StudentPassPage';
 import ParentReportPage from './pages/parent/ParentReportPage';
 import InquiryPage from './pages/InquiryPage';
+import MyInquiriesPage from './pages/MyInquiriesPage';
 import StartGuidePage from './pages/StartGuidePage';
 import TeamsPage from './pages/teams/TeamsPage';
 import TeamRoomPage from './pages/teams/TeamRoomPage';
@@ -43,6 +46,7 @@ function App() {
   return (
     <BrowserRouter>
       <AppShell>
+      <ErrorBoundary>
       <Routes>
         {/* 공개 라우트 (로그인 불필요) */}
         <Route
@@ -105,6 +109,7 @@ function App() {
         {/* 학생 전용 */}
         <Route element={<ProtectedRoute allowedRoles={['STUDENT']} />}>
           <Route path="/student/qr" element={<StudentQrPage />} />
+          <Route path="/student/passes" element={<StudentPassPage />} />
         </Route>
 
         {/* 학부모 전용 */}
@@ -124,11 +129,23 @@ function App() {
           <Route path="/chat/:roomId" element={<ChatRoomPage />} />
         </Route>
 
+        {/* 로그인한 전체 역할: 내 문의 내역 */}
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={['SUPER_ADMIN', 'ACADEMY_ADMIN', 'TEACHER', 'STUDENT', 'PARENT']}
+            />
+          }
+        >
+          <Route path="/my/inquiries" element={<MyInquiriesPage />} />
+        </Route>
+
         <Route
           path="*"
           element={<Navigate to={isNativeApp ? '/map' : '/'} replace />}
         />
       </Routes>
+      </ErrorBoundary>
       </AppShell>
     </BrowserRouter>
   );
