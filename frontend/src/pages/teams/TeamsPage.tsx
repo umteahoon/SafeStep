@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/common/PageHeader';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
-import { homeForRole } from '../LandingPage';
+import { homeForRole } from '../../lib/navigation';
 import type { Team } from '../../types';
 
 type Panel = 'create' | 'join' | null;
@@ -30,10 +30,17 @@ export default function TeamsPage() {
   // ?action=create|join 으로 진입하면 해당 패널을 바로 엽니다.
   useEffect(() => {
     const action = searchParams.get('action');
+    let cancelled = false;
     if (action === 'create' || action === 'join') {
-      setPanel(action);
-      setError(null);
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setPanel(action);
+        setError(null);
+      });
     }
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams]);
 
   const loadTeams = useCallback(async () => {
@@ -54,7 +61,13 @@ export default function TeamsPage() {
   }, [user]);
 
   useEffect(() => {
-    loadTeams();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void loadTeams();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [loadTeams]);
 
   const openPanel = (next: Panel) => {

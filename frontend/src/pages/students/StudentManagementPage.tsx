@@ -34,7 +34,13 @@ export default function StudentManagementPage() {
   }, [academyId]);
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void load();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   const addStudent = async (e: React.FormEvent) => {

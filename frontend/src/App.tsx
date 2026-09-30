@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthListener } from './hooks/useAuth';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
@@ -7,38 +8,38 @@ import { AppShell } from './components/common/AppShell';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { AdminLayout } from './components/admin/AdminLayout';
 
-import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import UnauthorizedPage from './pages/auth/UnauthorizedPage';
-import TeacherPendingPage from './pages/auth/TeacherPendingPage';
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+const UnauthorizedPage = lazy(() => import('./pages/auth/UnauthorizedPage'));
+const TeacherPendingPage = lazy(() => import('./pages/auth/TeacherPendingPage'));
 
-import MapSearchPage from './pages/map/MapSearchPage';
-import SeatFloorPlanPage from './pages/seats/SeatFloorPlanPage';
-import KioskPage from './pages/kiosk/KioskPage';
-import DashboardPage from './pages/dashboard/DashboardPage';
-import OwnerClaimPage from './pages/owner/OwnerClaimPage';
-import StudentManagementPage from './pages/students/StudentManagementPage';
-import TeacherManagementPage from './pages/teachers/TeacherManagementPage';
-import ClassListPage from './pages/classes/ClassListPage';
-import ClassSchedulePage from './pages/classes/ClassSchedulePage';
-import ClassAttendancePage from './pages/attendance/ClassAttendancePage';
-import SubscriptionPage from './pages/billing/SubscriptionPage';
-import SuperAdminDashboardPage from './pages/admin/SuperAdminDashboardPage';
-import AdminAccessLogsPage from './pages/admin/AdminAccessLogsPage';
-import StudentQrPage from './pages/student/StudentQrPage';
-import StudentPassPage from './pages/student/StudentPassPage';
-import ParentReportPage from './pages/parent/ParentReportPage';
-import InquiryPage from './pages/InquiryPage';
-import MyInquiriesPage from './pages/MyInquiriesPage';
-import StartGuidePage from './pages/StartGuidePage';
-import TeamsPage from './pages/teams/TeamsPage';
-import TeamRoomPage from './pages/teams/TeamRoomPage';
-import JoinTeamPage from './pages/teams/JoinTeamPage';
-import ReportsPage from './pages/admin/ReportsPage';
-import SeatEditorPage from './pages/admin/SeatEditorPage';
-import ChatListPage from './pages/chat/ChatListPage';
-import ChatRoomPage from './pages/chat/ChatRoomPage';
+const MapSearchPage = lazy(() => import('./pages/map/MapSearchPage'));
+const SeatFloorPlanPage = lazy(() => import('./pages/seats/SeatFloorPlanPage'));
+const KioskPage = lazy(() => import('./pages/kiosk/KioskPage'));
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
+const OwnerClaimPage = lazy(() => import('./pages/owner/OwnerClaimPage'));
+const StudentManagementPage = lazy(() => import('./pages/students/StudentManagementPage'));
+const TeacherManagementPage = lazy(() => import('./pages/teachers/TeacherManagementPage'));
+const ClassListPage = lazy(() => import('./pages/classes/ClassListPage'));
+const ClassSchedulePage = lazy(() => import('./pages/classes/ClassSchedulePage'));
+const ClassAttendancePage = lazy(() => import('./pages/attendance/ClassAttendancePage'));
+const SubscriptionPage = lazy(() => import('./pages/billing/SubscriptionPage'));
+const SuperAdminDashboardPage = lazy(() => import('./pages/admin/SuperAdminDashboardPage'));
+const AdminAccessLogsPage = lazy(() => import('./pages/admin/AdminAccessLogsPage'));
+const StudentQrPage = lazy(() => import('./pages/student/StudentQrPage'));
+const StudentPassPage = lazy(() => import('./pages/student/StudentPassPage'));
+const ParentReportPage = lazy(() => import('./pages/parent/ParentReportPage'));
+const InquiryPage = lazy(() => import('./pages/InquiryPage'));
+const MyInquiriesPage = lazy(() => import('./pages/MyInquiriesPage'));
+const StartGuidePage = lazy(() => import('./pages/StartGuidePage'));
+const TeamsPage = lazy(() => import('./pages/teams/TeamsPage'));
+const TeamRoomPage = lazy(() => import('./pages/teams/TeamRoomPage'));
+const JoinTeamPage = lazy(() => import('./pages/teams/JoinTeamPage'));
+const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'));
+const SeatEditorPage = lazy(() => import('./pages/admin/SeatEditorPage'));
+const ChatListPage = lazy(() => import('./pages/chat/ChatListPage'));
+const ChatRoomPage = lazy(() => import('./pages/chat/ChatRoomPage'));
 
 function App() {
   // 세션/프로필 구독은 앱 최상단에서 한 번만
@@ -48,6 +49,17 @@ function App() {
     <BrowserRouter>
       <AppShell>
       <ErrorBoundary>
+      <Suspense
+        fallback={
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex min-h-[50vh] items-center justify-center text-sm text-gray-500"
+          >
+            페이지를 불러오는 중...
+          </div>
+        }
+      >
       <Routes>
         {/* 공개 라우트 (로그인 불필요) */}
         <Route
@@ -150,6 +162,7 @@ function App() {
           element={<Navigate to={isNativeApp ? '/map' : '/'} replace />}
         />
       </Routes>
+      </Suspense>
       </ErrorBoundary>
       </AppShell>
     </BrowserRouter>

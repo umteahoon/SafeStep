@@ -10,27 +10,25 @@ import { useAuth } from '../../hooks/useAuth';
  */
 export function RequireStudentLink() {
   const { user, profile } = useAuth();
-  const [isLinked, setIsLinked] = useState<boolean | null>(null);
+  const studentId = profile?.role === 'STUDENT' ? user?.id : undefined;
+  const [linkResult, setLinkResult] = useState<{ user: typeof user; profile: typeof profile; linked: boolean } | null>(null);
+  const isLinked = !studentId ? true : linkResult?.user === user && linkResult?.profile === profile ? linkResult.linked : null;
 
   useEffect(() => {
-    if (!user || profile?.role !== 'STUDENT') {
-      setIsLinked(true);
-      return;
-    }
+    if (!studentId) return;
     let cancelled = false;
-    setIsLinked(null);
     supabase
       .from('students')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', studentId)
       .maybeSingle()
       .then(({ data }) => {
-        if (!cancelled) setIsLinked(!!data);
+        if (!cancelled) setLinkResult({ user, profile, linked: !!data });
       });
     return () => {
       cancelled = true;
     };
-  }, [user, profile]);
+  }, [studentId, user, profile]);
 
   if (isLinked === null) {
     return (

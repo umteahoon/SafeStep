@@ -40,18 +40,18 @@ function loadNaverMapScript(clientId: string): Promise<void> {
 export function useNaverMaps() {
   const [isLoaded, setIsLoaded] = useState(!!window.naver?.maps);
   const [error, setError] = useState<string | null>(null);
+  const clientId = import.meta.env.VITE_NAVER_MAP_CLIENT_ID;
+  const configurationError = !isLoaded && !clientId
+    ? 'VITE_NAVER_MAP_CLIENT_ID가 설정되지 않았습니다.'
+    : null;
 
   useEffect(() => {
     if (isLoaded) return;
-    const clientId = import.meta.env.VITE_NAVER_MAP_CLIENT_ID;
-    if (!clientId) {
-      setError('VITE_NAVER_MAP_CLIENT_ID가 설정되지 않았습니다.');
-      return;
-    }
+    if (!clientId) return;
     loadNaverMapScript(clientId)
       .then(() => setIsLoaded(true))
       .catch((e) => setError(e.message));
-  }, [isLoaded]);
+  }, [isLoaded, clientId]);
 
-  return { isLoaded, error };
+  return { isLoaded, error: configurationError ?? error };
 }

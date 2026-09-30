@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { homeForRole } from '../../pages/LandingPage';
+import { homeForRole } from '../../lib/navigation';
 import logo from '../../assets/logo.png';
 
 /** 랜딩에서 이어지는 공개 안내 페이지(/inquiry, /start)의 상단 바 */

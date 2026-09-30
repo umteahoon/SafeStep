@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api';
 import { safeNextPath } from '../../lib/teams';
-import { homeForRole } from '../LandingPage';
+import { homeForRole } from '../../lib/navigation';
 
 // 로그인 성공/실패를 기록합니다. 실패해도 로그인 흐름을 막지 않습니다.
 function logLoginAttempt(email: string, success: boolean, reason?: string) {

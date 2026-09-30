@@ -123,7 +123,13 @@ export default function ChatListPage() {
   }, [academyId, isStaff, user]);
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void load();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   return (

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { isNativeApp, showPhoneMockup } from '../../lib/platform';
 import { useAuth } from '../../hooks/useAuth';
-import { homeForRole } from '../../pages/LandingPage';
+import { homeForRole } from '../../lib/navigation';
 
 const TABS = [
   { to: '/map', label: '지도', icon: '🗺️' },
