@@ -20,6 +20,7 @@ export default function AdminAccessLogsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [onlyFailed, setOnlyFailed] = useState(false);
+  const [checkedAt, setCheckedAt] = useState(0);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -28,18 +29,25 @@ export default function AdminAccessLogsPage() {
       .select('*')
       .order('created_at', { ascending: false })
       .limit(200);
+    setCheckedAt(Date.now());
     setAttempts((data as LoginAttempt[]) ?? []);
     setError(e?.message ?? null);
     setIsLoading(false);
   }, []);
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void load();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   // 최근 SUSPICIOUS_WINDOW_MIN분 내 같은 이메일로 SUSPICIOUS_THRESHOLD회 이상 실패 → 의심 신호
   const suspiciousEmails = useMemo(() => {
-    const cutoff = Date.now() - SUSPICIOUS_WINDOW_MIN * 60_000;
+    const cutoff = checkedAt - SUSPICIOUS_WINDOW_MIN * 60_000;
     const failCount = new Map<string, number>();
     for (const a of attempts) {
       if (a.success) continue;
@@ -51,7 +59,7 @@ export default function AdminAccessLogsPage() {
         .filter(([, count]) => count >= SUSPICIOUS_THRESHOLD)
         .map(([email]) => email)
     );
-  }, [attempts]);
+  }, [attempts, checkedAt]);
 
   const visible = onlyFailed ? attempts.filter((a) => !a.success) : attempts;
 

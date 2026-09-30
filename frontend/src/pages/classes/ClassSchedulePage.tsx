@@ -49,7 +49,13 @@ export default function ClassSchedulePage() {
   }, [academyId, classId]);
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void load();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   const addSlot = async (e: React.FormEvent) => {

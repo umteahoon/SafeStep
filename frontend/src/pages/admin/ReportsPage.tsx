@@ -50,7 +50,13 @@ export default function ReportsPage() {
   }, [academyId]);
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void load();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   const resolve = async (id: string) => {

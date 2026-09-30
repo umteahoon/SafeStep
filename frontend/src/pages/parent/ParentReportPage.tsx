@@ -58,7 +58,13 @@ export default function ParentReportPage() {
   }, [selectedId]);
 
   useEffect(() => {
-    loadChildren();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void loadChildren();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [loadChildren]);
 
   useEffect(() => {

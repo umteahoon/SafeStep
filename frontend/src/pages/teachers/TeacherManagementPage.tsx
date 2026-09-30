@@ -20,6 +20,7 @@ interface ApprovedTeacher {
 
 export default function TeacherManagementPage() {
   const { profile } = useAuth();
+  const academyId = profile?.academy_id;
   const [pending, setPending] = useState<PendingTeacher[]>([]);
   const [approved, setApproved] = useState<ApprovedTeacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,11 +36,11 @@ export default function TeacherManagementPage() {
       );
       setPending(res.data ?? []);
 
-      if (profile?.academy_id) {
+      if (academyId) {
         const { data } = await supabase
           .from('profiles')
           .select('id, name, email, phone')
-          .eq('academy_id', profile.academy_id)
+          .eq('academy_id', academyId)
           .eq('role', 'TEACHER')
           .eq('approval_status', 'APPROVED');
         setApproved((data as ApprovedTeacher[]) ?? []);
@@ -49,10 +50,16 @@ export default function TeacherManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [profile?.academy_id]);
+  }, [academyId]);
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void load();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   const act = async (teacherId: string, action: 'approve' | 'reject') => {
