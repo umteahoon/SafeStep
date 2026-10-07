@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useNaverMaps } from '../../hooks/useNaverMaps';
 import { supabase } from '../../lib/supabase';
@@ -90,14 +90,23 @@ export default function MapSearchPage() {
     });
   }, [isLoaded, center]);
 
-  // 마커 렌더링
+  // 검색어와 일치하는 학원만 — 입력할 때마다 바로 갱신되어 목록·지도 둘 다에 쓰임
+  const filteredAcademies = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return academies;
+    return academies.filter(
+      (a) => a.name.toLowerCase().includes(q) || a.address.toLowerCase().includes(q)
+    );
+  }, [academies, searchQuery]);
+
+  // 마커 렌더링: 검색 중이면 검색 결과만, 아니면 전체를 표시
   useEffect(() => {
     if (!isLoaded || !mapInstance.current) return;
 
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
 
-    academies.forEach((academy) => {
+    filteredAcademies.forEach((academy) => {
       const marker = new window.naver.maps.Marker({
         position: new window.naver.maps.LatLng(academy.latitude, academy.longitude),
         map: mapInstance.current,
@@ -117,24 +126,30 @@ export default function MapSearchPage() {
 
       markersRef.current.push(marker);
     });
-  }, [isLoaded, academies]);
+  }, [isLoaded, filteredAcademies]);
 
-  const filteredAcademies = academies.filter((a) => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return true;
-    return a.name.toLowerCase().includes(q) || a.address.toLowerCase().includes(q);
-  });
+  // 검색어를 입력하는 즉시(제출 없이) 결과 위치로 지도 이동 — 결과 1곳이면 확대 이동,
+  // 여러 곳이면 전부 한 화면에 들어오도록 범위 조정
+  useEffect(() => {
+    if (!isLoaded || !mapInstance.current || !window.naver) return;
+    if (!searchQuery.trim() || filteredAcademies.length === 0) return;
 
-  const focusAcademy = (academy: AcademyWithSeats) => {
-    if (!mapInstance.current || !window.naver) return;
-    const position = new window.naver.maps.LatLng(academy.latitude, academy.longitude);
-    mapInstance.current.panTo(position);
-    mapInstance.current.setZoom(16);
-  };
+    if (filteredAcademies.length === 1) {
+      const a = filteredAcademies[0];
+      mapInstance.current.panTo(new window.naver.maps.LatLng(a.latitude, a.longitude));
+      mapInstance.current.setZoom(16);
+    } else {
+      const bounds = new window.naver.maps.LatLngBounds();
+      filteredAcademies.forEach((a) =>
+        bounds.extend(new window.naver.maps.LatLng(a.latitude, a.longitude))
+      );
+      mapInstance.current.fitBounds(bounds);
+    }
+  }, [isLoaded, searchQuery, filteredAcademies]);
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (filteredAcademies.length > 0) focusAcademy(filteredAcademies[0]);
+    (e.target as HTMLFormElement).querySelector('input')?.blur();
   };
 
   return (
