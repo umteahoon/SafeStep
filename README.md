@@ -70,7 +70,8 @@ safestep/
 | 학생 계정 ↔ 명부 자가 연동 | `/student/qr`에서 학생이 원장에게 받은 6자리 연동코드(`link_code`, 기존엔 보호자 전용이었으나 이제 학생 본인도 사용)를 입력해 자기 계정을 `students` 레코드에 직접 연결 (`backend/src/routes/studentLink.ts`, `supabase/migration_08_student_self_link.sql`로 `link_code`에 UNIQUE 제약 추가). 학생관리 화면에 계정 연동 여부(연동됨/미연동) 배지 표시 |
 | 안드로이드 뒤로가기 차단 | `@capacitor/app` 설치 + `frontend/src/hooks/useBlockBackButton.ts`, 키오스크 화면(`/kiosk`)에 적용 — 실기기(네이티브 런타임)에서만 동작하며 하드웨어 뒤로가기를 무시해 공용 태블릿이 앱 종료/이전 화면으로 새는 것을 방지. `npx cap sync android` 완료 |
 | 로그인 상태 표시 버그 수정 | 랜딩/지도/공개 헤더(`PublicHeader`)와 `/start` 페이지가 `user && profile`을 조건으로 써서, 프로필 로딩이 늦거나 실패하면 실제로는 로그인된 원장도 로그아웃 상태(로그인/회원가입 버튼)로 보이던 문제 수정 — 이제 `user`만으로 로그인 여부를 판단하고, 프로필이 아직 없으면 안전한 기본 경로(`/map`)로 연결하거나 "불러오는 중" 상태를 표시 |
-| 지도 검색 바 | `/map` 목록 패널에 지점명/주소 검색 입력 추가 — 입력 즉시 목록이 필터링되고, 검색 제출(Enter) 시 첫 번째 결과 위치로 지도 이동(pan+zoom) |
+| 지도 검색 바 | `/map` 목록 패널에 지점명/주소 검색 입력 추가 — 입력하는 즉시(제출 없이) 목록·지도 마커가 같이 갱신되고 결과 위치로 자동 이동(1곳이면 확대 이동, 여러 곳이면 전체가 보이게 범위 조정) |
+| 주변 실제 업체 표시 (선택) | `/map`에서 네이버 지역검색 API로 SafeStep 미등록 주변 스터디카페도 회색 마커로 함께 표시(`GET /api/places/search`, 백엔드 프록시 — Client Secret 노출 방지). `NAVER_SEARCH_CLIENT_ID`/`SECRET` 미설정 시 이 기능만 조용히 비활성화. 검색어가 비어 있으면 기본으로 "스터디카페" 조회 |
 | 실제 매장 좌석 배치 데모 | 사용자가 제공한 키오스크 좌석 선택 화면 사진(초월 스터디카페 산본점)을 참고해 "SafeStep 강남점"의 좌석 구조를 62석으로 교체(`supabase/seed_floorplan.sql`). 사진 속 실제 좌석 번호·존 구성(포커스존 12석/카페존(노트북) 6석/컴퓨터책상 3석/스터디룸 4석/자유석 37석)뿐 아니라 좌석 하나하나의 배치·통로까지 학원 전체 기준 절대 좌표로 재현. 새 `DESK`(컴퓨터책상) 존 타입 추가, 비좌석 랜드마크(존 라벨/화장실/창고/냉장고/KIOSK 위치)를 위한 `academy_landmarks` 테이블 신설(`supabase/migration_11_academy_landmarks.sql`) — 랜드마크가 있는 학원은 `FloorPlanGrid.tsx`가 기존 "존 상자별 배치" 대신 통로가 있는 "자유 배치" 모드로 렌더링(랜드마크 없는 학원은 기존 방식 그대로 유지) |
 
 ### ⏳ 미구현 (코드 자체가 아직 없음 — 외부 계정 설정과 무관하게 개발이 필요한 항목)
@@ -228,6 +229,11 @@ Android Studio가 열리면:
 ### 네이버 지도 API
 [Naver Cloud Platform](https://www.ncloud.com) → Application → Maps 서비스 신청 후
 `VITE_NAVER_MAP_CLIENT_ID` 발급. Web Dynamic Map은 월 1,000만 건까지 무료입니다.
+
+### 네이버 지역검색 API (주변 실제 업체 표시, 선택)
+`/map` 페이지가 SafeStep에 등록되지 않은 주변 스터디카페도 함께 보여주는 기능입니다. **위 지도 API와는 별개의 키**가 필요합니다 — [NAVER Developers](https://developers.naver.com) → Application 등록 → "검색" API 선택 → 발급받은 Client ID/Secret을 백엔드 `.env`의 `NAVER_SEARCH_CLIENT_ID`/`NAVER_SEARCH_CLIENT_SECRET`에 설정하세요 (브라우저에서 직접 호출하면 Secret이 노출되므로 반드시 백엔드 `/api/places/search`를 거칩니다). 키를 설정하지 않으면 이 기능만 조용히 꺼지고 SafeStep 등록 지점 검색은 그대로 동작합니다.
+
+> ⚠️ 이 API가 내려주는 좌표(mapx/mapy)의 좌표계가 공식 문서상 명확하지 않아(TM128 ↔ WGS84), 프론트에서 변환 후 한국 영역을 벗어나면 마커를 표시하지 않는 안전장치를 넣었습니다(`frontend/src/pages/map/MapSearchPage.tsx`의 `tm128ToLatLng`). 실제 키로 테스트해보고 위치가 어긋나면 변환식을 조정해야 할 수 있습니다.
 
 ---
 

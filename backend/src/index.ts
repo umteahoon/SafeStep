@@ -17,6 +17,7 @@ import chatRoutes from './routes/chat';
 import studentPassRoutes from './routes/studentPass';
 import studentLinkRoutes from './routes/studentLink';
 import inquiryRoutes from './routes/inquiry';
+import placesRoutes from './routes/places';
 
 import { scheduleAwayTimeout } from './cron/awayTimeout';
 import { scheduleAutoCheckout } from './cron/autoCheckout';
@@ -62,6 +63,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/student-passes', studentPassRoutes);
 app.use('/api/student-link', studentLinkRoutes);
 app.use('/api/inquiries', inquiryRoutes);
+app.use('/api/places', placesRoutes);
 
 // Cron 작업 등록 (무료 티어 Cold Start 대응은 별도 외부 핑 서비스 권장)
 scheduleAwayTimeout();

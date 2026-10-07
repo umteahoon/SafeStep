@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useNaverMaps } from '../../hooks/useNaverMaps';
 import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/api';
 import { isNativeApp } from '../../lib/platform';
 import logo from '../../assets/logo.png';
 import type { Academy } from '../../types';
@@ -10,7 +11,36 @@ interface AcademyWithSeats extends Academy {
   emptySeats: number;
 }
 
+interface ExternalPlace {
+  name: string;
+  category: string;
+  telephone: string | null;
+  address: string;
+  mapx: string;
+  mapy: string;
+}
+
 const DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 }; // 서울시청 (위치 권한 거부 시 기본값)
+
+// 네이버 지역검색 API가 내려주는 mapx/mapy(TM128 좌표, ×10)를 지도에 쓸 위경도로 변환합니다.
+// 변환 결과가 한국 영역을 벗어나면(공식 문서가 좌표계를 명확히 밝히지 않아 생기는 오차 방지)
+// 잘못 찍히는 대신 마커를 아예 표시하지 않습니다.
+function tm128ToLatLng(mapx: string, mapy: string): { lat: number; lng: number } | null {
+  const naverMaps = window.naver?.maps as any;
+  if (!naverMaps?.TransCoord) return null;
+  const x = Number(mapx);
+  const y = Number(mapy);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  try {
+    const latlng = naverMaps.TransCoord.fromTM128ToLatLng(new naverMaps.Point(x / 10, y / 10));
+    const lat = latlng.lat();
+    const lng = latlng.lng();
+    if (lat < 33 || lat > 39 || lng < 124 || lng > 132) return null;
+    return { lat, lng };
+  } catch {
+    return null;
+  }
+}
 
 export default function MapSearchPage() {
   const navigate = useNavigate();
@@ -18,11 +48,13 @@ export default function MapSearchPage() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const externalMarkersRef = useRef<any[]>([]);
 
   const [academies, setAcademies] = useState<AcademyWithSeats[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [center, setCenter] = useState(DEFAULT_CENTER);
   const [searchQuery, setSearchQuery] = useState('');
+  const [externalPlaces, setExternalPlaces] = useState<ExternalPlace[]>([]);
 
   // 사용자 위치
   useEffect(() => {
@@ -147,6 +179,68 @@ export default function MapSearchPage() {
     }
   }, [isLoaded, searchQuery, filteredAcademies]);
 
+  // SafeStep에 등록되지 않은 실제 주변 업체도 함께 보여주기 (네이버 지역검색).
+  // 검색어가 비어 있으면 "스터디카페"로 기본 조회. 입력이 멈추고 0.4초 뒤 요청(디바운스).
+  useEffect(() => {
+    const query = searchQuery.trim() || '스터디카페';
+    const timer = setTimeout(() => {
+      apiFetch<{ data: ExternalPlace[] }>(
+        `/api/places/search?query=${encodeURIComponent(query)}`,
+        { auth: false }
+      )
+        .then((res) => setExternalPlaces(res.data ?? []))
+        .catch(() => setExternalPlaces([]));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // 외부 업체 마커: SafeStep 등록 지점과 구분되도록 회색 점으로 표시
+  useEffect(() => {
+    if (!isLoaded || !mapInstance.current) return;
+
+    externalMarkersRef.current.forEach((m) => m.setMap(null));
+    externalMarkersRef.current = [];
+
+    externalPlaces.forEach((place) => {
+      const coords = tm128ToLatLng(place.mapx, place.mapy);
+      if (!coords) return;
+
+      const marker = new window.naver.maps.Marker({
+        position: new window.naver.maps.LatLng(coords.lat, coords.lng),
+        map: mapInstance.current,
+        title: place.name,
+        icon: {
+          content:
+            '<div style="width:10px;height:10px;border-radius:50%;background:#9CA3AF;border:2px solid #fff;box-shadow:0 0 2px rgba(0,0,0,.4);"></div>',
+          anchor: new window.naver.maps.Point(6, 6),
+        },
+      });
+
+      const infoWindow = new window.naver.maps.InfoWindow({
+        content: `<div style="padding:8px 12px;font-size:13px;max-width:220px;">
+          <strong>${place.name}</strong><br/>
+          <span style="color:#9CA3AF;">${place.category}</span><br/>
+          ${place.address}
+          ${place.telephone ? `<br/>${place.telephone}` : ''}
+          <div style="margin-top:4px;font-size:11px;color:#9CA3AF;">SafeStep 미등록 업체</div>
+        </div>`,
+      });
+
+      window.naver.maps.Event.addListener(marker, 'click', () => {
+        infoWindow.open(mapInstance.current, marker);
+      });
+
+      externalMarkersRef.current.push(marker);
+    });
+  }, [isLoaded, externalPlaces]);
+
+  const focusExternalPlace = (place: ExternalPlace) => {
+    const coords = tm128ToLatLng(place.mapx, place.mapy);
+    if (!coords || !mapInstance.current) return;
+    mapInstance.current.panTo(new window.naver.maps.LatLng(coords.lat, coords.lng));
+    mapInstance.current.setZoom(16);
+  };
+
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
     (e.target as HTMLFormElement).querySelector('input')?.blur();
@@ -180,12 +274,14 @@ export default function MapSearchPage() {
       <div className="h-1/2 w-full overflow-y-auto border-l border-gray-200 md:h-full md:w-1/3">
         <div className="border-b border-gray-100 p-4">
           <h1 className="text-lg font-bold text-gray-900">주변 스터디카페 · 학원</h1>
-          <p className="text-sm text-gray-400">실시간 잔여석을 확인하고 입장하세요</p>
+          <p className="text-sm text-gray-400">
+            실시간 잔여석을 확인하고 입장하세요. 주변의 다른 업체도 함께 보여드려요.
+          </p>
           <form onSubmit={submitSearch} className="mt-3">
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="지점명 또는 주소로 검색"
+              placeholder="지점명, 주소 또는 지역명으로 검색 (예: 강남 스터디카페)"
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
             />
           </form>
@@ -224,6 +320,30 @@ export default function MapSearchPage() {
             <li className="p-4 text-sm text-gray-400">"{searchQuery}"와 일치하는 지점이 없습니다.</li>
           )}
         </ul>
+
+        {externalPlaces.length > 0 && (
+          <>
+            <div className="border-y border-gray-100 bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-400">
+              주변 스터디카페 (SafeStep 미등록)
+            </div>
+            <ul className="divide-y divide-gray-100">
+              {externalPlaces.map((place, i) => (
+                <li
+                  key={`${place.name}-${i}`}
+                  className="cursor-pointer p-4 transition hover:bg-gray-50"
+                  onClick={() => focusExternalPlace(place)}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-gray-400" />
+                    <h2 className="font-medium text-gray-900">{place.name}</h2>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-400">{place.category}</p>
+                  <p className="text-sm text-gray-400">{place.address}</p>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </div>
       </div>
     </div>

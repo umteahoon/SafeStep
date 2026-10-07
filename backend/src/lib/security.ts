@@ -39,6 +39,15 @@ export const inquiryLimiter = rateLimit({
   message: { error: '문의는 잠시 후 다시 남겨주세요.' },
 });
 
+// 외부 장소검색(네이버) 프록시 — 무료 할당량 보호용 (IP당 분당 20회)
+export const placeSearchLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 20,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: '검색 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+});
+
 // DB/외부 오류의 원문은 로그에만 남기고, 클라이언트에는 일반 문구만 보냅니다.
 export function sendServerError(
   res: Response,
