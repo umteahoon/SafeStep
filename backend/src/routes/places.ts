@@ -19,8 +19,11 @@ const stripTags = (s: string) => s.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&'
 
 // GET /api/places/search?query=스터디카페
 // DB에 등록되지 않은 실제 주변 업체를 지도에 같이 보여주기 위한 네이버 지역검색 프록시.
-// Client Secret이 필요해 브라우저에서 직접 호출할 수 없고, CORS도 막혀 있어 서버를 거칩니다.
-// mapx/mapy는 그대로 내려보내고, 좌표계 변환(TM128→위경도)은 프론트가 네이버 지도 SDK로 처리합니다.
+// 2026-09 네이버가 검색 API를 developers.naver.com에서 NCP 콘솔의 "NAVER API HUB"로
+// 이관하면서 인증 방식도 NCP API Gateway 키(X-NCP-APIGW-API-KEY-ID/-KEY)로 바뀌었습니다
+// (기존 X-Naver-Client-Id/-Secret 방식 아님). Client Secret이 필요해 브라우저에서 직접
+// 호출할 수 없고, CORS도 막혀 있어 서버를 거칩니다.
+// mapx/mapy는 그대로 내려보내고, 좌표계 해석은 프론트가 네이버 지도 SDK로 처리합니다.
 router.get('/search', placeSearchLimiter, async (req, res) => {
   const query = String(req.query.query ?? '').trim().slice(0, 100);
   if (!query) return res.status(400).json({ error: '검색어를 입력해주세요.' });
@@ -32,11 +35,11 @@ router.get('/search', placeSearchLimiter, async (req, res) => {
   }
 
   try {
-    const url = `https://openapi.naver.com/v1/search/local.json?query=${encodeURIComponent(query)}&display=10`;
+    const url = `https://naverapihub.apigw.ntruss.com/search/v1/local?query=${encodeURIComponent(query)}&display=10`;
     const naverRes = await fetch(url, {
       headers: {
-        'X-Naver-Client-Id': clientId,
-        'X-Naver-Client-Secret': clientSecret,
+        'X-NCP-APIGW-API-KEY-ID': clientId,
+        'X-NCP-APIGW-API-KEY': clientSecret,
       },
     });
     if (!naverRes.ok) {

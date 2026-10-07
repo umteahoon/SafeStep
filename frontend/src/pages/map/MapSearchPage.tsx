@@ -22,24 +22,34 @@ interface ExternalPlace {
 
 const DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 }; // 서울시청 (위치 권한 거부 시 기본값)
 
-// 네이버 지역검색 API가 내려주는 mapx/mapy(TM128 좌표, ×10)를 지도에 쓸 위경도로 변환합니다.
-// 변환 결과가 한국 영역을 벗어나면(공식 문서가 좌표계를 명확히 밝히지 않아 생기는 오차 방지)
-// 잘못 찍히는 대신 마커를 아예 표시하지 않습니다.
-function tm128ToLatLng(mapx: string, mapy: string): { lat: number; lng: number } | null {
-  const naverMaps = window.naver?.maps as any;
-  if (!naverMaps?.TransCoord) return null;
+const inKorea = (lat: number, lng: number) => lat >= 33 && lat <= 39 && lng >= 124 && lng <= 132;
+
+// 네이버 지역검색(NAVER API HUB) 응답의 mapx/mapy를 지도에 쓸 위경도로 변환합니다.
+// 2026년 이관 이후 좌표계가 WGS84(경도×10,000,000 / 위도×10,000,000)로 바뀌었다는 설명과
+// 예전 TM128 방식이라는 설명이 공식 문서상 엇갈려서, 두 방식을 순서대로 시도하고
+// 둘 다 한국 영역을 벗어나면(=잘못된 해석) 마커 없이 건너뜁니다.
+function resolvePlaceLatLng(mapx: string, mapy: string): { lat: number; lng: number } | null {
   const x = Number(mapx);
   const y = Number(mapy);
   if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-  try {
-    const latlng = naverMaps.TransCoord.fromTM128ToLatLng(new naverMaps.Point(x / 10, y / 10));
-    const lat = latlng.lat();
-    const lng = latlng.lng();
-    if (lat < 33 || lat > 39 || lng < 124 || lng > 132) return null;
-    return { lat, lng };
-  } catch {
-    return null;
+
+  // 1) WGS84 직접 해석 (경도×1e7, 위도×1e7) — 이관 후 기본값으로 추정
+  const direct = { lat: y / 1e7, lng: x / 1e7 };
+  if (inKorea(direct.lat, direct.lng)) return direct;
+
+  // 2) 구버전 TM128 좌표계 (×10) — 네이버 지도 SDK의 변환 유틸리티 사용
+  const naverMaps = window.naver?.maps as any;
+  if (naverMaps?.TransCoord) {
+    try {
+      const latlng = naverMaps.TransCoord.fromTM128ToLatLng(new naverMaps.Point(x / 10, y / 10));
+      const converted = { lat: latlng.lat(), lng: latlng.lng() };
+      if (inKorea(converted.lat, converted.lng)) return converted;
+    } catch {
+      /* 변환 실패 시 아래에서 null 반환 */
+    }
   }
+
+  return null;
 }
 
 export default function MapSearchPage() {
@@ -202,7 +212,7 @@ export default function MapSearchPage() {
     externalMarkersRef.current = [];
 
     externalPlaces.forEach((place) => {
-      const coords = tm128ToLatLng(place.mapx, place.mapy);
+      const coords = resolvePlaceLatLng(place.mapx, place.mapy);
       if (!coords) return;
 
       const marker = new window.naver.maps.Marker({
@@ -235,7 +245,7 @@ export default function MapSearchPage() {
   }, [isLoaded, externalPlaces]);
 
   const focusExternalPlace = (place: ExternalPlace) => {
-    const coords = tm128ToLatLng(place.mapx, place.mapy);
+    const coords = resolvePlaceLatLng(place.mapx, place.mapy);
     if (!coords || !mapInstance.current) return;
     mapInstance.current.panTo(new window.naver.maps.LatLng(coords.lat, coords.lng));
     mapInstance.current.setZoom(16);

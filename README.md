@@ -231,9 +231,9 @@ Android Studio가 열리면:
 `VITE_NAVER_MAP_CLIENT_ID` 발급. Web Dynamic Map은 월 1,000만 건까지 무료입니다.
 
 ### 네이버 지역검색 API (주변 실제 업체 표시, 선택)
-`/map` 페이지가 SafeStep에 등록되지 않은 주변 스터디카페도 함께 보여주는 기능입니다. **위 지도 API와는 별개의 키**가 필요합니다 — [NAVER Developers](https://developers.naver.com) → Application 등록 → "검색" API 선택 → 발급받은 Client ID/Secret을 백엔드 `.env`의 `NAVER_SEARCH_CLIENT_ID`/`NAVER_SEARCH_CLIENT_SECRET`에 설정하세요 (브라우저에서 직접 호출하면 Secret이 노출되므로 반드시 백엔드 `/api/places/search`를 거칩니다). 키를 설정하지 않으면 이 기능만 조용히 꺼지고 SafeStep 등록 지점 검색은 그대로 동작합니다.
+`/map` 페이지가 SafeStep에 등록되지 않은 주변 스터디카페도 함께 보여주는 기능입니다. **위 지도 API와는 별개의 키**가 필요합니다. 2026년에 네이버가 검색 API를 `developers.naver.com`에서 **NCP 콘솔의 "NAVER API HUB"**로 이관했으므로, 지도 Client ID를 만들 때 썼던 [console.ncloud.com](https://console.ncloud.com) 콘솔에서 **Menu → All Services → Application Services → NAVER API HUB** 로 들어가 Application을 등록하고, API 선택 단계에서 **"지역 검색 결과 조회"**를 체크하세요. 발급받은 Client ID/Secret을 백엔드 `.env`의 `NAVER_SEARCH_CLIENT_ID`/`NAVER_SEARCH_CLIENT_SECRET`에 설정합니다 (브라우저에서 직접 호출하면 Secret이 노출되므로 반드시 백엔드 `/api/places/search`를 거칩니다). 키를 설정하지 않으면 이 기능만 조용히 꺼지고 SafeStep 등록 지점 검색은 그대로 동작합니다.
 
-> ⚠️ 이 API가 내려주는 좌표(mapx/mapy)의 좌표계가 공식 문서상 명확하지 않아(TM128 ↔ WGS84), 프론트에서 변환 후 한국 영역을 벗어나면 마커를 표시하지 않는 안전장치를 넣었습니다(`frontend/src/pages/map/MapSearchPage.tsx`의 `tm128ToLatLng`). 실제 키로 테스트해보고 위치가 어긋나면 변환식을 조정해야 할 수 있습니다.
+> ⚠️ 이 API가 내려주는 좌표(mapx/mapy)의 좌표계가 공식 문서상 명확하지 않아(WGS84 직접값 ↔ TM128), 프론트에서 WGS84로 먼저 해석한 뒤 한국 영역을 벗어나면 TM128 변환을 시도하고, 그래도 벗어나면 마커를 표시하지 않는 안전장치를 넣었습니다(`frontend/src/pages/map/MapSearchPage.tsx`의 `resolvePlaceLatLng`). 실제 키로 테스트해보고 위치가 계속 어긋나면 이 함수의 우선순위를 조정하세요.
 
 ---
 
