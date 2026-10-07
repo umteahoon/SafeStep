@@ -17,10 +17,12 @@
 
 DROP POLICY IF EXISTS "Profiles Self Access" ON profiles;
 
+DROP POLICY IF EXISTS "Profiles Self Select" ON profiles;
 CREATE POLICY "Profiles Self Select" ON profiles
     FOR SELECT TO authenticated
     USING (id = auth.uid());
 
+DROP POLICY IF EXISTS "Profiles Self Update" ON profiles;
 CREATE POLICY "Profiles Self Update" ON profiles
     FOR UPDATE TO authenticated
     USING (id = auth.uid())

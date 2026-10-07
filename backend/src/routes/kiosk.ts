@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { Router } from 'express';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
-import { kioskVerifyLimiter, sendServerError } from '../lib/security';
+import { kioskPinFailLimiter, kioskQrLimiter, sendServerError } from '../lib/security';
 
 const router = Router({ mergeParams: true });
 
@@ -64,7 +64,7 @@ async function hasValidPass(studentId: string): Promise<boolean> {
 }
 
 // POST /api/kiosk/:academyId/verify-pin  { code }
-router.post('/:academyId/verify-pin', kioskVerifyLimiter, async (req, res) => {
+router.post('/:academyId/verify-pin', kioskPinFailLimiter, async (req, res) => {
   const academyId = String(req.params.academyId);
   const { code } = req.body;
 
@@ -85,7 +85,7 @@ router.post('/:academyId/verify-pin', kioskVerifyLimiter, async (req, res) => {
 });
 
 // POST /api/kiosk/:academyId/verify-qr  { qrToken }
-router.post('/:academyId/verify-qr', kioskVerifyLimiter, async (req, res) => {
+router.post('/:academyId/verify-qr', kioskQrLimiter, async (req, res) => {
   const academyId = String(req.params.academyId);
   const { qrToken } = req.body;
 

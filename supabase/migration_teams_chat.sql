@@ -162,9 +162,7 @@ CREATE POLICY "Team Chat Messages Send" ON team_chat_messages
     FOR INSERT TO authenticated
     WITH CHECK (sender_id = auth.uid() AND can_access_room(room_id));
 
-CREATE POLICY "Inquiries Public Create" ON inquiries
-    FOR INSERT TO anon, authenticated
-    WITH CHECK (true);
+-- 문의 INSERT 정책은 두지 않습니다. 문의는 백엔드 /api/inquiries(service role)로만 저장합니다.
 
 CREATE POLICY "Inquiries SuperAdmin Read" ON inquiries
     FOR SELECT TO authenticated

@@ -1,6 +1,8 @@
 -- ============================================================
 -- SafeStep - 보안 점검 후속 조치
--- schema.sql + 이전 마이그레이션 적용 후 SQL Editor에서 1회 실행하세요.
+-- 선행 조건: schema.sql + migration_03_chat.sql 적용 후 실행하세요
+-- (3번 정책이 migration_03의 is_chat_room_participant() 함수를 사용합니다).
+-- 여러 번 실행해도 에러가 나지 않도록 작성되어 있습니다.
 --
 -- 1) 원장이 academies 행을 직접 고쳐 구독 상태/만료일을 임의로 바꾸지 못하도록 차단
 --    (구독은 결제 승인 백엔드(service role)만 갱신)
@@ -39,6 +41,7 @@ UPDATE storage.buckets SET public = false WHERE id = 'chat-uploads';
 
 DROP POLICY IF EXISTS "Chat Uploads Public Read" ON storage.objects;
 
+DROP POLICY IF EXISTS "Chat Uploads Participant Read" ON storage.objects;
 CREATE POLICY "Chat Uploads Participant Read" ON storage.objects
     FOR SELECT TO authenticated
     USING (

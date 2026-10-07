@@ -20,10 +20,12 @@ CREATE TABLE IF NOT EXISTS weekly_reports (
 
 ALTER TABLE weekly_reports ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Weekly Reports Staff Read" ON weekly_reports;
 CREATE POLICY "Weekly Reports Staff Read" ON weekly_reports
     FOR SELECT TO authenticated
     USING (is_approved_staff_of(academy_id));
 
+DROP POLICY IF EXISTS "Weekly Reports Student Parent Read" ON weekly_reports;
 CREATE POLICY "Weekly Reports Student Parent Read" ON weekly_reports
     FOR SELECT TO authenticated
     USING (
