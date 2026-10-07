@@ -29,10 +29,7 @@ export default function JoinTeamPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user || !eligible) {
-      setIsChecking(false);
-      return;
-    }
+    if (!user || !eligible) return;
     supabase.rpc('team_preview_by_code', { p_code: code }).then(({ data, error: rpcError }) => {
       if (rpcError) setError(rpcError.message);
       setPreview(((data as Preview[]) ?? [])[0] ?? null);
@@ -53,7 +50,7 @@ export default function JoinTeamPage() {
   };
 
   let body;
-  if (authLoading || isChecking) {
+  if (authLoading || (user && eligible && isChecking)) {
     body = <p className="text-sm text-gray-400">확인 중...</p>;
   } else if (!user) {
     body = (

@@ -46,7 +46,13 @@ export default function ClassListPage() {
   }, [academyId]);
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void load();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   const createClass = async (ev: React.FormEvent) => {

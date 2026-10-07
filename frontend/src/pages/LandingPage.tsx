@@ -1,3 +1,4 @@
+import { homeForRole } from '../lib/navigation';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -247,21 +248,4 @@ export default function LandingPage() {
       </footer>
     </div>
   );
-}
-
-export function homeForRole(role: string): string {
-  switch (role) {
-    case 'SUPER_ADMIN':
-      return '/admin';
-    case 'ACADEMY_ADMIN':
-      return '/dashboard';
-    case 'TEACHER':
-      return '/attendance';
-    case 'PARENT':
-      return '/parent/report';
-    case 'STUDENT':
-      return '/student/qr';
-    default:
-      return '/map';
-  }
 }

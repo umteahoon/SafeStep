@@ -94,7 +94,13 @@ export default function ClassAttendancePage() {
   }, [classId, date]);
 
   useEffect(() => {
-    loadRoster();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void loadRoster();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [loadRoster]);
 
   const mark = async (studentId: string, status: AttendanceStatus, reasonOverride?: string | null) => {

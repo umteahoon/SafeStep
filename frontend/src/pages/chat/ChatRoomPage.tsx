@@ -107,7 +107,13 @@ export default function ChatRoomPage() {
   }, [roomId, loadClassInfo]);
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void load();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   // 방을 열람하면 읽음 시각 갱신 (채팅 목록의 안읽음 표시용)
