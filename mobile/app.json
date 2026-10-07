@@ -6,11 +6,35 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "backgroundColor": "#2563EB"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "키오스크 QR 코드를 스캔하기 위해 카메라 접근이 필요합니다."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "채팅에 사진을 첨부하기 위해 사진 접근이 필요합니다."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "주변 스터디카페를 지도에 표시하기 위해 위치 정보를 사용합니다."
+        }
+      ],
+      "expo-sharing",
+      "expo-status-bar"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.safestep.mobile"
@@ -19,7 +43,13 @@
       "package": "com.safestep.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#2563EB"
-      }
+      },
+      "permissions": [
+        "CAMERA",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "READ_MEDIA_IMAGES"
+      ]
     },
     "web": {
       "bundler": "metro"

@@ -4,6 +4,12 @@
     "strict": true,
     "jsx": "react-native"
   },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [
+    "__tests__",
+    "node_modules"
+  ]
 }
