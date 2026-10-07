@@ -6,13 +6,20 @@ const router = Router();
 
 router.use(requireAuth, requireRole('ACADEMY_ADMIN'));
 
+// 월 이용권 정가. 클라이언트가 보낸 금액은 신뢰하지 않고 이 값과 반드시 일치해야 합니다.
+const MONTHLY_PRICE = 10000;
+
 // POST /api/payments/confirm  { paymentKey, orderId, amount }
 router.post('/confirm', async (req: AuthedRequest, res) => {
-  const { paymentKey, orderId, amount } = req.body;
+  const { paymentKey, orderId } = req.body;
+  const amount = Number(req.body.amount);
   const secretKey = process.env.TOSS_SECRET_KEY as string;
 
   if (!paymentKey || !orderId || !amount) {
     return res.status(400).json({ error: '필수 파라미터가 누락되었습니다.' });
+  }
+  if (amount !== MONTHLY_PRICE) {
+    return res.status(400).json({ error: '결제 금액이 이용권 가격과 일치하지 않습니다.' });
   }
 
   const tossRes = await fetch('https://api.tosspayments.com/v1/payments/confirm', {

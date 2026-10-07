@@ -23,6 +23,8 @@ safestep/
     ├── migration_09_inquiry_tracking.sql       기존 프로젝트 추가 마이그레이션 ("내 문의 내역" 조회용 submitted_by 컬럼, §1 참고)
     ├── migration_10_owner_invite_assignment.sql 기존 프로젝트 추가 마이그레이션 (원장 등록 코드를 특정 원장에게 배정해 알림처럼 노출, §1 참고)
     ├── migration_11_academy_landmarks.sql      기존 프로젝트 추가 마이그레이션 (좌석 도면 자유 배치 모드용 academy_landmarks 테이블, §1 참고)
+    ├── migration_12_profile_privilege_guard.sql 기존 프로젝트 추가 마이그레이션 (본인의 role/academy_id/approval_status 변경 차단, §1 참고)
+    ├── migration_13_weekly_reports.sql         기존 프로젝트 추가 마이그레이션 (주간 학습 리포트 저장 테이블, §1 참고)
     ├── seed.sql                                샘플 학원 2곳
     ├── seed_floorplan.sql                      존별 좌석 배치 샘플(강남점은 실제 매장 사진 기반 62석 구조)
     └── seed_demo_accounts.mjs                  랜딩페이지 "데모 체험하기" 버튼용 계정 생성 스크립트
@@ -118,6 +120,8 @@ safestep/
 - `supabase/migration_09_inquiry_tracking.sql` — `inquiries.submitted_by` 컬럼 + 본인 조회 RLS (**없으면 `/my/inquiries` 화면이 에러 납니다**)
 - `supabase/migration_10_owner_invite_assignment.sql` — `academy_owner_invites.assigned_user_id` 컬럼 + 본인에게 배정된 미사용 코드만 읽을 수 있는 RLS (**없으면 `/admin`에서 원장을 지정해 학원을 만들어도 그 원장의 `/owner/claim` 화면에 코드가 표시되지 않습니다** — 코드 자체는 발급되므로 관리자가 직접 전달하는 기존 방식은 계속 동작)
 - `supabase/migration_11_academy_landmarks.sql` — `academy_landmarks` 테이블(좌석 도면 자유 배치 모드) (**없어도 화면이 깨지지는 않고, 그냥 기존 "존 상자별 배치"로만 보입니다** — `seed_floorplan.sql`의 강남점 랜드마크 삽입 구문도 이 테이블이 있을 때만 동작하도록 되어 있음)
+- `supabase/migration_12_profile_privilege_guard.sql` — `profiles` 자가 INSERT/DELETE 제거, 본인의 `role`·`academy_id`·`approval_status` 직접 변경 차단 트리거 (**보안 필수 — 없으면 누구나 본인 역할을 SUPER_ADMIN으로 바꿀 수 있습니다**)
+- `supabase/migration_13_weekly_reports.sql` — `weekly_reports` 테이블(매주 일요일 21시 크론이 학생별 출석률·학습시간을 저장) (**없으면 주간 리포트 크론이 DB 저장에 실패하고 로그에만 남습니다**)
 
 ### 데모 체험 계정 만들기 (선택)
 랜딩 페이지의 "원장 데모 체험하기" / "강사 데모 체험하기" 버튼이 로그인할 계정을 생성합니다.

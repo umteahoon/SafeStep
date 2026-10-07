@@ -16,6 +16,7 @@ interface VerifyResult {
   student: { id: string; name: string; academy_id: string };
   currentSeat: Seat | null;
   hasValidPass: boolean;
+  verifyToken: string;
 }
 
 type Mode = 'PIN' | 'QR';
@@ -198,7 +199,7 @@ export default function KioskPage() {
         method: 'POST',
         auth: false,
         body: JSON.stringify({
-          studentId: verified.student.id,
+          verifyToken: verified.verifyToken,
           seatNumber,
           method: mode,
         }),
@@ -223,7 +224,7 @@ export default function KioskPage() {
       await apiFetch(`/api/kiosk/${academyId}/move`, {
         method: 'POST',
         auth: false,
-        body: JSON.stringify({ studentId: verified.student.id, seatNumber }),
+        body: JSON.stringify({ verifyToken: verified.verifyToken, seatNumber }),
       });
       showMessage('success', `${seatNumber}번 좌석으로 이동했습니다.`);
       resetToIdle();
@@ -238,7 +239,7 @@ export default function KioskPage() {
   const doAction = async (action: keyof typeof QUEUEABLE_ACTIONS) => {
     if (!academyId || !verified) return;
     const path = `/api/kiosk/${academyId}/${action}`;
-    const body = { studentId: verified.student.id };
+    const body = { verifyToken: verified.verifyToken };
     const label = QUEUEABLE_ACTIONS[action];
 
     if (isOffline) {

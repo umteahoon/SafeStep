@@ -5,6 +5,7 @@ export interface AuthedRequest extends Request {
   userId?: string;
   userRole?: string;
   academyId?: string | null;
+  approvalStatus?: string | null;
 }
 
 /**
@@ -33,7 +34,7 @@ export async function requireAuth(
 
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('role, academy_id')
+    .select('role, academy_id, approval_status')
     .eq('id', userData.user.id)
     .single();
 
@@ -44,6 +45,7 @@ export async function requireAuth(
   req.userId = userData.user.id;
   req.userRole = profile.role;
   req.academyId = profile.academy_id;
+  req.approvalStatus = profile.approval_status;
   next();
 }
 
@@ -57,4 +59,22 @@ export function requireRole(...roles: string[]) {
     }
     next();
   };
+}
+
+/**
+ * 원장은 항상 통과, 강사는 원장 승인(APPROVED)을 받은 경우에만 통과합니다.
+ * 승인 대기(PENDING)·반려(REJECTED) 강사가 학원 데이터를 수정하지 못하게 막습니다.
+ */
+export function requireApprovedStaff(
+  req: AuthedRequest,
+  res: Response,
+  next: NextFunction
+) {
+  const isOwner = req.userRole === 'ACADEMY_ADMIN';
+  const isApprovedTeacher =
+    req.userRole === 'TEACHER' && req.approvalStatus === 'APPROVED';
+  if (!isOwner && !isApprovedTeacher) {
+    return res.status(403).json({ error: '승인된 직원만 이용할 수 있습니다.' });
+  }
+  next();
 }

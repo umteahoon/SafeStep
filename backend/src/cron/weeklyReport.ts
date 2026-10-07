@@ -35,11 +35,22 @@ async function aggregateWeeklyReports() {
     const totalStudyMinutes =
       sessions?.reduce((sum, s) => sum + (s.stay_duration_minutes ?? 0), 0) ?? 0;
 
-    // 실제 저장 테이블(예: weekly_reports)이 있다면 여기서 upsert
-    // eslint-disable-next-line no-console
-    console.log(
-      `[weeklyReport] student=${student.id} attendanceRate=${attendanceRate} studyMinutes=${totalStudyMinutes}`
-    );
+    const { error: upsertError } = await supabaseAdmin
+      .from('weekly_reports')
+      .upsert(
+        {
+          academy_id: student.academy_id,
+          student_id: student.id,
+          week_start: weekAgo,
+          attendance_rate: attendanceRate,
+          study_minutes: totalStudyMinutes,
+        },
+        { onConflict: 'student_id,week_start' }
+      );
+    if (upsertError) {
+      // eslint-disable-next-line no-console
+      console.error(`[weeklyReport] student=${student.id} 저장 실패:`, upsertError.message);
+    }
   }
 }
 
