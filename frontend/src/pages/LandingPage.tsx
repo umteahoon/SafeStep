@@ -97,7 +97,7 @@ export default function LandingPage() {
               to="/map"
               className="rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50"
             >
-              스터디카페 찾기
+              스터디카페 및 학원 찾기
             </Link>
             {user ? (
               <Link
