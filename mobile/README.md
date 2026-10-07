@@ -304,3 +304,18 @@ mobile/
 - `src/lib/useAuth.ts`(훅) → `useAuth.tsx`(AuthProvider/Context)로 교체: `user`, `refreshProfile`, `signOut` 제공
 - `app.json`: `newArchEnabled`를 `false`로 변경(SDK 51 기준 판단이었음 — SDK 57에서는 new architecture가 기본이므로 이 설정이 의미 있는지 재검토 필요), 카메라·사진·위치 권한 플러그인 추가
 - 검증: `npm run typecheck` 통과, `expo export --platform android` 번들 성공, `expo install --check` 통과. **실기기 동작 테스트는 미실시**
+
+---
+
+## 개발 환경 (macOS / Windows 공통)
+
+- Node 20 이상. 설치 후 `npm install` → `copy .env.example .env`(Windows) 또는 `cp .env.example .env`(macOS) → `npx expo start`.
+- 로그인 없이 둘러보려면 `.env`에 `EXPO_PUBLIC_PREVIEW_MODE=1`.
+- 스크립트는 OS에 상관없이 동작합니다 (`cross-env` 사용). `npm test`, `npm run typecheck`.
+- 폰(Expo Go)이 접속 안 되면 같은 와이파이인지 확인하고, Windows 방화벽 8081 포트 허용 또는 `npx expo start --tunnel`.
+- 줄바꿈은 `.gitattributes`/`.editorconfig`로 LF 고정, 테스트도 타입 검사 대상입니다 (`tsconfig.json`).
+
+### 변경 이력 — 크로스 플랫폼 환경 통일
+- `npm test` 를 `cross-env` + `--runInBand` 로 변경 (Windows cmd/PowerShell 호환, 병렬 실행 시 시간 초과 방지)
+- `tsconfig.json` 에 `types: ["jest","node"]` 추가, `__tests__` 도 타입 검사 / `@types/react-test-renderer`, `cross-env` 추가
+- `.gitattributes`, `.editorconfig`, `engines.node` 추가
