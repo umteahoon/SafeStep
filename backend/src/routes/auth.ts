@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
+import { publicAuthLimiter } from '../lib/security';
 
 const router = Router();
 
@@ -62,7 +63,7 @@ router.post('/register', async (req, res) => {
 // POST /api/auth/login-log  { email, success, reason? }
 // 프론트가 supabase.auth.signInWithPassword() 직후 결과와 무관하게 호출합니다.
 // 슈퍼 관리자 대시보드의 "접속 로그"에서 반복 실패 등 의심스러운 시도를 확인할 수 있습니다.
-router.post('/login-log', async (req, res) => {
+router.post('/login-log', publicAuthLimiter, async (req, res) => {
   const { email, success, reason } = req.body ?? {};
 
   if (!email || typeof success !== 'boolean') {
@@ -93,7 +94,7 @@ const DEMO_EMAILS: Record<'admin' | 'teacher', string> = {
 // 1회용 토큰만 발급하고 프론트는 그 토큰으로 supabase.auth.verifyOtp()를 호출합니다.
 // role만 받고 이메일은 서버가 고정값으로 매핑합니다 — 임의 이메일을 받으면 이 API가
 // "아무 계정이나 로그인시키는 API"가 되어버리므로 절대 클라이언트 입력을 이메일에 쓰지 않습니다.
-router.post('/demo-login', async (req, res) => {
+router.post('/demo-login', publicAuthLimiter, async (req, res) => {
   if (process.env.DEMO_LOGIN_ENABLED === 'false') {
     return res.status(404).json({ error: '데모 로그인이 비활성화되어 있습니다.' });
   }

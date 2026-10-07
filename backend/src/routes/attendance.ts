@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 import { AuthedRequest, requireApprovedStaff, requireAuth, requireRole } from '../middleware/auth';
+import { sendServerError } from '../lib/security';
 import { sendAbsenceAlert } from '../services/PushService';
 
 const router = Router();
@@ -59,7 +60,7 @@ router.put('/', async (req: AuthedRequest, res) => {
     .select()
     .single();
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) return sendServerError(res, 'attendance', error);
 
   const shouldAlert = status === 'ABSENT' || status === 'LATE';
   if (shouldAlert) {

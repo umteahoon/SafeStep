@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PublicHeader } from '../components/common/PublicHeader';
-import { supabase } from '../lib/supabase';
+import { apiFetch } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 
 const BUSINESS_TYPES = ['학원', '스터디카페', '학원 + 스터디카페', '기타'];
@@ -21,19 +21,23 @@ export default function InquiryPage() {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
-    const { error: insertError } = await supabase.from('inquiries').insert({
-      name: name.trim(),
-      contact: contact.trim(),
-      business_name: businessName.trim() || null,
-      business_type: businessType,
-      message: message.trim() || null,
-      submitted_by: user?.id ?? null,
-    });
-    setIsSubmitting(false);
-    if (insertError) {
+    try {
+      await apiFetch('/api/inquiries', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: name.trim(),
+          contact: contact.trim(),
+          business_name: businessName.trim() || null,
+          business_type: businessType,
+          message: message.trim() || null,
+        }),
+      });
+    } catch {
+      setIsSubmitting(false);
       setError('문의 접수에 실패했습니다. 잠시 후 다시 시도해주세요.');
       return;
     }
+    setIsSubmitting(false);
     setIsDone(true);
   };
 

@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
-import { AuthedRequest, requireAuth, requireRole } from '../middleware/auth';
+import { AuthedRequest, requireApprovedStaff, requireAuth, requireRole } from '../middleware/auth';
 import { sendAcademyAnnouncementPush } from '../services/PushService';
 
 const router = Router();
 
-router.use(requireAuth, requireRole('ACADEMY_ADMIN', 'TEACHER'));
+router.use(requireAuth, requireRole('ACADEMY_ADMIN', 'TEACHER'), requireApprovedStaff);
 
 // POST /api/chat/announce  { roomId, content }
 // 공지방 글쓰기는 이 엔드포인트를 거치게 해서, 메시지 저장과 동시에

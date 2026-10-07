@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 import { AuthedRequest, requireAuth } from '../middleware/auth';
+import { sendServerError } from '../lib/security';
 
 const router = Router();
 
@@ -15,7 +16,7 @@ router.get('/', async (req: AuthedRequest, res) => {
     .select('*')
     .eq('id', req.academyId)
     .single();
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) return sendServerError(res, 'academy', error);
   res.json({ data });
 });
 

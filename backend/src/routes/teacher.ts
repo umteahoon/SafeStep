@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 import { AuthedRequest, requireAuth, requireRole } from '../middleware/auth';
+import { sendServerError } from '../lib/security';
 
 const router = Router();
 
@@ -15,7 +16,7 @@ router.get('/pending', async (req: AuthedRequest, res) => {
     .eq('role', 'TEACHER')
     .eq('approval_status', 'PENDING');
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) return sendServerError(res, 'teacher', error);
   res.json({ data });
 });
 
@@ -27,7 +28,7 @@ router.post('/:teacherId/approve', async (req: AuthedRequest, res) => {
     .eq('academy_id', req.academyId) // 🔒 타 학원 강사 승인 방지
     .eq('role', 'TEACHER');
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) return sendServerError(res, 'teacher', error);
   res.json({ success: true });
 });
 
@@ -39,7 +40,7 @@ router.post('/:teacherId/reject', async (req: AuthedRequest, res) => {
     .eq('academy_id', req.academyId)
     .eq('role', 'TEACHER');
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) return sendServerError(res, 'teacher', error);
   res.json({ success: true });
 });
 

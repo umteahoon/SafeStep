@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 import { AuthedRequest, requireAuth, requireRole } from '../middleware/auth';
+import { sendServerError } from '../lib/security';
 
 const router = Router();
 
@@ -21,7 +22,7 @@ router.post('/link', async (req: AuthedRequest, res) => {
     .eq('link_code', linkCode)
     .maybeSingle();
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) return sendServerError(res, 'parent', error);
   if (!student) return res.status(404).json({ error: '일치하는 학생이 없습니다.' });
 
   if (student.parent_user_id && student.parent_user_id !== req.userId) {
@@ -44,7 +45,7 @@ router.get('/children', async (req: AuthedRequest, res) => {
     .select('id, name, academy_id, attendance_code, status')
     .eq('parent_user_id', req.userId);
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) return sendServerError(res, 'parent', error);
   res.json({ data });
 });
 
@@ -69,7 +70,7 @@ router.post('/push-subscribe', async (req: AuthedRequest, res) => {
     { onConflict: 'student_id,endpoint' }
   );
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) return sendServerError(res, 'parent', error);
   res.json({ success: true });
 });
 

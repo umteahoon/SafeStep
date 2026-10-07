@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 import { AuthedRequest, requireAuth, requireRole } from '../middleware/auth';
+import { sendServerError } from '../lib/security';
 
 const router = Router();
 
@@ -13,7 +14,7 @@ router.get('/students', async (req: AuthedRequest, res) => {
     .select('name, attendance_code, link_code, parent_phone, academy_id, created_at')
     .eq('academy_id', req.academyId);
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) return sendServerError(res, 'export', error);
   res.json({ data });
 });
 
@@ -33,7 +34,7 @@ router.get('/attendance', async (req: AuthedRequest, res) => {
   }
 
   const { data, error } = await query;
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) return sendServerError(res, 'export', error);
   res.json({ data });
 });
 
@@ -43,7 +44,7 @@ router.get('/study-sessions', async (req: AuthedRequest, res) => {
     .select('student_id, seat_number, type, logged_at, stay_duration_minutes')
     .eq('academy_id', req.academyId);
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) return sendServerError(res, 'export', error);
   res.json({ data });
 });
 

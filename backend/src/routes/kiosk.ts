@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { Router } from 'express';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
+import { kioskVerifyLimiter, sendServerError } from '../lib/security';
 
 const router = Router({ mergeParams: true });
 
@@ -63,8 +64,8 @@ async function hasValidPass(studentId: string): Promise<boolean> {
 }
 
 // POST /api/kiosk/:academyId/verify-pin  { code }
-router.post('/:academyId/verify-pin', async (req, res) => {
-  const { academyId } = req.params;
+router.post('/:academyId/verify-pin', kioskVerifyLimiter, async (req, res) => {
+  const academyId = String(req.params.academyId);
   const { code } = req.body;
 
   const { data: student, error } = await supabaseAdmin
@@ -74,7 +75,7 @@ router.post('/:academyId/verify-pin', async (req, res) => {
     .eq('attendance_code', code)
     .maybeSingle();
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) return sendServerError(res, 'kiosk', error);
   if (!student) return res.status(404).json({ error: '등록되지 않은 코드입니다.' });
 
   const seat = await findCurrentSeat(academyId, student.id);
@@ -84,8 +85,8 @@ router.post('/:academyId/verify-pin', async (req, res) => {
 });
 
 // POST /api/kiosk/:academyId/verify-qr  { qrToken }
-router.post('/:academyId/verify-qr', async (req, res) => {
-  const { academyId } = req.params;
+router.post('/:academyId/verify-qr', kioskVerifyLimiter, async (req, res) => {
+  const academyId = String(req.params.academyId);
   const { qrToken } = req.body;
 
   const { data: student, error } = await supabaseAdmin
@@ -95,7 +96,7 @@ router.post('/:academyId/verify-qr', async (req, res) => {
     .eq('qr_token', qrToken)
     .maybeSingle();
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) return sendServerError(res, 'kiosk', error);
   if (!student) return res.status(404).json({ error: '유효하지 않은 QR입니다.' });
 
   const seat = await findCurrentSeat(academyId, student.id);

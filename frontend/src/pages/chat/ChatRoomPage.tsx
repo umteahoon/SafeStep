@@ -25,6 +25,41 @@ interface RosterStudent {
 
 type Panel = null | 'participants' | 'attendance';
 
+// 채팅 이미지는 비공개 버킷에 있어서 같은 채팅방 참여자에게만 서명된 임시 URL을 발급합니다.
+// 예전 메시지에 저장된 공개 URL도 경로를 꺼내서 같은 방식으로 처리합니다.
+function ChatImage({ value }: { value: string | null }) {
+  const [src, setSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!value) return;
+    const raw = value.startsWith('http')
+      ? value.split('/object/public/chat-uploads/')[1] ?? null
+      : value;
+    if (!raw) return;
+    let cancelled = false;
+    supabase.storage
+      .from('chat-uploads')
+      .createSignedUrl(decodeURIComponent(raw), 60 * 60)
+      .then(({ data }) => {
+        if (!cancelled && data) setSrc(data.signedUrl);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [value]);
+
+  if (!src) return <div className="h-24 w-40 animate-pulse rounded-xl bg-gray-100" />;
+  return (
+    <a href={src} target="_blank" rel="noreferrer">
+      <img
+        src={src}
+        alt="첨부 이미지"
+        className="max-h-60 max-w-full rounded-xl border border-gray-200 object-cover"
+      />
+    </a>
+  );
+}
+
 export default function ChatRoomPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const { user, profile } = useAuth();
@@ -250,14 +285,11 @@ export default function ChatRoomPage() {
       const path = `${roomId}/${Date.now()}_${file.name}`;
       const { error: upErr } = await supabase.storage.from('chat-uploads').upload(path, file);
       if (upErr) throw upErr;
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('chat-uploads').getPublicUrl(path);
       const { error: insErr } = await supabase.from('chat_messages').insert({
         room_id: roomId,
         sender_id: user.id,
         type: 'IMAGE',
-        image_url: publicUrl,
+        image_url: path,
       });
       if (insErr) throw insErr;
     } catch (e) {
@@ -583,13 +615,7 @@ export default function ChatRoomPage() {
                           </button>
                         </div>
                       ) : m.type === 'IMAGE' ? (
-                        <a href={m.image_url ?? '#'} target="_blank" rel="noreferrer">
-                          <img
-                            src={m.image_url ?? ''}
-                            alt="첨부 이미지"
-                            className="max-h-60 max-w-full rounded-xl border border-gray-200 object-cover"
-                          />
-                        </a>
+                        <ChatImage value={m.image_url} />
                       ) : (
                         <div
                           className={`rounded-2xl px-4 py-2 text-sm ${

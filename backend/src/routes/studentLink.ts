@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 import { AuthedRequest, requireAuth, requireRole } from '../middleware/auth';
+import { sendServerError } from '../lib/security';
 
 const router = Router();
 
@@ -29,7 +30,7 @@ router.post('/link', async (req: AuthedRequest, res) => {
     .eq('link_code', linkCode)
     .maybeSingle();
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) return sendServerError(res, 'studentLink', error);
   if (!student) return res.status(404).json({ error: '일치하는 학생이 없습니다.' });
   if (student.user_id && student.user_id !== req.userId) {
     return res.status(409).json({ error: '이미 다른 계정과 연동된 학생입니다.' });

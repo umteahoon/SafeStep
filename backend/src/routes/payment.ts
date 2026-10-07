@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 import { AuthedRequest, requireAuth, requireRole } from '../middleware/auth';
+import { sendServerError } from '../lib/security';
 
 const router = Router();
 
@@ -49,7 +50,7 @@ router.post('/confirm', async (req: AuthedRequest, res) => {
     expires_at: expiresAt.toISOString(),
   });
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) return sendServerError(res, 'payment', error);
 
   await supabaseAdmin
     .from('academies')
