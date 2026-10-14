@@ -24,6 +24,10 @@ function Inner() {
   const navigation = useNavigation<RootNav>();
   const { user, profile, refreshProfile } = useAuth();
   const [code, setCode] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newAddress, setNewAddress] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -73,6 +77,22 @@ function Inner() {
     }
   };
 
+  const createAcademy = async () => {
+    setCreateError(null);
+    setCreating(true);
+    try {
+      await apiFetch('/api/owner/academies', {
+        method: 'POST',
+        body: JSON.stringify({ name: newName.trim(), address: newAddress.trim() }),
+      });
+      await refreshProfile();
+      navigation.reset({ index: 1, routes: [{ name: 'Main' }, { name: 'Teachers' }] });
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : '학원을 만들지 못했어요.');
+      setCreating(false);
+    }
+  };
+
   return (
     <Screen>
       <View style={styles.head}>
@@ -117,6 +137,17 @@ function Inner() {
       )}
 
       <Card>
+        <Text style={styles.h2}>내 학원 만들기</Text>
+        <Muted style={{ marginTop: 2, marginBottom: 12, lineHeight: 19 }}>
+          학원을 만들면 강사 초대 코드가 발급돼요. 강사에게 코드를 전달하면 강사가 합류하고, 강사가 학생을 초대합니다.
+        </Muted>
+        <Input value={newName} onChangeText={setNewName} maxLength={60} placeholder="학원 이름 (예: 이룸수학학원)" style={{ marginBottom: 10 }} />
+        <Input value={newAddress} onChangeText={setNewAddress} maxLength={120} placeholder="주소" style={{ marginBottom: 12 }} />
+        <Banner kind="error">{createError ?? undefined}</Banner>
+        <Button title="학원 만들기" onPress={createAcademy} loading={creating} disabled={!newName.trim() || !newAddress.trim()} />
+      </Card>
+
+      <Card>
         {!isChecking && assigned ? (
           <>
             <Text style={styles.h2}>새 알림이 있어요</Text>
@@ -126,9 +157,9 @@ function Inner() {
           </>
         ) : (
           <>
-            <Text style={styles.h2}>학원 등록을 기다리는 중이에요</Text>
+            <Text style={styles.h2}>이미 등록된 학원이 있나요?</Text>
             <Muted style={{ marginTop: 4, lineHeight: 19 }}>
-              SafeStep 플랫폼팀이 지점을 등록하면, 원장님 전용 8자리 등록 코드가 알림으로 도착합니다.
+              SafeStep 플랫폼팀이 학원을 먼저 등록해 둔 경우, 원장님 전용 8자리 등록 코드가 알림으로 도착해요. 아래에 입력해 연결하세요.
             </Muted>
           </>
         )}

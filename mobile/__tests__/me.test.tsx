@@ -12,7 +12,6 @@ jest.mock('@react-navigation/native', () => {
 });
 
 const ME = '../src/screens/common/MeScreen';
-const HUB = '../src/screens/community/CommunityHubScreen';
 
 afterEach(() => {
   cleanup();
@@ -26,7 +25,7 @@ describe('내 정보 — 비로그인', () => {
     const text = screenText(t);
     expect(text).toContain('로그인하고 시작해보세요');
     expect(text).toContain('스터디카페 찾기');
-    expect(text).toContain('커뮤니티');
+    expect(text).toContain('채팅방 · 공지방 · 출결');
     expect(text).toContain('스터디카페를 운영하시나요?');
     expect(text).not.toContain('로그아웃');
     expect(text).not.toContain('새 알림');
@@ -48,7 +47,7 @@ describe('내 정보 — 로그인', () => {
     expect(text).toContain('일반회원');
     expect(text).toContain('일반 회원');
     expect(text).toContain('즐겨찾기');
-    expect(text).toContain('내 글');
+    expect(text).not.toContain('내 글');
     expect(text).toContain('새 알림');
     expect(text).toContain('학원·스터디카페 연동하기');
     expect(text).not.toContain('공지방 · 반 채팅방');
@@ -71,7 +70,7 @@ describe('내 정보 — 로그인', () => {
     expect(text).not.toContain('신고 관제');
   });
 
-  it('슈퍼관리자: 활동 요약(즐겨찾기·내 글) 없음, 플랫폼 관리 메뉴', async () => {
+  it('슈퍼관리자: 활동 요약(즐겨찾기) 없음, 플랫폼 관리 메뉴', async () => {
     const t = track(await mount(ME, 'SUPER_ADMIN'));
     const text = screenText(t);
     expect(text).toContain('플랫폼 관리');
@@ -79,20 +78,10 @@ describe('내 정보 — 로그인', () => {
     expect(text).not.toContain('새 알림');
   });
 
-  it('내 글 수가 활동 요약에 반영된다', async () => {
-    const { createPost } = require('../src/lib/community');
-    await createPost({ academyId: 'a-3', authorId: '00000000-0000-0000-0000-000000000000', category: 'FREE', title: '내 글 1', content: '본문' });
-    await createPost({ academyId: 'a-3', authorId: '00000000-0000-0000-0000-000000000000', category: 'FREE', title: '내 글 2', content: '본문' });
-    const t = track(await mount(ME, 'STUDENT'));
-    expect(screenText(t)).toMatch(/2\s*내 글/);
-  });
-
-  it('활동 요약을 누르면 해당 화면으로 (즐겨찾기 → 지도, 내 글 → 커뮤니티 내 글, 새 알림 → 알림)', async () => {
+  it('활동 요약을 누르면 해당 화면으로 (즐겨찾기 → 지도, 새 알림 → 알림)', async () => {
     const t = track(await mount(ME, 'STUDENT'));
     await press(t, '즐겨찾기');
     expect(nav.navigate).toHaveBeenCalledWith('Main', { screen: 'MapTab', params: expect.objectContaining({ preset: 'fav' }) });
-    await press(t, '내 글');
-    expect(nav.navigate).toHaveBeenCalledWith('Main', { screen: 'CommunityTab', params: expect.objectContaining({ mine: true }) });
     await press(t, '새 알림');
     expect(nav.navigate).toHaveBeenCalledWith('Notifications');
   });
@@ -106,16 +95,3 @@ describe('내 정보 — 로그인', () => {
   });
 });
 
-describe('커뮤니티 — 내 정보의 "내 글"에서 열면 내 글만', () => {
-  it('mine 파라미터 → 모든 게시판에서 내 글만 보인다', async () => {
-    (global as any).__routeParams = { mine: true, ts: 1 };
-    const t = track(await mount(HUB, 'STUDENT'));
-    const text = screenText(t);
-    expect(text).toContain('전체 스터디카페');
-    // 앞 테스트에서 만든 내 글 2개만 보이고, 다른 사람 글은 보이지 않는다
-    expect(text).toContain('내 글 1');
-    expect(text).toContain('내 글 2');
-    expect(text).not.toContain('이번 주 금요일 야간 자습실 운영 안내');
-    expect(text).not.toContain('홍대점 스터디룸 후기');
-  });
-});

@@ -125,50 +125,18 @@ const PASS_PLANS = [
   { id: 'period-90', passType: 'PERIOD', name: '기간권 3개월', amount: 330000, days: 90 },
 ] as { id: string; passType: 'TIME' | 'PERIOD'; name: string; amount: number; minutes?: number; days?: number }[];
 
-// 커뮤니티 시드: 지점별 게시글·댓글·좋아요
-db.community_posts = [
-  { id: 'cp-1', academy_id: AC, author_id: 'u-own', category: 'FREE', title: '이번 주 금요일 야간 자습실 운영 안내', content: '중간고사 대비로 이번 주 금요일은 밤 11시까지 자습실을 운영합니다. 질문 클리닉은 9시까지 진행해요.', created_at: ago(60 * 5) },
-  { id: 'cp-2', academy_id: AC, author_id: 'u-s1', category: 'QUESTION', title: '중3 수학 A반 교재는 어디서 사나요?', content: '첫 수업 전에 교재를 준비하려고 하는데, 학원에서 따로 구매해야 하나요?', created_at: ago(60 * 3) },
-  { id: 'cp-3', academy_id: AC, author_id: 'u-s4', category: 'REVIEW', title: '한 달 다닌 수학 수업 후기', content: '소수정예라 질문하기 편하고, 오답노트를 꼼꼼히 봐주셔서 성적이 올랐어요. 다만 숙제 양은 조금 많아요.', created_at: ago(60 * 26) },
-  { id: 'cp-4', academy_id: AC, author_id: 'u-s5', category: 'STUDY', title: '내신 수학 같이 풀 친구 구해요', content: '중3 수학 A반 친구들과 주말에 문제 풀이 스터디 하실 분 구해요. 3~4명 정도면 좋아요!', created_at: ago(60 * 30) },
-  { id: 'cp-5', academy_id: 'a-3', author_id: 'u-s6', category: 'REVIEW', title: '홍대점 스터디룸 후기', content: '4인 룸 예약해서 조별과제 했는데 화이트보드가 있어서 편했어요. 방음도 괜찮았습니다.', created_at: ago(60 * 8) },
-  { id: 'cp-6', academy_id: 'a-3', author_id: 'u-s1', category: 'FREE', title: '주말 오전엔 거의 만석이에요', content: '토요일 10시 전에 가야 자리 있어요. 참고하세요.', created_at: ago(60 * 20) },
-  { id: 'cp-7', academy_id: 'a-5', author_id: 'u-s2', category: 'QUESTION', title: '레벨 테스트는 언제 보나요?', content: '신규 등록 전에 레벨 테스트를 먼저 봐야 하는지, 따로 예약이 필요한지 궁금해요.', created_at: ago(60 * 12) },
-  { id: 'cp-8', academy_id: 'a-5', author_id: 'u-s3', category: 'FREE', title: '잠실점 오늘 많이 붐비네요', content: '시험 기간이라 그런지 오후에 자습실 자리가 거의 없어요. 일찍 오세요.', created_at: ago(90) },
-  { id: 'cp-9', academy_id: 'a-7', author_id: 'u-s4', category: 'STUDY', title: '판교점 코딩테스트 스터디', content: '주 2회 알고리즘 문제 풀이 스터디 같이 하실 분. 언어 무관, 초중급 환영해요.', created_at: ago(60 * 40) },
-  { id: 'cp-10', academy_id: 'a-4', author_id: 'u-s5', category: 'REVIEW', title: '건대점 노트북존 좋네요', content: '탁 트인 창가 자리에서 공부하니 집중이 잘 돼요. 커피 한 잔 들고 가기 좋아요.', created_at: ago(60 * 15) },
-  // ── 학원 글: 수업·교재·반 편성·후기 / 스터디카페 글: 좌석·시설·이용 팁 ──
-  { id: 'cp-11', academy_id: 'a-2', author_id: 'u-s2', category: 'REVIEW', title: '논술 첨삭 후기', content: '매주 작문 숙제를 꼼꼼히 첨삭해 주셔서 문장력이 확실히 늘었어요. 독서 토론 수업도 재밌어요.', created_at: ago(60 * 11) },
-  { id: 'cp-12', academy_id: 'a-11', author_id: 'u-s3', category: 'QUESTION', title: '실험 수업은 몇 명이 같이 하나요?', content: '과학 실험 수업이 궁금해요. 한 반 인원이랑 준비물이 따로 있는지 알려 주세요.', created_at: ago(60 * 9) },
-  { id: 'cp-13', academy_id: 'a-12', author_id: 'u-own', category: 'FREE', title: '신학기 반 편성 안내', content: '다음 달부터 신학기 반이 새로 편성됩니다. 레벨 테스트는 이번 주 토요일 오전에 진행해요.', created_at: ago(60 * 7) },
-  { id: 'cp-14', academy_id: 'a-14', author_id: 'u-s4', category: 'STUDY', title: '영어 회화 스터디 같이 해요', content: '수업 끝나고 30분씩 회화 연습할 친구 구합니다. 레벨 무관, 편하게 연락 주세요.', created_at: ago(60 * 14) },
-  { id: 'cp-15', academy_id: 'a-13', author_id: 'u-s6', category: 'REVIEW', title: '내신 대비 특강 후기', content: '기출 문제를 원리부터 풀어 주셔서 이해가 잘 됐어요. 시험 기간에 질문방도 열어 주셔서 든든했습니다.', created_at: ago(60 * 18) },
-  { id: 'cp-16', academy_id: 'a-9', author_id: 'u-own', category: 'FREE', title: '자습실 이용 시간 안내', content: '수업이 없는 시간에도 자습실을 이용할 수 있어요. 평일 오후 2시부터 밤 10시까지입니다.', created_at: ago(60 * 22) },
-  { id: 'cp-17', academy_id: 'a-17', author_id: 'u-s1', category: 'REVIEW', title: '파이썬 기초반 후기', content: '비전공자인데도 첫 달에 간단한 프로그램을 직접 만들었어요. 코드 리뷰가 특히 도움이 됩니다.', created_at: ago(60 * 25) },
-  { id: 'cp-18', academy_id: 'a-24', author_id: 'u-s2', category: 'FREE', title: '시험 기간엔 오전 9시 전에 오세요', content: '오후에는 거의 만석이에요. 창가 쪽 집중석이 제일 빨리 차니 참고하세요.', created_at: ago(60 * 6) },
-  { id: 'cp-19', academy_id: 'a-26', author_id: 'u-s3', category: 'QUESTION', title: '프린터 사용할 수 있나요?', content: '과제 출력이 필요한데 카페 안에 프린터가 있는지, 요금이 얼마인지 궁금해요.', created_at: ago(60 * 10) },
-  { id: 'cp-20', academy_id: 'a-30', author_id: 'u-own', category: 'FREE', title: '이번 주 일요일 새벽 정기 점검', content: '일요일 새벽 2~4시에 키오스크와 에어컨 정기 점검이 있어요. 이용에 참고해 주세요.', created_at: ago(60 * 16) },
-  { id: 'cp-21', academy_id: 'a-31', author_id: 'u-s4', category: 'REVIEW', title: '조용해서 집중하기 좋아요', content: '칸막이 좌석이 넓고 조명이 은은해서 오래 앉아 있어도 눈이 편해요. 음료도 무료예요.', created_at: ago(60 * 13) },
-  { id: 'cp-22', academy_id: 'a-35', author_id: 'u-s5', category: 'STUDY', title: '공무원 시험 같이 준비하실 분', content: '평일 오전에 같이 모여서 공부하고 점심은 따로 먹는 스터디예요. 2~3명 더 구합니다.', created_at: ago(60 * 21) },
-  { id: 'cp-23', academy_id: 'a-20', author_id: 'u-s6', category: 'QUESTION', title: '셔틀버스 시간표가 궁금해요', content: '수업 끝나는 시간에 맞춰 운행하는 셔틀이 있는지, 노선이 어떻게 되는지 알려 주세요.', created_at: ago(60 * 19) },
-  { id: 'cp-24', academy_id: 'a-40', author_id: 'u-s1', category: 'FREE', title: '평일 오전이 가장 한산해요', content: '주말에는 사람이 꽤 와요. 조용하게 쓰고 싶으면 평일 오전을 추천합니다.', created_at: ago(60 * 17) },
-];
-db.community_posts.forEach((p: any, i: number) => {
-  p.view_count = 18 + ((i * 53) % 240);
-});
-db.community_comments = [
-  { id: 'cc-1', post_id: 'cp-2', author_id: 'u-s4', content: '첫 수업 날 데스크에서 나눠 주세요! 따로 안 사셔도 돼요.', created_at: ago(60 * 2) },
-  { id: 'cc-2', post_id: 'cp-2', author_id: 'u-own', content: '교재비는 첫 달 수강료에 포함되어 있습니다. 편하게 오세요.', created_at: ago(60 * 1) },
-  { id: 'cc-3', post_id: 'cp-3', author_id: 'u-s1', content: '저도 같은 반이에요. 오답노트 진짜 도움 돼요. 후기 감사합니다!', created_at: ago(60 * 20) },
-  { id: 'cc-4', post_id: 'cp-4', author_id: 'u-s6', content: '관심 있어요! 쪽지 어떻게 드리면 될까요?', created_at: ago(60 * 28) },
-  { id: 'cc-5', post_id: 'cp-8', author_id: 'u-s2', content: '저도 방금 갔는데 만석이었어요 ㅠ', created_at: ago(60) },
-  { id: 'cc-6', post_id: 'cp-5', author_id: 'u-s3', content: '스터디룸 예약은 어떻게 하나요?', created_at: ago(60 * 6) },
-];
-db.community_likes = [
-  { post_id: 'cp-1', user_id: 'u-s1' }, { post_id: 'cp-1', user_id: 'u-s2' }, { post_id: 'cp-1', user_id: 'u-s3' }, { post_id: 'cp-1', user_id: 'u-s4' },
-  { post_id: 'cp-2', user_id: 'u-s5' }, { post_id: 'cp-3', user_id: 'u-s1' }, { post_id: 'cp-3', user_id: 'u-s5' }, { post_id: 'cp-3', user_id: 'u-s6' },
-  { post_id: 'cp-5', user_id: 'u-s1' }, { post_id: 'cp-5', user_id: 'u-s2' }, { post_id: 'cp-8', user_id: 'u-s1' }, { post_id: 'cp-9', user_id: 'u-s6' },
-];
+// 오늘 수업 시드: 미리보기 학생이 출석 버튼을 바로 써볼 수 있도록 "방금 시작한" 수업을 하나 둔다
+{
+  const n = new Date();
+  const pad = (v: number) => String(v).padStart(2, '0');
+  const mins = n.getHours() * 60 + n.getMinutes();
+  const startM = Math.max(0, mins - 5);
+  const endM = Math.min(23 * 60 + 59, mins + 180);
+  const hm = (m: number) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
+  if (!db.class_schedules.some((x: any) => x.class_id === 'c-1' && x.day_of_week === n.getDay())) {
+    db.class_schedules.push({ id: 'sc-today', class_id: 'c-1', day_of_week: n.getDay(), start_time: hm(startM), end_time: hm(endM) });
+  }
+}
 
 // 스터디카페 5곳 추가 (총 7곳) — 규모와 혼잡도를 다양하게
 db.academies.push(
@@ -324,8 +292,6 @@ const FK: Record<string, string> = {
   'team_members:teams': 'team_id',
   'chat_room_members:profiles': 'user_id',
   'academy_owner_invites:academies': 'academy_id',
-  'community_posts:profiles': 'author_id',
-  'community_comments:profiles': 'author_id',
 };
 
 function splitTop(s: string): string[] {
@@ -545,6 +511,49 @@ function rpc(fn: string, args: Row): Result {
       db.team_chat_rooms.push({ id: uid(), team_id: id, type: 'TEAM', user_a: null, user_b: null, created_at: new Date().toISOString() });
       return ok(team);
     }
+    case 'student_check_in': {
+      // 서버 함수 student_check_in 과 같은 규칙: 본인 반 + 오늘 수업 + (시작 30분 전 ~ 종료) + 하루 1회
+      const st = db.students.find((x) => x.user_id === mockUserId && x.status === 'ACTIVE');
+      if (!st) return fail('학원에 연동된 학생 계정이 아닙니다.');
+      const cls = db.classes.find((c) => c.id === args.p_class_id && c.academy_id === st.academy_id);
+      if (!cls) return fail('내 학원의 반이 아닙니다.');
+      if (!db.class_enrollments.some((e) => e.class_id === cls.id && e.student_id === st.id)) return fail('이 반에 배정되어 있지 않습니다.');
+      const d = new Date(Date.now());
+      const today = d.toISOString().slice(0, 10);
+      const localToday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const existing = db.class_attendance_records.find((r) => r.class_id === cls.id && r.student_id === st.id && (r.date === localToday || r.date === today));
+      if (existing) return ok({ status: existing.status, already: true, class_id: cls.id, date: existing.date });
+      const sch = db.class_schedules.filter((x) => x.class_id === cls.id && x.day_of_week === d.getDay()).sort((a, b) => a.start_time.localeCompare(b.start_time))[0];
+      if (!sch) return fail('오늘은 이 반의 수업이 없습니다.');
+      const toMin = (t: string) => parseInt(t.slice(0, 2), 10) * 60 + parseInt(t.slice(3, 5), 10);
+      const nowM = d.getHours() * 60 + d.getMinutes();
+      if (nowM < toMin(sch.start_time) - 30) return fail('아직 출석할 수 있는 시간이 아닙니다. (수업 30분 전부터 가능)');
+      if (nowM > toMin(sch.end_time)) return fail('수업이 이미 끝났습니다.');
+      const status = nowM > toMin(sch.start_time) + 10 ? 'LATE' : 'PRESENT';
+      const rec = { id: uid(), academy_id: st.academy_id, class_id: cls.id, student_id: st.id, date: localToday, status, reason: null, note: '학생 출석 버튼', alert_sent: false, recorded_by: mockUserId, recorded_at: new Date().toISOString() };
+      db.class_attendance_records.push(rec);
+      emit('class_attendance_records', 'INSERT', rec, null);
+      return ok({ status, already: false, class_id: cls.id, date: localToday });
+    }
+    case 'list_academy_chat_rooms': {
+      const mine = db.chat_room_members.filter((m) => m.user_id === mockUserId).map((m) => m.room_id);
+      const isStaff = db.profiles.find((p) => p.id === mockUserId)?.role === 'TEACHER' || db.profiles.find((p) => p.id === mockUserId)?.role === 'ACADEMY_ADMIN';
+      return ok(
+        db.chat_rooms
+          .filter((r) => r.academy_id === args.p_academy_id)
+          .map((r) => ({ id: r.id, name: r.name, type: r.type, class_id: r.class_id, created_at: r.created_at, joined: r.type === 'ANNOUNCEMENT' || isStaff || mine.includes(r.id) }))
+          .sort((a, b) => Number(b.type === 'ANNOUNCEMENT') - Number(a.type === 'ANNOUNCEMENT'))
+      );
+    }
+    case 'join_chat_room': {
+      const room = db.chat_rooms.find((r) => r.id === args.p_room_id && r.type === 'CLASS');
+      if (!room) return fail('참여할 수 없는 채팅방입니다.');
+      if (!room.join_code || String(room.join_code).toUpperCase() !== String(args.p_password ?? '').trim().toUpperCase()) return fail('비밀번호가 맞지 않아요.');
+      if (!db.chat_room_members.some((m) => m.room_id === room.id && m.user_id === mockUserId)) {
+        db.chat_room_members.push({ room_id: room.id, user_id: mockUserId, joined_at: new Date().toISOString() });
+      }
+      return ok(room.id);
+    }
     case 'join_chat_room_by_code': {
       const room = db.chat_rooms.find((r) => r.type === 'CLASS' && String(r.join_code ?? '').toUpperCase() === String(args.p_code).toUpperCase());
       if (!room) return fail('유효하지 않은 참가 코드입니다.');
@@ -650,12 +659,29 @@ export const mockSupabase = {
 };
 
 /** 미리보기용 backend API 흉내 (일부 엔드포인트만) */
+let teacherInviteCode = 'TCHR2024';
+
 export function mockApi(path: string, method: string, body: any): any {
   if (path === '/api/chat/announce') {
     const r = { id: uid(), room_id: body.roomId, sender_id: ME, type: 'TEXT', content: body.content, image_url: null, edited_at: null, metadata: null, created_at: new Date().toISOString() };
     db.chat_messages.push(r);
     emit('chat_messages', 'INSERT', r, null);
     return { ok: true };
+  }
+  if (path === '/api/owner/academies' && method === 'POST') {
+    if (!String(body.name ?? '').trim() || !String(body.address ?? '').trim()) throw new Error('학원 이름과 주소는 필수입니다.');
+    const academy = { id: uid(), name: String(body.name).trim(), kind: 'ACADEMY', address: String(body.address).trim(), latitude: 37.5665, longitude: 126.978, total_seats: 20, subscription_status: 'TRIAL', subscription_expires_at: new Date(Date.now() + 30 * 86400_000).toISOString(), created_at: new Date().toISOString() };
+    db.academies.push(academy);
+    return { success: true, academy, teacherInviteCode: 'TCHR2024' };
+  }
+  if (path === '/api/owner/teacher-invite' && method === 'GET') return { code: teacherInviteCode };
+  if (path === '/api/owner/teacher-invite/regenerate' && method === 'POST') {
+    teacherInviteCode = genCode();
+    return { code: teacherInviteCode };
+  }
+  if (path === '/api/teacher-invite/join' && method === 'POST') {
+    if (String(body.code ?? '').trim().toUpperCase() !== teacherInviteCode) throw new Error('유효하지 않은 초대 코드입니다.');
+    return { success: true, academy: { id: AC, name: db.academies[0].name } };
   }
   if (path === '/api/attendance' && method === 'PUT') {
     const rows = db.class_attendance_records;

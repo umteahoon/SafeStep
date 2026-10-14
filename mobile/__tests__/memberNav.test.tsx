@@ -45,37 +45,37 @@ afterEach(() => {
 });
 
 describe('역할별 하단 탭 (실제 RootNavigator)', () => {
-  it('일반 회원: 홈 · 학원·스터디카페 · 커뮤니티 · 내 정보 (내 공부·채팅 없음)', async () => {
+  it('일반 회원: 홈 · 학원·스터디카페 · 학원 · 내 정보 (내 공부·채팅 없음)', async () => {
     const t = await mountApp('MEMBER');
     mounted.push(t);
-    expect(tabLabels(t)).toEqual(['홈', '학원·스터디카페', '커뮤니티', '내 정보']);
+    expect(tabLabels(t)).toEqual(['홈', '학원·스터디카페', '학원', '내 정보']);
   });
 
-  it('연동된 학생: 홈 · 지도 · 커뮤니티 · 내 공부 · 내 정보', async () => {
+  it('연동된 학생: 홈 · 지도 · 학원 · 내 공부 · 내 정보', async () => {
     const t = await mountApp('STUDENT');
     mounted.push(t);
-    expect(tabLabels(t)).toEqual(['홈', '지도', '커뮤니티', '내 공부', '내 정보']);
+    expect(tabLabels(t)).toEqual(['홈', '지도', '학원', '내 공부', '내 정보']);
   });
 
-  it('비로그인: 홈 · 학원·스터디카페 · 커뮤니티 · 내 정보', async () => {
+  it('비로그인: 홈 · 학원·스터디카페 · 학원 · 내 정보', async () => {
     const t = await mountApp('GUEST');
     mounted.push(t);
-    expect(tabLabels(t)).toEqual(['홈', '학원·스터디카페', '커뮤니티', '내 정보']);
+    expect(tabLabels(t)).toEqual(['홈', '학원·스터디카페', '학원', '내 정보']);
   });
 
-  it('원장·강사·학부모: 지도·커뮤니티 탭이 보이지 않는다 (홈 · 채팅 · 내 정보)', async () => {
+  it('원장·강사·학부모: 지도 탭은 없고 학원 탭이 보인다 (홈 · 학원 · 채팅 · 내 정보)', async () => {
     for (const role of ['ACADEMY_ADMIN', 'TEACHER', 'PARENT']) {
       const t = await mountApp(role);
       mounted.push(t);
-      expect(tabLabels(t)).toEqual(['홈', '채팅', '내 정보']);
+      expect(tabLabels(t)).toEqual(['홈', '학원', '채팅', '내 정보']);
       act(() => t.unmount());
       mounted.pop();
     }
   });
 
-  it('슈퍼관리자: 홈 · 지도 · 커뮤니티 · 내 정보', async () => {
+  it('슈퍼관리자: 홈 · 지도 · 학원 · 내 정보', async () => {
     const t = await mountApp('SUPER_ADMIN');
     mounted.push(t);
-    expect(tabLabels(t)).toEqual(['홈', '지도', '커뮤니티', '내 정보']);
+    expect(tabLabels(t)).toEqual(['홈', '지도', '학원', '내 정보']);
   });
 });

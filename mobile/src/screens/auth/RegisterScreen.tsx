@@ -18,17 +18,17 @@ type SignupRole = Exclude<UserRole, 'SUPER_ADMIN'>;
 type SignupChoice = SignupRole | 'MEMBER';
 
 const CHOICES: { value: SignupChoice; title: string; desc: string; icon: IconName }[] = [
-  { value: 'MEMBER', title: '일반 회원', desc: '스터디카페를 찾고 커뮤니티를 이용해요', icon: 'mc:coffee-outline' },
+  { value: 'MEMBER', title: '일반 회원', desc: '학원·스터디카페를 찾아보고 즐겨찾기해요', icon: 'mc:coffee-outline' },
   { value: 'STUDENT', title: '학생', desc: '다니는 학원·스터디카페에서 연동코드를 받았어요', icon: 'mc:school-outline' },
   { value: 'PARENT', title: '학부모', desc: '자녀의 출결과 학습 리포트를 확인해요', icon: 'mc:account-child-outline' },
-  { value: 'TEACHER', title: '강사', desc: '원장 승인 후 반·출결을 관리해요', icon: 'mc:account-tie-outline' },
+  { value: 'TEACHER', title: '강사', desc: '원장님께 받은 초대 코드로 학원에 합류해요', icon: 'mc:account-tie-outline' },
   { value: 'ACADEMY_ADMIN', title: '원장', desc: '학원·스터디카페를 운영해요', icon: 'mc:storefront-outline' },
 ];
 
 const STEPS = [
   { title: '어떤 분이세요?', sub: '가입 유형을 선택해주세요' },
   { title: '로그인 정보를\n입력해주세요', sub: '이메일과 비밀번호로 로그인해요' },
-  { title: '마지막으로\n프로필을 알려주세요', sub: '이름은 커뮤니티와 채팅에 표시돼요' },
+  { title: '마지막으로\n프로필을 알려주세요', sub: '이름은 채팅에 표시돼요' },
 ];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -61,7 +61,8 @@ export default function RegisterScreen() {
   const pw2Ref = useRef<TextInput>(null);
   const phoneRef = useRef<TextInput>(null);
 
-  const needsAcademy = role === 'TEACHER';
+  // 강사는 학원을 고르지 않고, 가입 후 원장이 준 초대 코드로 학원에 합류함
+  const needsAcademy = false;
 
   useEffect(() => {
     if (!needsAcademy) return;
@@ -129,6 +130,8 @@ export default function RegisterScreen() {
 
     if (role === 'ACADEMY_ADMIN') {
       navigation.reset({ index: 1, routes: [{ name: 'Main' }, { name: 'OwnerClaim' }] });
+    } else if (role === 'TEACHER') {
+      navigation.reset({ index: 1, routes: [{ name: 'Main' }, { name: 'TeacherJoin' }] });
     } else {
       navigation.reset({ index: 0, routes: [{ name: 'Main', params: { screen: 'HomeTab' } }] });
     }

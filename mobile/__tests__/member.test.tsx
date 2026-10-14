@@ -179,23 +179,9 @@ describe('일반 회원 (학생 계정 + 학원 명부 미연동)', () => {
     await supabase.from('students').update({ user_id: null }).eq('id', 'st-4');
   });
 
-  it('커뮤니티: 일반 회원은 처음에 "전체 스터디카페", 연동 후엔 "내 스터디카페"', async () => {
-    const hub = track(await mount('../src/screens/community/CommunityHubScreen', 'MEMBER'));
-    expect(allText(hub)).toContain('전체 스터디카페');
-    expect(allText(hub)).toContain('잠실점 오늘 많이 붐비네요');
-  });
-
-  it('일반 회원도 커뮤니티 글쓰기는 가능 (스터디카페를 고른 뒤)', async () => {
-    const hub = track(await mount('../src/screens/community/CommunityHubScreen', 'MEMBER'));
-    await press(hub, '글쓰기');
-    expect(allText(hub)).toContain('글을 남길 곳');
-    await press(hub, '홍대점');
-    expect(nav.navigate).toHaveBeenCalledWith('PostWrite', { academyId: 'a-3' });
-  });
-
   it('가입 1단계에 "일반 회원" 유형 카드가 있다', async () => {
     const t = track(await mount('../src/screens/auth/RegisterScreen', 'GUEST'));
     expect(allText(t)).toContain('어떤 분이세요?');
-    expect(allText(t)).toContain('스터디카페를 찾고 커뮤니티를 이용해요');
+    expect(allText(t)).toContain('학원·스터디카페를 찾아보고 즐겨찾기해요');
   });
 });

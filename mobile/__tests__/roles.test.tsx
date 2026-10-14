@@ -20,13 +20,11 @@ function RoleSetter({ role, children }: { role: any; children: React.ReactNode }
   return <>{children}</>;
 }
 
-// 모든 역할로 커뮤니티 관련 화면을 열어 예외/경고가 없는지 확인
+// 모든 역할로 학원 탭·학원 홈 등 주요 화면을 열어 예외/경고가 없는지 확인
 const ROLES = ['GUEST', 'MEMBER', 'STUDENT', 'ACADEMY_ADMIN', 'TEACHER', 'PARENT', 'SUPER_ADMIN'] as const;
 const SCREENS: [string, string, any][] = [
-  ['커뮤니티 탭', '../src/screens/community/CommunityHubScreen', {}],
-  ['스터디카페 게시판', '../src/screens/community/CommunityScreen', { academyId: '00000000-0000-0000-0000-000000000001' }],
-  ['글 상세', '../src/screens/community/PostDetailScreen', { postId: 'cp-2' }],
-  ['글쓰기', '../src/screens/community/PostWriteScreen', { academyId: '00000000-0000-0000-0000-000000000001' }],
+  ['학원 탭', '../src/screens/academy/AcademyListScreen', {}],
+  ['학원 홈', '../src/screens/academy/AcademyHomeScreen', { academyId: '00000000-0000-0000-0000-000000000001' }],
   ['홈', '../src/screens/home/HomeScreen', {}],
   ['내 정보', '../src/screens/common/MeScreen', {}],
 ];

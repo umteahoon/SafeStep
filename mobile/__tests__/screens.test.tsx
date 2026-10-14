@@ -29,80 +29,44 @@ async function renderClean(role: any, element: React.ReactElement, wait?: number
 
 beforeEach(() => setParams({}));
 
-describe('커뮤니티 관련 화면', () => {
-  it('스터디카페 게시판', async () => {
-    setParams({ academyId: AC });
-    const Screen = require('../src/screens/community/CommunityScreen').default;
-    const { errors, text } = await renderClean('STUDENT', <Screen />);
-    expect(errors).toEqual([]);
-    expect(text).toContain('이번 주 금요일 야간 자습실 운영 안내');
-    expect(text).toContain('글쓰기');
-  });
-
-  it('글 상세(비로그인)', async () => {
-    setParams({ postId: 'cp-2' });
-    const Screen = require('../src/screens/community/PostDetailScreen').default;
-    const { errors, text } = await renderClean('GUEST', <Screen />);
-    expect(errors).toEqual([]);
-    expect(text).toContain('중3 수학 A반 교재는 어디서 사나요?');
-    expect(text).toContain('로그인하고 댓글 남기기');
-  });
-
-  it('글 상세(로그인) — 댓글 입력창', async () => {
-    setParams({ postId: 'cp-2' });
-    const Screen = require('../src/screens/community/PostDetailScreen').default;
-    const { errors, text } = await renderClean('STUDENT', <Screen />);
-    expect(errors).toEqual([]);
-    expect(text).toContain('첫 수업 날 데스크에서 나눠 주세요');
-    expect(text).toContain('등록');
-  });
-
-  it('글쓰기', async () => {
-    setParams({ academyId: AC });
-    const Screen = require('../src/screens/community/PostWriteScreen').default;
-    const { errors, text } = await renderClean('STUDENT', <Screen />);
-    expect(errors).toEqual([]);
-    expect(text).toContain('올리기');
-  });
-
-  it('학원 상세: 커뮤니티 행 + 소개/사진 (좌석 도면·키오스크 없음)', async () => {
+describe('학원·스터디카페 화면', () => {
+  it('학원 상세: 소개/사진 (좌석 도면·키오스크 없음)', async () => {
     setParams({ academyId: AC });
     const Screen = require('../src/screens/map/SeatFloorPlanScreen').default;
     const { errors, text } = await renderClean('STUDENT', <Screen />, 900);
     expect(errors).toEqual([]);
-    expect(text).toContain('학원 커뮤니티');
-    expect(text).toContain('이웃들의 이야기');
+    expect(text).not.toContain('커뮤니티');
     expect(text).toContain('소개');
     expect(text).toContain('운영시간');
     expect(text).toContain('사진');
     expect(text).not.toContain('키오스크로 입/퇴실하기');
   });
 
-  it('스터디카페 상세: 커뮤니티 행 + 소개/사진 + 좌석 기능', async () => {
+  it('스터디카페 상세: 소개/사진 + 좌석 기능', async () => {
     setParams({ academyId: 'a-3' });
     const Screen = require('../src/screens/map/SeatFloorPlanScreen').default;
     const { errors, text } = await renderClean('STUDENT', <Screen />, 900);
     expect(errors).toEqual([]);
-    expect(text).toContain('스터디카페 커뮤니티');
+    expect(text).not.toContain('커뮤니티');
     expect(text).toContain('소개');
     expect(text).toContain('24시간 운영');
     expect(text).toContain('키오스크로 입/퇴실하기');
   });
 
-  it('홈(비로그인): 지역별로 찾기 + 스터디카페 이야기', async () => {
+  it('홈(비로그인): 지역별로 찾기', async () => {
     const Screen = require('../src/screens/home/HomeScreen').default;
     const { errors, text } = await renderClean('GUEST', <Screen />, 1200);
     expect(errors).toEqual([]);
     expect(text).toContain('지역별로 찾기');
     expect(text).toContain('서울');
-    expect(text).toContain('스터디카페 이야기');
+    expect(text).not.toContain('스터디카페 이야기');
   });
 
-  it('홈(학생): 스터디카페 이야기', async () => {
+  it('홈(학생): 커뮤니티 섹션 없음', async () => {
     const Screen = require('../src/screens/home/HomeScreen').default;
     const { errors, text } = await renderClean('STUDENT', <Screen />, 1200);
     expect(errors).toEqual([]);
-    expect(text).toContain('스터디카페 이야기');
+    expect(text).not.toContain('스터디카페 이야기');
   });
 
   it('지도: 지역 버튼', async () => {

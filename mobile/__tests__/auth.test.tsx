@@ -161,7 +161,7 @@ describe('회원가입 3단계 마법사', () => {
     expect(auth.isMember).toBe(false); // 학생(연동된 미리보기 학생)
   });
 
-  it('강사는 소속 학원 선택이 필수', async () => {
+  it('강사는 학원을 고르지 않고 가입 → 초대 코드 입력(TeacherJoin) 화면으로', async () => {
     const t = track(await mount(REGISTER, 'GUEST'));
     await press(t, '강사');
     await press(t, '다음');
@@ -169,11 +169,10 @@ describe('회원가입 3단계 마법사', () => {
     await typeInto(t, '6자 이상', 'secret1');
     await typeInto(t, '한 번 더 입력', 'secret1');
     await press(t, '다음');
-    expect(screenText(t)).toContain('소속 학원');
+    expect(screenText(t)).not.toContain('소속 학원');
     await typeInto(t, '홍길동', '박강사');
     await press(t, '가입하기');
-    expect(screenText(t)).toContain('소속 학원을 선택해주세요');
-    expect(nav.reset).not.toHaveBeenCalled();
+    expect(nav.reset).toHaveBeenCalledWith({ index: 1, routes: [{ name: 'Main' }, { name: 'TeacherJoin' }] });
   });
 
   it('원장으로 가입하면 학원 등록(OwnerClaim) 화면으로', async () => {

@@ -264,33 +264,3 @@ export interface TeamChatMessage {
   content: string;
   created_at: string;
 }
-
-// ── 스터디카페 커뮤니티 (모바일 전용 기능 — mobile/supabase_community.sql 참고) ──
-export type CommunityCategory = 'FREE' | 'QUESTION' | 'REVIEW' | 'STUDY';
-
-export interface CommunityPost {
-  id: string;
-  academy_id: string;
-  author_id: string;
-  category: CommunityCategory;
-  title: string;
-  content: string;
-  created_at: string;
-  /** 조회수 (컬럼이 없으면 undefined → 0 으로 취급) */
-  view_count?: number | null;
-  /** 작성 시점의 이름·역할(서버 트리거가 저장). profiles RLS 때문에 조인이 막힐 때 대신 사용 */
-  author_name?: string | null;
-  author_role?: UserRole | null;
-  author?: { name: string; role?: UserRole } | null;
-}
-
-export interface CommunityComment {
-  id: string;
-  post_id: string;
-  author_id: string;
-  content: string;
-  created_at: string;
-  author_name?: string | null;
-  author_role?: UserRole | null;
-  author?: { name: string; role?: UserRole } | null;
-}

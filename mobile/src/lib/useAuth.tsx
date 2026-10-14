@@ -51,7 +51,7 @@ interface AuthContextValue extends AuthState {
   studentLinked: boolean;
   /**
    * 일반 회원 = 학생으로 가입했지만 아직 학원 명부에 연동하지 않은 계정.
-   * 로그인했지만 소속 학원·스터디카페가 없어 이용권·출결·채팅은 못 쓰고, 탐색·즐겨찾기·커뮤니티는 쓸 수 있음.
+   * 로그인했지만 소속 학원·스터디카페가 없어 이용권·출결·채팅은 못 쓰고, 탐색·즐겨찾기는 쓸 수 있음.
    */
   isMember: boolean;
   /**

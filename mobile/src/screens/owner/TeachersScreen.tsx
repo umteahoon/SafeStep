@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Share, Text, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import { confirmAsync } from '../../lib/confirm';
 import { apiFetch } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/useAuth';
@@ -22,6 +24,8 @@ function Inner() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [inviteMsg, setInviteMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -48,6 +52,38 @@ function Inner() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    apiFetch<{ code: string }>('/api/owner/teacher-invite')
+      .then((r) => setInviteCode(r.code))
+      .catch(() => setInviteCode(null));
+  }, []);
+
+  const copyInvite = async () => {
+    if (!inviteCode) return;
+    try {
+      await Clipboard.setStringAsync(inviteCode);
+      setInviteMsg('초대 코드를 복사했어요');
+    } catch {
+      setInviteMsg('복사하지 못했어요. 코드를 직접 입력해 전달해 주세요.');
+    }
+  };
+
+  const shareInvite = () =>
+    inviteCode &&
+    Share.share({ message: `SafeStep 강사 초대 코드: ${inviteCode}\n앱에서 강사로 가입한 뒤 "학원 합류"에 입력하세요.` });
+
+  const regenerate = async () => {
+    const ok = await confirmAsync('초대 코드를 다시 만들까요?', '이전 코드는 바로 사용할 수 없게 돼요.', '다시 만들기');
+    if (!ok) return;
+    try {
+      const r = await apiFetch<{ code: string }>('/api/owner/teacher-invite/regenerate', { method: 'POST' });
+      setInviteCode(r.code);
+      setInviteMsg('새 초대 코드를 만들었어요');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '재발급 실패');
+    }
+  };
+
   const act = async (teacherId: string, action: 'approve' | 'reject') => {
     setBusyId(teacherId);
     try {
@@ -63,6 +99,20 @@ function Inner() {
   return (
     <Screen>
       <Banner kind="error">{error ?? undefined}</Banner>
+
+      <Card>
+        <Text style={{ fontSize: 15, fontWeight: '800', color: colors.text }}>강사 초대 코드</Text>
+        <Muted style={{ marginTop: 2 }}>강사가 가입한 뒤 이 코드를 입력하면 바로 우리 학원 소속이 돼요.</Muted>
+        <Text style={{ fontSize: 28, fontWeight: '800', letterSpacing: 5, color: colors.primaryDark, textAlign: 'center', marginVertical: 14 }} selectable>
+          {inviteCode ?? '------'}
+        </Text>
+        <Banner kind="success">{inviteMsg ?? undefined}</Banner>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Button title="복사" variant="secondary" small onPress={copyInvite} disabled={!inviteCode} style={{ flex: 1 }} />
+          <Button title="공유" small onPress={shareInvite} disabled={!inviteCode} style={{ flex: 1 }} />
+          <Button title="재발급" variant="secondary" small onPress={regenerate} disabled={!inviteCode} style={{ flex: 1 }} />
+        </View>
+      </Card>
 
       <SectionTitle>승인 대기 ({pending.length})</SectionTitle>
       {isLoading ? (

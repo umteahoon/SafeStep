@@ -26,8 +26,8 @@ export const ROLE_LABEL: Record<UserRole, string> = {
 };
 
 /**
- * 스터디카페 탐색(지도·좌석 도면)과 커뮤니티를 볼 수 없는 역할.
- * 학원 원장·강사·학부모는 운영/자녀 관리가 목적이라 이용자용 탐색·커뮤니티 화면을 노출하지 않습니다.
+ * 스터디카페 탐색(지도·좌석 도면)을 볼 수 없는 역할.
+ * 학원 원장·강사·학부모는 운영/자녀 관리가 목적이라 이용자용 탐색 화면을 노출하지 않습니다.
  */
 export const EXPLORE_BLOCKED: UserRole[] = ['ACADEMY_ADMIN', 'TEACHER', 'PARENT'];
 

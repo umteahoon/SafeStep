@@ -22,10 +22,8 @@ import MyInquiriesScreen from '../screens/common/MyInquiriesScreen';
 import StartGuideScreen from '../screens/common/StartGuideScreen';
 import MapScreen from '../screens/map/MapScreen';
 import HomeScreen from '../screens/home/HomeScreen';
-import CommunityHubScreen from '../screens/community/CommunityHubScreen';
-import CommunityScreen from '../screens/community/CommunityScreen';
-import PostDetailScreen from '../screens/community/PostDetailScreen';
-import PostWriteScreen from '../screens/community/PostWriteScreen';
+import AcademyListScreen from '../screens/academy/AcademyListScreen';
+import AcademyHomeScreen from '../screens/academy/AcademyHomeScreen';
 import StudyScreen from '../screens/study/StudyScreen';
 import FocusTimerScreen from '../screens/study/FocusTimerScreen';
 import PlannerScreen from '../screens/study/PlannerScreen';
@@ -34,6 +32,8 @@ import HistoryScreen from '../screens/study/HistoryScreen';
 import NotificationsScreen from '../screens/study/NotificationsScreen';
 import SeatFloorPlanScreen from '../screens/map/SeatFloorPlanScreen';
 import KioskScreen from '../screens/kiosk/KioskScreen';
+import TeacherJoinScreen from '../screens/auth/TeacherJoinScreen';
+import CheckInScreen from '../screens/student/CheckInScreen';
 import StudentQrScreen from '../screens/student/StudentQrScreen';
 import StudentPassesScreen from '../screens/student/StudentPassesScreen';
 import ChatListScreen from '../screens/chat/ChatListScreen';
@@ -68,9 +68,9 @@ const tabIcon =
 // 웹 앱 모드의 하단 탭바(지도 / 키오스크 / 팀 / 내 정보)에 채팅을 더한 구성
 function MainTabs() {
   const { user, profile, studentLinked, isMember } = useAuth();
-  // 홈 · 지도 · 커뮤니티는 모두에게, 내 공부는 학생, 채팅은 운영진·학부모. 팀·키오스크는 홈 바로가기에서 진입
+  // 홈 · 학원은 모두에게, 지도는 탐색 가능한 역할, 내 공부는 학생, 채팅은 운영진·학부모. 팀·키오스크는 홈 바로가기에서 진입
   const role = user ? profile?.role : undefined;
-  // 지도·커뮤니티는 원장·강사·학부모에게 보이지 않음
+  // 지도는 원장·강사·학부모에게 보이지 않음
   const showExplore = canExplore(role);
   const showStudy = role === 'STUDENT' && studentLinked; // 일반 회원(명부 미연동)은 제외
   // 채팅 탭은 운영진·학부모만 (학생은 홈·내 정보에서 진입해 탭이 늘어나지 않게 함)
@@ -115,13 +115,12 @@ function MainTabs() {
         }}
       />
       )}
-      {showExplore && (
+      {/* 학원: 등록된 학원 목록 → 학원 홈(채팅방·공지방·출결) */}
       <Tab.Screen
-        name="CommunityTab"
-        component={CommunityHubScreen}
-        options={{ title: '커뮤니티', headerShown: false, tabBarIcon: tabIcon('chatbox-ellipses', 'chatbox-ellipses-outline') }}
+        name="AcademyTab"
+        component={AcademyListScreen}
+        options={{ title: '학원', headerShown: false, tabBarIcon: tabIcon('school', 'school-outline') }}
       />
-      )}
       {/* 내 공부: 학생 전용 (이용 기록·통계·목표·도구) */}
       {showStudy && (
         <Tab.Screen
@@ -213,16 +212,15 @@ export default function RootNavigator() {
         <Stack.Screen name="Inquiry" component={InquiryScreen} options={{ title: '도입 문의' }} />
         <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} options={{ title: '프로필 수정' }} />
         <Stack.Screen name="MyInquiries" component={MyInquiriesScreen} options={{ title: '내 문의 내역' }} />
+        <Stack.Screen name="TeacherJoin" component={TeacherJoinScreen} options={{ title: '학원 합류' }} />
         <Stack.Screen name="StartGuide" component={StartGuideScreen} options={{ title: '시작 가이드' }} />
 
         {/* 지도 / 좌석 / 키오스크 */}
         <Stack.Screen name="SeatFloorPlan" component={SeatFloorPlanScreen} options={{ title: '좌석 도면' }} />
         <Stack.Screen name="Kiosk" component={KioskScreen} options={{ headerShown: false }} />
 
-        {/* 스터디카페 커뮤니티 */}
-        <Stack.Screen name="Community" component={CommunityScreen} options={{ title: '커뮤니티' }} />
-        <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ title: '게시글' }} />
-        <Stack.Screen name="PostWrite" component={PostWriteScreen} options={{ title: '글쓰기' }} />
+        {/* 학원 홈: 채팅방 · 공지방 · 출결 */}
+        <Stack.Screen name="AcademyHome" component={AcademyHomeScreen} options={{ title: '학원' }} />
 
         {/* 학습 도구 */}
         <Stack.Screen name="FocusTimer" component={FocusTimerScreen} options={{ title: '집중 타이머' }} />
@@ -232,6 +230,7 @@ export default function RootNavigator() {
         <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: '알림' }} />
 
         {/* 학생 */}
+        <Stack.Screen name="CheckIn" component={CheckInScreen} options={{ title: '출석 체크' }} />
         <Stack.Screen name="StudentQr" component={StudentQrScreen} options={{ title: '내 출결 QR' }} />
         <Stack.Screen name="StudentPasses" component={StudentPassesScreen} options={{ title: '이용권' }} />
 

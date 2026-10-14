@@ -7,8 +7,7 @@ export type TabParamList = {
   MapTab: { preset?: 'near' | 'available' | 'quiet' | 'fav'; /** 학원/스터디카페 구분 필터 */ kind?: 'ACADEMY' | 'STUDY_CAFE'; /** 학원 과목 분류 */ category?: string; region?: { sido: string; sigungu?: string | null }; ts?: number } | undefined;
   StudyTab: undefined;
   ChatTab: undefined;
-  /** mine: 내 정보의 "내 글"에서 열 때 내 글만 보여줌 */
-  CommunityTab: { mine?: boolean; ts?: number } | undefined;
+  AcademyTab: undefined;
   MeTab: undefined;
 };
 
@@ -19,6 +18,7 @@ export type RootStackParamList = {
   Login: { next?: { name: keyof RootStackParamList; params?: any } } | undefined;
   Register: undefined;
   Welcome: { replay?: boolean } | undefined;
+  TeacherJoin: undefined;
   Inquiry: undefined;
   ProfileEdit: undefined;
   MyInquiries: undefined;
@@ -37,12 +37,11 @@ export type RootStackParamList = {
   History: undefined;
   Notifications: undefined;
   StudentQr: undefined;
+  CheckIn: undefined;
   StudentPasses: undefined;
 
   // 채팅 / 팀
-  Community: { academyId: string };
-  PostDetail: { postId: string };
-  PostWrite: { academyId: string };
+  AcademyHome: { academyId: string };
   Chats: undefined;
   Teams: undefined;
   ChatRoom: { roomId: string };

@@ -69,7 +69,7 @@ async function press(tree: any, label: string) {
   });
 }
 
-describe('실제 내비게이션에서 커뮤니티 진입', () => {
+describe('실제 내비게이션에서 학원 탭 → 학원 홈', () => {
   const run = async (role: any, steps: (ctx: any) => Promise<void>) => {
     const ctx = await mountApp(role);
     try {
@@ -82,38 +82,37 @@ describe('실제 내비게이션에서 커뮤니티 진입', () => {
     return ctx;
   };
 
-  it('비로그인: 하단 "커뮤니티" 탭', async () => {
+  it('비로그인: 하단 "학원" 탭에 등록된 학원이 모두 보이고, 누르면 채팅방·공지방·출결 버튼이 한 화면에 보인다', async () => {
     await run('GUEST', async ({ tree }) => {
-      await press(tree, '커뮤니티');
-      const text = allText(tree);
-      expect(text).toContain('글쓰기');
-      expect(text).toContain('이번 주 금요일 야간 자습실 운영 안내');
-    });
-  });
-
-  it('학생: 하단 "커뮤니티" 탭', async () => {
-    await run('STUDENT', async ({ tree }) => {
-      await press(tree, '커뮤니티');
-      expect(allText(tree)).toContain('최신순'); // 커뮤니티 탭의 정렬 토글
-    });
-  });
-
-
-  it('스터디카페 카드 → 상세 → "스터디카페 커뮤니티" 행 → 게시판 → 글 상세', async () => {
-    await run('GUEST', async ({ tree }) => {
-      // 지점이 많아져 "내 주변" 상위 목록에 들어오는 카드를 눌러 진입 (건대점은 서울 중심 위치에서 가까움)
-      await press(tree, '건대점');
-      expect(allText(tree)).toContain('스터디카페 커뮤니티');
-      await press(tree, '스터디카페 커뮤니티');
+      await press(tree, '학원, tab');
       await act(async () => {
-        await sleep(1500); // 게시글 로딩 대기 (지점 수가 늘어 목록 로딩이 조금 길어짐)
+        await sleep(1500); // 학원 목록 로딩 대기
       });
-      const board = allText(tree);
-      expect(board).toContain('건대점 노트북존 좋네요');
-      await press(tree, '건대점 노트북존 좋네요');
-      expect(allText(tree)).toContain('탁 트인 창가 자리에서 공부하니');
+      const list = allText(tree);
+      expect(list).toContain('이룸수학학원 강남점');
+      expect(list).toContain('공부의정석 스터디카페 홍대점');
+      await press(tree, '이룸수학학원 강남점');
+      await act(async () => {
+        await sleep(800);
+      });
+      const home = allText(tree);
+      for (const label of ['채팅방', '공지방', '출결']) expect(home).toContain(label);
     });
   }, 20000);
 
-
+  it('학생: 내 학원 홈에서 세 버튼이 모두 보인다', async () => {
+    await run('STUDENT', async ({ tree }) => {
+      await press(tree, '학원, tab');
+      await act(async () => {
+        await sleep(1500);
+      });
+      expect(allText(tree)).toContain('내 학원');
+      await press(tree, '이룸수학학원 강남점');
+      await act(async () => {
+        await sleep(800);
+      });
+      const home = allText(tree);
+      for (const label of ['채팅방', '공지방', '출결']) expect(home).toContain(label);
+    });
+  }, 20000);
 });

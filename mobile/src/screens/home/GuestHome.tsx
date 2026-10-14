@@ -9,7 +9,6 @@ import { groupRegions } from '../../lib/region';
 import { categoryLabel, splitByKind } from '../../lib/placeKind';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Avatar, Icon, Screen } from '../../components/ui';
-import { CommunityTeaser } from '../../components/CommunityTeaser';
 import { AcademyPhotoCard, CafeCard, HScroll, SectionHeader, StatusDot } from '../../components/home';
 import { colors, radius } from '../../theme';
 import type { IconName } from '../../components/ui';
@@ -221,8 +220,6 @@ export default function GuestHome({
           })}
         </>
       )}
-
-      <CommunityTeaser />
 
       {/* 운영자용 안내: 맨 아래 작게 */}
       {!memberName && (

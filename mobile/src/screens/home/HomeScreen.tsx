@@ -21,7 +21,6 @@ import {
 import type { QuickItem } from '../../components/home';
 import { LiveSeatCard } from '../../components/study';
 import GuestHome from './GuestHome';
-import { CommunityTeaser } from '../../components/CommunityTeaser';
 import { AcademyCard } from '../../components/AcademyCard';
 import { splitByKind } from '../../lib/placeKind';
 import { colors, radius } from '../../theme';
@@ -499,8 +498,6 @@ export default function HomeScreen() {
           )}
         </>
       )}
-
-      {showCafes && <CommunityTeaser />}
 
     </Screen>
   );

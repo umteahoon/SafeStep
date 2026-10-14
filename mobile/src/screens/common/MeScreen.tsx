@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { PREVIEW_MODE, useAuth } from '../../lib/useAuth';
 import type { PreviewRole } from '../../lib/useAuth';
@@ -41,6 +41,7 @@ function activityMenu(role: UserRole, hasAcademy: boolean, isMember: boolean): M
           ]
         : [{ title: '학원 등록', desc: '등록 코드 입력', icon: 'key-outline', to: 'OwnerClaim' }];
     case 'TEACHER':
+      if (!hasAcademy) return [{ title: '학원 합류', desc: '원장님께 받은 초대 코드 입력', icon: 'key-outline', to: 'TeacherJoin' }];
       return [
         { title: '출석부', icon: 'checkbox-outline', to: 'Attendance' },
         { title: '학생 관리', icon: 'people-outline', to: 'Students' },
@@ -48,6 +49,7 @@ function activityMenu(role: UserRole, hasAcademy: boolean, isMember: boolean): M
       ];
     case 'STUDENT':
       return [
+        { title: '출석 체크', desc: '큰 버튼으로 출석하고 기록 확인', icon: 'checkmark-done-circle-outline', to: 'CheckIn' },
         { title: '내 출결 QR', desc: '키오스크에 스캔하세요', icon: 'qr-code-outline', to: 'StudentQr' },
         { title: '이용권', desc: '시간권·기간권 구매 · 잔여 현황', icon: 'ticket-outline', to: 'StudentPasses' },
         { title: '이용 내역', icon: 'receipt-outline', to: 'History' },
@@ -109,24 +111,7 @@ export default function MeScreen() {
   const [affiliation, setAffiliation] = useState<{ name: string; kind: string | null } | null>(null);
   const { favorites } = useFavorites();
   const { unread } = useNotifications();
-  const [postCount, setPostCount] = useState<number | null>(null);
   const go = (to: keyof RootStackParamList) => navigation.navigate(to as any);
-
-  // 내가 쓴 글 수
-  useFocusEffect(
-    useCallback(() => {
-      if (!user) return;
-      let alive = true;
-      supabase
-        .from('community_posts')
-        .select('id')
-        .eq('author_id', user.id)
-        .then(({ data }) => alive && setPostCount(((data as any[]) ?? []).length));
-      return () => {
-        alive = false;
-      };
-    }, [user])
-  );
 
   // 소속 학원·스터디카페 이름
   useEffect(() => {
@@ -157,7 +142,7 @@ export default function MeScreen() {
             <Icon name="person-outline" size={30} color={colors.primary} />
           </View>
           <Text style={styles.guestTitle}>로그인하고 시작해보세요</Text>
-          <Text style={styles.guestSub}>즐겨찾기, 커뮤니티 글쓰기,{'\n'}이용권과 출결을 한곳에서 관리해요</Text>
+          <Text style={styles.guestSub}>즐겨찾기, 학원 채팅·공지,{'\n'}이용권과 출결을 한곳에서 관리해요</Text>
           <View style={{ alignSelf: 'stretch', gap: 8, marginTop: 20 }}>
             <Button title="로그인" onPress={() => go('Login')} style={{ height: 52, borderRadius: 16 }} />
             <Button title="회원가입" variant="secondary" onPress={() => go('Register')} style={{ height: 52, borderRadius: 16 }} />
@@ -166,7 +151,7 @@ export default function MeScreen() {
 
         <Group title="둘러보기">
           <Row icon="map-outline" title="학원·스터디카페 찾기" onPress={() => navigation.navigate('Main', { screen: 'MapTab' })} />
-          <Row icon="chatbubbles-outline" title="커뮤니티" onPress={() => navigation.navigate('Main', { screen: 'CommunityTab' })} last />
+          <Row icon="school-outline" title="학원" desc="채팅방 · 공지방 · 출결" onPress={() => navigation.navigate('Main', { screen: 'AcademyTab' })} last />
         </Group>
         <Group title="학원·스터디카페를 운영하시나요?">
           <Row icon="rocket-outline" title="무료로 시작하기" desc="도입 가이드" onPress={() => go('StartGuide')} />
@@ -189,7 +174,7 @@ export default function MeScreen() {
 
   const items = activityMenu(profile.role, !!profile.academy_id, isMember);
   const teacherPending = profile.role === 'TEACHER' && profile.approval_status !== 'APPROVED';
-  // 즐겨찾기(지도)·내 글(커뮤니티)은 원장·강사·학부모에게 보이지 않으므로 요약도 숨김
+  // 즐겨찾기(지도)는 원장·강사·학부모에게 보이지 않으므로 요약도 숨김
   const showStats = profile.role !== 'SUPER_ADMIN' && canExplore(profile.role);
   const roleText = isMember ? '일반 회원' : ROLE_LABEL[profile.role];
 
@@ -232,11 +217,6 @@ export default function MeScreen() {
           <Pressable style={styles.stat} onPress={() => navigation.navigate('Main', { screen: 'MapTab', params: { preset: 'fav', ts: Date.now() } })}>
             <Text style={styles.statValue}>{favorites.length}</Text>
             <Text style={styles.statLabel}>즐겨찾기</Text>
-          </Pressable>
-          <View style={styles.statDivider} />
-          <Pressable style={styles.stat} onPress={() => navigation.navigate('Main', { screen: 'CommunityTab', params: { mine: true, ts: Date.now() } })}>
-            <Text style={styles.statValue}>{postCount ?? '-'}</Text>
-            <Text style={styles.statLabel}>내 글</Text>
           </Pressable>
           <View style={styles.statDivider} />
           <Pressable style={styles.stat} onPress={() => go('Notifications')}>

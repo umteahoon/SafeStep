@@ -23,21 +23,12 @@ function SeatFloorPlanScreenInner() {
   const { user, profile, isMember } = useAuth();
   const [academy, setAcademy] = useState<Academy | null>(null);
   const [reportSeat, setReportSeat] = useState<Seat | null>(null);
-  const [postCount, setPostCount] = useState<number | null>(null);
   const { isFavorite, toggleFavorite, addRecent } = useFavorites();
 
   // 최근 본 스터디카페에 기록
   useEffect(() => {
     addRecent(academyId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [academyId]);
-
-  useEffect(() => {
-    supabase
-      .from('community_posts')
-      .select('id')
-      .eq('academy_id', academyId)
-      .then(({ data }) => setPostCount(((data as any[]) ?? []).length));
   }, [academyId]);
 
   useEffect(() => {
@@ -76,18 +67,6 @@ function SeatFloorPlanScreenInner() {
         </View>
       </View>
       <View style={{ height: 16 }} />
-
-      {/* 이 스터디카페의 커뮤니티 */}
-      <Pressable onPress={() => navigation.navigate('Community', { academyId })} style={styles.community}>
-        <Icon name="mc:forum" size={22} color={colors.primary} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.communityTitle}>{isAcademy ? '학원 커뮤니티' : '스터디카페 커뮤니티'}</Text>
-          <Text style={styles.communitySub}>
-            {postCount ? `이웃들의 이야기 ${postCount}개` : isAcademy ? '수업 후기와 질문을 나눠보세요' : '후기, 질문, 스터디 모집을 나눠보세요'}
-          </Text>
-        </View>
-        <Icon name="chevron-forward" size={18} color={colors.textMuted} />
-      </Pressable>
 
       {/* 소개 · 정보 · 사진 */}
       {academy && (
@@ -196,9 +175,6 @@ const styles = StyleSheet.create({
   heroScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 },
   heroHeart: { position: 'absolute', top: 14, right: 16, width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' },
   heroBody: { position: 'absolute', left: 20, right: 20, bottom: 20 },
-  community: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#F3F7FF', borderRadius: 20, padding: 16, marginBottom: 16 },
-  communityTitle: { fontSize: 15, fontWeight: '800', color: colors.text },
-  communitySub: { fontSize: 12, color: colors.textSub, marginTop: 3 },
   heroTitle: { fontSize: 26, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.6 },
   heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.82)', marginTop: 4 },
 });

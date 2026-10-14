@@ -59,7 +59,7 @@ mobile/
     │   ├── Guard.tsx               RequireRole — 웹 ProtectedRoute + RequireStudentLink
     │   └── TossPayment.tsx         토스 결제위젯 WebView 모달
     ├── navigation/                 RootNavigator(하단 탭 + 스택), 타입, 딥링크
-    └── screens/                    auth · common · map · kiosk · student · chat · teams · owner · staff · admin · parent
+    └── screens/                    auth · common · map · academy · kiosk · student · chat · teams · owner · staff · admin · parent
 ```
 
 ## 내비게이션 구조
@@ -120,6 +120,27 @@ mobile/
 - `window.confirm` → `Alert` (`lib/confirm.ts`)
 
 ## 변경 이력
+
+### 2026-10-14 — 원장 → 강사 → 학생 초대 구조 · 채팅방 비밀번호 · 출결 분리(큰 출석 버튼)
+- **초대 구조**: 원장이 앱에서 직접 학원을 만들고(`OwnerClaim` "내 학원 만들기") → **강사 초대 코드**(강사 관리 화면에서 복사·공유·재발급)를 강사에게 전달 → 강사는 학원을 고르지 않고 가입한 뒤 코드를 입력해 합류(`TeacherJoin`, 코드가 곧 승인이라 바로 사용) → 강사가 학생을 추가하고 연동코드를 전달(기존 `Students` 화면). 기존 슈퍼관리자 발급 등록 코드 방식도 그대로 남겨 둠
+- **채팅방 비밀번호**: 강사가 방을 만들 때 비밀번호를 직접 입력(4~20자, 비우면 자동 생성). 학원 홈에 학원이 만든 채팅방이 모두 보이고, 학생은 잠긴 방을 눌러 비밀번호를 입력해야 입장(강사·원장은 바로 입장, 대소문자 무시, 비밀번호 목록 응답에는 포함하지 않음)
+- **출결 분리**: 학원 홈 **맨 위에 큰 "출결" 카드** → 학생은 `CheckIn`(출석 체크) 화면으로. 큰 "출석하기" 버튼을 누르면 **"출석되었습니다"** 가 뜨고, 아래에 **내 출석 기록**(날짜·반·출석/지각/결석) 목록. 규칙: 오늘 수업이 있는 반만, **수업 시작 30분 전 ~ 종료**, 시작 10분 초과 시 지각, 하루 1회·본인 것만(서버 함수 `student_check_in` 이 판정). 원장·강사의 출결은 반별 출석부, 학부모는 자녀 리포트로 이동
+- **서버 변경 (⚠️ 배포 필요 — 아래 3가지를 적용해야 실서버에서 동작)**
+  - `supabase/migration_15_hierarchy_checkin.sql`: `academy_teacher_invites`, `student_check_in()`
+  - `supabase/migration_16_chat_room_password.sql`: `chat_rooms.join_code`, `chat_room_members`, `list_academy_chat_rooms()`, `join_chat_room()`, `join_chat_room_by_code()`, 채팅 권한 함수·정책 갱신. (`join_code`·`chat_room_members`·`join_chat_room_by_code` 는 앱이 이미 쓰고 있었지만 저장소 SQL 에 정의가 없었음)
+  - 백엔드: `POST /api/owner/academies`, `GET·POST /api/owner/teacher-invite[/regenerate]`, `POST /api/teacher-invite/join`, `/api/auth/register` 가 강사의 `academyId` 를 선택값으로 변경
+- 내 정보 메뉴: 학생에 "출석 체크", 학원 없는 강사에 "학원 합류" 추가
+- 검증: `tsc --noEmit`(모바일·백엔드) 통과, jest 15개 스위트 140개 통과(가짜 서버 기준). **SQL·백엔드는 실제 DB/서버에서 실행해 검증하지 않았음** — 개발 프로젝트에서 먼저 적용해 볼 것
+
+### 2026-10-14 — 커뮤니티 삭제 + "학원" 탭(학원 목록 → 학원 홈: 채팅방·공지방·출결)
+- **커뮤니티 기능 전체 삭제**: 커뮤니티 탭/게시판/글 상세/글쓰기 화면, 홈의 커뮤니티 티저, 좌석 도면의 "커뮤니티" 행, 내 정보의 "내 글" 요약·"커뮤니티" 메뉴, 가짜 서버의 게시글 시드, `CommunityPost`/`CommunityComment` 타입, `supabase_community.sql`을 모두 제거. 관련 테스트(`community`·`scope`·`interactions`)도 삭제
+- **"학원" 탭**(`screens/academy/AcademyListScreen.tsx`): 커뮤니티 탭 자리에 등록된 학원·스터디카페를 전부 목록으로 표시(이름·주소 검색, 내 소속은 맨 위 "내 학원" 배지). **모든 역할**에게 보임(원장·강사·학부모 포함)
+- **학원 홈**(`screens/academy/AcademyHomeScreen.tsx`): 학원을 누르면 **채팅방 · 공지방 · 출결** 3개 버튼을 한 화면에 표시
+  - 채팅방 → 채팅 목록(`Chats`), 공지방 → 그 학원 공지 채팅방 바로 열기(직원은 없으면 자동 생성), 출결 → 원장·강사는 반별 출석부 / 학생은 내 출결 QR / 학부모는 자녀 출결 리포트
+  - 내가 소속된 학원이 아니면 버튼은 보이되(잠금 아이콘) 눌렀을 때 안내만 표시, 비로그인은 로그인으로, 일반 회원은 연동 화면으로 이동. 규칙은 `lib/academyHub.ts`(`academyAccess`)
+- 탭 구성: 비로그인·일반 회원 홈 · 학원·스터디카페 · 학원 · 내 정보 / 연동된 학생 홈 · 지도 · 학원 · 내 공부 · 내 정보 / 원장·강사·학부모 홈 · 학원 · 채팅 · 내 정보
+- ⚠️ 실서버 DB에 이미 만든 `community_*` 테이블은 그대로 남아 있음(앱이 더 이상 쓰지 않음). 필요 없으면 직접 삭제
+- 검증: `tsc --noEmit` 통과, jest 13개 스위트 128개 테스트 통과(신규 `academy.test.tsx`, 내비게이션 흐름 포함). 실기기 화면 확인은 미실시
 
 ### 2026-10-07 — 원장·강사·학부모에게 지도·커뮤니티 숨김
 - **대상**: 학원 원장(ACADEMY_ADMIN)·강사(TEACHER)·학부모(PARENT). 운영/자녀 관리가 목적이라 이용자용 스터디카페 탐색·커뮤니티를 노출하지 않음. 비로그인·일반 회원·학생·슈퍼관리자는 기존대로 이용 가능 (규칙은 `lib/teams.ts`의 `EXPLORE_BLOCKED` / `canExplore()` 한 곳)

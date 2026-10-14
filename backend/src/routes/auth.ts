@@ -18,9 +18,8 @@ router.post('/register', async (req, res) => {
   if (!SELF_SIGNUP_ROLES.includes(role)) {
     return res.status(400).json({ error: '허용되지 않은 가입 유형입니다.' });
   }
-  if (role === 'TEACHER' && !academyId) {
-    return res.status(400).json({ error: '강사는 소속 학원을 선택해야 합니다.' });
-  }
+  // 강사는 학원 없이 가입한 뒤, 원장에게 받은 초대 코드(/api/teacher-invite/join)로 학원에 합류합니다.
+  // academyId 를 직접 넘기는 기존 방식은 호환을 위해 남겨두며, 이 경우 원장 승인(PENDING)이 필요합니다.
   if (String(password).length < 6) {
     return res.status(400).json({ error: '비밀번호는 6자 이상이어야 합니다.' });
   }
@@ -47,7 +46,7 @@ router.post('/register', async (req, res) => {
     name,
     phone: phone ?? null,
     role,
-    academy_id: role === 'TEACHER' ? academyId : null,
+    academy_id: role === 'TEACHER' ? academyId ?? null : null,
     approval_status: role === 'TEACHER' ? 'PENDING' : 'APPROVED',
   });
 
