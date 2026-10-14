@@ -28,6 +28,7 @@ safestep/
     ├── migration_14_security_hardening.sql     기존 프로젝트 추가 마이그레이션 (구독 상태 직접 변경 차단, 문의 직접 INSERT 제거, 채팅 이미지 비공개화, §1 참고)
     ├── seed.sql                                샘플 학원 2곳
     ├── seed_floorplan.sql                      존별 좌석 배치 샘플(강남점은 실제 매장 사진 기반 62석 구조)
+    ├── seed_real_studycafes.sql                지도용 실제 주소 기반 스터디카페 20곳 추가 + 기본 좌석 배치
     └── seed_demo_accounts.mjs                  랜딩페이지 "데모 체험하기" 버튼용 계정 생성 스크립트
 ```
 
@@ -97,16 +98,17 @@ safestep/
 1. [supabase.com](https://supabase.com) 에서 새 프로젝트 생성 (무료 플랜)
 2. **SQL Editor** → `supabase/schema.sql` 전체 실행
 3. (선택) `supabase/seed.sql` → `supabase/seed_floorplan.sql` 순서로 실행 — 샘플 학원 2곳 + 존별 좌석 + 테스트 학생(핀코드 `111111`) 생성
-4. **Project Settings → API Keys** 에서 값 확인:
+4. (선택) `/map`을 실제 위치처럼 채우려면 `supabase/seed_real_studycafes.sql` 실행 — 테스트/오인 가입으로 생긴 학원 지점 정리(STEP 0·1, 파일 안내 주석 참고) + 실제 주소 기반 스터디카페 20곳과 기본 좌석 배치 추가
+5. **Project Settings → API Keys** 에서 값 확인:
    - `Project URL` → `VITE_SUPABASE_URL`, `SUPABASE_URL`
    - `anon public` 키 → `VITE_SUPABASE_ANON_KEY`
    - `service_role` 키 → `SUPABASE_SERVICE_ROLE_KEY` (⚠️ 절대 프론트엔드에 노출 금지)
-5. 첫 슈퍼 관리자 계정은 회원가입으로 만들 수 없습니다(의도된 설계). 아무 역할로 가입 후
+6. 첫 슈퍼 관리자 계정은 회원가입으로 만들 수 없습니다(의도된 설계). 아무 역할로 가입 후
    **Table Editor → `profiles`** 에서 `role` 을 `SUPER_ADMIN` 으로 수동 변경하세요.
-6. 팀/팀 채팅 기능을 쓰려면 `supabase/migration_teams_chat.sql`도 실행하세요 (신규 프로젝트도 `schema.sql`엔 아직 포함되어 있지 않으므로 별도 실행 필요). 팀장 관리 기능까지 쓰려면 `supabase/migration_06_team_management.sql`도 이어서 실행하세요.
-7. 학생 개인 이용권 결제·키오스크 이용권 게이팅을 쓰려면 `supabase/migration_07_student_passes.sql`을 실행하세요 (이 마이그레이션 전에는 모든 학생이 이용권 없이 키오스크에 입실할 수 있습니다 — 실행 후에는 이용권이 없는 학생의 입실이 차단됩니다).
-8. 학생 본인의 계정 자가 연동(`/student/qr`에서 연동코드 입력)을 쓰려면 `supabase/migration_08_student_self_link.sql`도 실행하세요.
-9. "내 문의 내역"(`/my/inquiries`)을 쓰려면 `supabase/migration_09_inquiry_tracking.sql`도 실행하세요.
+7. 팀/팀 채팅 기능을 쓰려면 `supabase/migration_teams_chat.sql`도 실행하세요 (신규 프로젝트도 `schema.sql`엔 아직 포함되어 있지 않으므로 별도 실행 필요). 팀장 관리 기능까지 쓰려면 `supabase/migration_06_team_management.sql`도 이어서 실행하세요.
+8. 학생 개인 이용권 결제·키오스크 이용권 게이팅을 쓰려면 `supabase/migration_07_student_passes.sql`을 실행하세요 (이 마이그레이션 전에는 모든 학생이 이용권 없이 키오스크에 입실할 수 있습니다 — 실행 후에는 이용권이 없는 학생의 입실이 차단됩니다).
+9. 학생 본인의 계정 자가 연동(`/student/qr`에서 연동코드 입력)을 쓰려면 `supabase/migration_08_student_self_link.sql`도 실행하세요.
+10. "내 문의 내역"(`/my/inquiries`)을 쓰려면 `supabase/migration_09_inquiry_tracking.sql`도 실행하세요.
 
 ### 이미 schema.sql을 실행한 기존 프로젝트
 아래 마이그레이션을 SQL Editor에서 추가로 실행하세요 (순서 무관, 서로 독립적):
