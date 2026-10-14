@@ -68,13 +68,14 @@ export default function LandingPage() {
     setDemoError(null);
     setDemoLoading(kind);
     try {
-      const { email, tokenHash } = await apiFetch<{ email: string; tokenHash: string }>(
+      const { tokenHash } = await apiFetch<{ email: string; tokenHash: string }>(
         '/api/auth/demo-login',
         { method: 'POST', auth: false, body: JSON.stringify({ role: kind }) }
       );
+      // generateLink가 주는 값은 해시된 토큰이므로 token이 아니라 token_hash로 검증해야 함
+      // (email + token 조합으로 보내면 Supabase가 403 "Token has expired or is invalid"를 반환)
       const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: tokenHash,
+        token_hash: tokenHash,
         type: 'magiclink',
       });
       if (error) throw error;
