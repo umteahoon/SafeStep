@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { homeForRole } from '../../lib/navigation';
 import type { Seat } from '../../types';
 
 const ZONE_OPTIONS = [
@@ -91,7 +92,7 @@ export default function SeatEditorPage() {
       <PageHeader
         title="좌석 배치 에디터"
         subtitle="번호 · 위치(X,Y) · 유형 편집"
-        backTo="/dashboard"
+        backTo={profile ? homeForRole(profile.role) : '/'}
         right={
           <button
             onClick={addSeat}

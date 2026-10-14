@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { PageHeader } from '../../components/common/PageHeader';
 import { inviteLink } from '../../lib/teams';
 import type { TeamChatMessage, TeamChatRoom, Team, TeamMember } from '../../types';
 
@@ -297,7 +298,9 @@ export default function TeamRoomPage() {
   const otherMembers = members.filter((m) => m.member_id !== myId);
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50 md:flex-row">
+    <div className="flex h-screen flex-col bg-gray-50">
+      <PageHeader title={team.name} subtitle="팀 채팅" backTo="/teams" />
+      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
       {/* 좌측: 채널 / 개인 채팅 / 멤버 (Teams 스타일) */}
       <aside className="flex max-h-[45vh] w-full shrink-0 flex-col overflow-y-auto border-b border-gray-200 bg-white md:max-h-none md:w-72 md:border-b-0 md:border-r">
         <div className="border-b border-gray-100 p-4">
@@ -526,6 +529,7 @@ export default function TeamRoomPage() {
           </button>
         </form>
       </main>
+      </div>
     </div>
   );
 }

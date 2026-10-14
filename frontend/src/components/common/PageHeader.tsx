@@ -49,6 +49,14 @@ export function PageHeader({ title, subtitle, backTo, right }: PageHeaderProps) 
             💬 채팅
           </Link>
         )}
+        {profile && (
+          <Link
+            to="/my/inquiries"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
+          >
+            📩 문의내역
+          </Link>
+        )}
         <button
           onClick={async () => {
             await signOut();

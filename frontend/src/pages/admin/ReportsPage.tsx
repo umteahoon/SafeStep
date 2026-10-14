@@ -3,6 +3,7 @@ import { PageHeader } from '../../components/common/PageHeader';
 import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
+import { homeForRole } from '../../lib/navigation';
 import type { Seat } from '../../types';
 
 interface SeatReport {
@@ -90,7 +91,7 @@ export default function ReportsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <PageHeader title="신고 관제" subtitle="익명 소음 · 자리 독점 신고" backTo="/dashboard" />
+      <PageHeader title="신고 관제" subtitle="익명 소음 · 자리 독점 신고" backTo={profile ? homeForRole(profile.role) : '/'} />
 
       <div className="mx-auto max-w-2xl p-6">
         <div className="mb-4 flex gap-2">

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { homeForRole } from '../../lib/navigation';
 import type { Student } from '../../types';
 
 function randomCode() {
@@ -86,7 +87,7 @@ export default function StudentManagementPage() {
       <PageHeader
         title="학생 관리"
         subtitle="학생 등록 · 출결코드 · 연동코드"
-        backTo="/dashboard"
+        backTo={profile ? homeForRole(profile.role) : '/'}
       />
 
       <div className="mx-auto max-w-3xl p-6">

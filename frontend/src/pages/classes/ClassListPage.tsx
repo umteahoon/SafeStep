@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { PageHeader } from '../../components/common/PageHeader';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { homeForRole } from '../../lib/navigation';
 import type { Class, ClassEnrollment, Student } from '../../types';
 
 const COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
@@ -97,7 +98,7 @@ export default function ClassListPage() {
       <PageHeader
         title="반 관리"
         subtitle="반 생성 · 수강생 배정"
-        backTo="/dashboard"
+        backTo={profile ? homeForRole(profile.role) : '/'}
         right={
           <Link
             to="/classes/schedule"
