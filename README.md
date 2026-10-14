@@ -26,6 +26,9 @@ safestep/
     ├── migration_12_profile_privilege_guard.sql 기존 프로젝트 추가 마이그레이션 (본인의 role/academy_id/approval_status 변경 차단, §1 참고)
     ├── migration_13_weekly_reports.sql         기존 프로젝트 추가 마이그레이션 (주간 학습 리포트 저장 테이블, §1 참고)
     ├── migration_14_security_hardening.sql     기존 프로젝트 추가 마이그레이션 (구독 상태 직접 변경 차단, 문의 직접 INSERT 제거, 채팅 이미지 비공개화, §1 참고)
+    ├── migration_15_hierarchy_checkin.sql      기존 프로젝트 추가 마이그레이션 (원장→강사 초대 코드, 학생 "출석하기" 버튼, §1 참고)
+    ├── migration_16_chat_room_password.sql     기존 프로젝트 추가 마이그레이션 (채팅방 비밀번호 입장, §1 참고)
+    ├── migration_17_academy_kind.sql           기존 프로젝트 추가 마이그레이션 (academies.kind/category 컬럼, §1 참고)
     ├── seed.sql                                샘플 학원 2곳
     ├── seed_floorplan.sql                      존별 좌석 배치 샘플(강남점은 실제 매장 사진 기반 62석 구조)
     ├── seed_real_studycafes.sql                지도용 실제 주소 기반 스터디카페 22곳 추가 + 기본 좌석 배치 (모바일 앱과 동일한 목록)
@@ -127,6 +130,9 @@ safestep/
 - `supabase/migration_12_profile_privilege_guard.sql` — `profiles` 자가 INSERT/DELETE 제거, 본인의 `role`·`academy_id`·`approval_status` 직접 변경 차단 트리거 (**보안 필수 — 없으면 누구나 본인 역할을 SUPER_ADMIN으로 바꿀 수 있습니다**)
 - `supabase/migration_13_weekly_reports.sql` — `weekly_reports` 테이블(매주 일요일 21시 크론이 학생별 출석률·학습시간을 저장) (**없으면 주간 리포트 크론이 DB 저장에 실패하고 로그에만 남습니다**)
 - `supabase/migration_14_security_hardening.sql` — 원장의 구독 컬럼 직접 수정 차단 트리거, `inquiries` 익명 INSERT 정책 제거(문의는 `/api/inquiries`로 저장), `chat-uploads` 버킷 비공개 + 채팅방 참여자만 조회 (**보안 필수**) — **선행 조건: `migration_03_chat.sql`을 먼저 적용해야 합니다.** 12~14번은 여러 번 실행해도 에러가 나지 않습니다.
+- `supabase/migration_15_hierarchy_checkin.sql` — `academy_teacher_invites` 테이블(원장→강사 초대 코드) + `student_check_in()` 함수(학생이 수업 시간대에 직접 출석 기록) (**없으면 모바일 앱의 원장 "내 학원 만들기"/강사 초대, 학생 "출석하기" 버튼이 동작하지 않습니다**)
+- `supabase/migration_16_chat_room_password.sql` — `chat_rooms.join_code` 컬럼 + `chat_room_members` 테이블 + 방 목록/참가 RPC(`list_academy_chat_rooms`, `join_chat_room`, `join_chat_room_by_code`) (**없으면 모바일 앱의 채팅방 비밀번호 입장 기능이 동작하지 않습니다** — 선행 조건: `migration_03_chat.sql`·`migration_05_chat_upgrades.sql`)
+- `supabase/migration_17_academy_kind.sql` — `academies.kind`/`category` 컬럼 추가 + 기존 데이터 백필 (**없으면 `POST /api/owner/academies`가 에러를 내고, 모바일 앱의 "학원" 탭 조회 자체가 실패합니다** — migration_15·16과 함께 들어온 기능인데 이 컬럼을 추가하는 마이그레이션이 누락되어 있어 따로 작성)
 
 ### 데모 체험 계정 만들기 (선택)
 랜딩 페이지의 "원장 데모 체험하기" / "강사 데모 체험하기" 버튼이 로그인할 계정을 생성합니다.
