@@ -106,6 +106,8 @@ export function PostItem({
           {isStaff ? ' · 운영진' : ''} · {timeAgo(post.created_at)}
         </Text>
         <View style={{ flex: 1 }} />
+        <Icon name="eye-outline" size={14} color={colors.textMuted} />
+        <Text style={styles.metaCount}>{post.view_count ?? 0}</Text>
         <Icon name={post.likedByMe ? 'heart' : 'heart-outline'} size={14} color={post.likedByMe ? '#F43F5E' : colors.textMuted} />
         <Text style={styles.metaCount}>{post.likeCount}</Text>
         <Icon name="chatbubble-outline" size={13} color={colors.textMuted} />

@@ -35,7 +35,7 @@ describe('커뮤니티 관련 화면', () => {
     const Screen = require('../src/screens/community/CommunityScreen').default;
     const { errors, text } = await renderClean('STUDENT', <Screen />);
     expect(errors).toEqual([]);
-    expect(text).toContain('이번 주 금요일 야간 개방 안내');
+    expect(text).toContain('이번 주 금요일 야간 자습실 운영 안내');
     expect(text).toContain('글쓰기');
   });
 
@@ -44,7 +44,7 @@ describe('커뮤니티 관련 화면', () => {
     const Screen = require('../src/screens/community/PostDetailScreen').default;
     const { errors, text } = await renderClean('GUEST', <Screen />);
     expect(errors).toEqual([]);
-    expect(text).toContain('콘센트 있는 자리는 어디가 좋아요?');
+    expect(text).toContain('중3 수학 A반 교재는 어디서 사나요?');
     expect(text).toContain('로그인하고 댓글 남기기');
   });
 
@@ -53,7 +53,7 @@ describe('커뮤니티 관련 화면', () => {
     const Screen = require('../src/screens/community/PostDetailScreen').default;
     const { errors, text } = await renderClean('STUDENT', <Screen />);
     expect(errors).toEqual([]);
-    expect(text).toContain('집중석 칸마다 콘센트 있어요');
+    expect(text).toContain('첫 수업 날 데스크에서 나눠 주세요');
     expect(text).toContain('등록');
   });
 
@@ -65,13 +65,28 @@ describe('커뮤니티 관련 화면', () => {
     expect(text).toContain('올리기');
   });
 
-  it('스터디카페 상세(좌석 도면)의 커뮤니티 행', async () => {
+  it('학원 상세: 커뮤니티 행 + 소개/사진 (좌석 도면·키오스크 없음)', async () => {
     setParams({ academyId: AC });
     const Screen = require('../src/screens/map/SeatFloorPlanScreen').default;
     const { errors, text } = await renderClean('STUDENT', <Screen />, 900);
     expect(errors).toEqual([]);
+    expect(text).toContain('학원 커뮤니티');
+    expect(text).toContain('이웃들의 이야기');
+    expect(text).toContain('소개');
+    expect(text).toContain('운영시간');
+    expect(text).toContain('사진');
+    expect(text).not.toContain('키오스크로 입/퇴실하기');
+  });
+
+  it('스터디카페 상세: 커뮤니티 행 + 소개/사진 + 좌석 기능', async () => {
+    setParams({ academyId: 'a-3' });
+    const Screen = require('../src/screens/map/SeatFloorPlanScreen').default;
+    const { errors, text } = await renderClean('STUDENT', <Screen />, 900);
+    expect(errors).toEqual([]);
     expect(text).toContain('스터디카페 커뮤니티');
-    expect(text).toContain('이웃들의 이야기 4개');
+    expect(text).toContain('소개');
+    expect(text).toContain('24시간 운영');
+    expect(text).toContain('키오스크로 입/퇴실하기');
   });
 
   it('홈(비로그인): 지역별로 찾기 + 스터디카페 이야기', async () => {

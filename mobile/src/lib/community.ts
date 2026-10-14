@@ -134,9 +134,44 @@ export function filterPosts(posts: PostWithStats[], f: PostFilter): PostWithStat
   });
 }
 
-/** 'latest': 최신순 / 'hot': 반응(좋아요×2 + 댓글) 많은 순, 같으면 최신순 */
-export function sortPosts(posts: PostWithStats[], mode: 'latest' | 'hot'): PostWithStats[] {
+export type SortMode = 'latest' | 'hot' | 'views' | 'oldest';
+export const SORT_OPTIONS: { value: SortMode; label: string }[] = [
+  { value: 'latest', label: '최신순' },
+  { value: 'hot', label: '인기순' },
+  { value: 'views', label: '조회순' },
+  { value: 'oldest', label: '오래된순' },
+];
+
+/**
+ * latest: 최신순 / oldest: 오래된순(날짜 오름차순)
+ * hot: 반응(좋아요×2 + 댓글) 많은 순 / views: 조회수 많은 순 — 같으면 최신순
+ */
+export function sortPosts(posts: PostWithStats[], mode: SortMode): PostWithStats[] {
   const byDate = (a: PostWithStats, b: PostWithStats) => +new Date(b.created_at) - +new Date(a.created_at);
   const score = (p: PostWithStats) => p.likeCount * 2 + p.commentCount;
-  return [...posts].sort((a, b) => (mode === 'hot' ? score(b) - score(a) || byDate(a, b) : byDate(a, b)));
+  const views = (p: PostWithStats) => p.view_count ?? 0;
+  const cmp = (a: PostWithStats, b: PostWithStats) => {
+    switch (mode) {
+      case 'hot':
+        return score(b) - score(a) || byDate(a, b);
+      case 'views':
+        return views(b) - views(a) || byDate(a, b);
+      case 'oldest':
+        return -byDate(a, b);
+      default:
+        return byDate(a, b);
+    }
+  };
+  return [...posts].sort(cmp);
+}
+
+/** 글을 열 때 조회수 +1 (컬럼이 없거나 권한이 없으면 조용히 무시) */
+export async function bumpView(postId: string, current: number | null | undefined): Promise<number> {
+  const next = (current ?? 0) + 1;
+  try {
+    await supabase.from('community_posts').update({ view_count: next }).eq('id', postId);
+  } catch {
+    /* 무시 */
+  }
+  return next;
 }

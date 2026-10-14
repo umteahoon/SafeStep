@@ -22,12 +22,16 @@ import type { QuickItem } from '../../components/home';
 import { LiveSeatCard } from '../../components/study';
 import GuestHome from './GuestHome';
 import { CommunityTeaser } from '../../components/CommunityTeaser';
+import { AcademyCard } from '../../components/AcademyCard';
+import { splitByKind } from '../../lib/placeKind';
 import { colors, radius } from '../../theme';
 import type { RootNav, RootStackParamList, TabParamList } from '../../navigation/types';
 import type { ChatMessage, StudentPass } from '../../types';
 
 interface Cafe {
   id: string;
+  kind?: string | null;
+  category?: string | null;
   name: string;
   address: string;
   lat: number;
@@ -78,7 +82,7 @@ export default function HomeScreen() {
 
   const { unread } = useNotifications();
   const live = useLiveSeat();
-  const { favorites, recent, isFavorite, toggleFavorite } = useFavorites();
+  const { favorites, isFavorite, toggleFavorite } = useFavorites();
   const [refreshing, setRefreshing] = useState(false);
   const [cafes, setCafes] = useState<Cafe[]>([]);
   const [today, setToday] = useState<TodayClass[]>([]);
@@ -86,7 +90,6 @@ export default function HomeScreen() {
   const [pass, setPass] = useState<StudentPass | null>(null);
   const [studentCount, setStudentCount] = useState<number | null>(null);
   const [attendCount, setAttendCount] = useState<number | null>(null);
-  const [reportCount, setReportCount] = useState<number | null>(null);
   const [children, setChildren] = useState<Child[]>([]);
   const [parentReport, setParentReport] = useState<ParentReport | null>(null);
   const [academyCount, setAcademyCount] = useState<number | null>(null);
@@ -105,6 +108,8 @@ export default function HomeScreen() {
     ]);
     const list: Cafe[] = ((ac as any[]) ?? []).map((a) => ({
       id: a.id,
+      kind: a.kind,
+      category: a.category,
       name: a.name,
       address: a.address,
       lat: a.latitude,
@@ -169,13 +174,11 @@ export default function HomeScreen() {
       } else if ((role === 'ACADEMY_ADMIN' || role === 'TEACHER') && academyId) {
         const { data: cls } = await supabase.from('classes').select('id').eq('academy_id', academyId);
         await buildToday(((cls as any[]) ?? []).map((c) => c.id));
-        const [{ data: sts }, { data: reps }, { data: recs }] = await Promise.all([
+        const [{ data: sts }, { data: recs }] = await Promise.all([
           supabase.from('students').select('id').eq('academy_id', academyId),
-          supabase.from('seat_reports').select('id, resolved').eq('academy_id', academyId),
           supabase.from('class_attendance_records').select('id').eq('academy_id', academyId).eq('date', dateStr),
         ]);
         setStudentCount(((sts as any[]) ?? []).length);
-        setReportCount(((reps as any[]) ?? []).filter((r) => !r.resolved).length);
         setAttendCount(((recs as any[]) ?? []).length);
         await loadNotice();
       } else if (role === 'PARENT') {
@@ -216,10 +219,10 @@ export default function HomeScreen() {
         q('내 QR', 'mc:qrcode-scan', T.blue, () => go('StudentQr')),
         q('체크인', 'mc:account-check', T.green, () => navigation.navigate('Kiosk', { academyId: academyId ?? undefined, self: true })),
         q('이용권', 'mc:ticket-confirmation', T.violet, () => go('StudentPasses')),
+        q('학습 플래너', 'mc:notebook-check', T.teal, () => go('Planner')),
         q('집중 타이머', 'mc:timer-sand', T.red, () => go('FocusTimer')),
         q('시간표', 'mc:calendar-clock', T.amber, () => go('Timetable')),
         q('이용 내역', 'mc:history', T.indigo, () => go('History')),
-        q('팀', 'mc:account-group', T.teal, () => go('Teams')),
         q('채팅', 'mc:chat-processing', T.blue, () => go('Chats')),
       ];
       break;
@@ -230,9 +233,8 @@ export default function HomeScreen() {
         q('학생', 'mc:school', T.indigo, () => go('Students')),
         q('강사', 'mc:account-tie', T.teal, () => go('Teachers')),
         q('반·시간표', 'mc:calendar-month', T.amber, () => go('Classes')),
-        q('신고 관제', 'mc:alert-octagon', T.red, () => go('Reports'), reportCount ?? 0),
+        q('채팅', 'mc:chat-processing', T.blue, () => go('Chats')),
         q('이용권 결제', 'mc:credit-card-check', T.violet, () => go('Billing')),
-        q('키오스크', 'mc:qrcode-scan', T.blue, () => go('Kiosk')),
       ];
       break;
     case 'TEACHER':
@@ -240,11 +242,7 @@ export default function HomeScreen() {
         q('출석부', 'mc:clipboard-check', T.green, () => go('Attendance')),
         q('학생', 'mc:school', T.indigo, () => go('Students')),
         q('반·시간표', 'mc:calendar-month', T.amber, () => go('Classes')),
-        q('신고 관제', 'mc:alert-octagon', T.red, () => go('Reports'), reportCount ?? 0),
         q('채팅', 'mc:chat-processing', T.blue, () => go('Chats')),
-        q('팀', 'mc:account-group', T.indigo, () => go('Teams')),
-        q('키오스크', 'mc:qrcode-scan', T.teal, () => go('Kiosk')),
-        q('시간표', 'mc:calendar-clock', T.amber, () => go('Timetable')),
       ];
       break;
     case 'PARENT':
@@ -273,8 +271,9 @@ export default function HomeScreen() {
   const isStaff = role === 'ACADEMY_ADMIN' || role === 'TEACHER';
   // 스터디카페 목록은 이용자(학생)에게만 의미가 있음 — 운영진·학부모·관리자 홈은 업무 정보에 집중
   const showCafes = role === 'STUDENT';
-  const firstAvailable = cafes.filter((c) => c.empty > 0);
-  const cafeList = (firstAvailable.length ? firstAvailable : cafes).slice(0, 8);
+  const cafeOnly = splitByKind(cafes).cafes;
+  const firstAvailable = cafeOnly.filter((c) => c.empty > 0);
+  const cafeList = (firstAvailable.length ? firstAvailable : cafeOnly).slice(0, 4);
 
   return (
     <Screen
@@ -304,11 +303,12 @@ export default function HomeScreen() {
         </Pressable>
       </View>
 
-      {showCafes && (
-        <Pressable onPress={() => goTab('MapTab')} style={styles.search}>
-          <Icon name="search" size={18} color={colors.textMuted} />
-          <Text style={styles.searchText}>지점명 또는 주소로 스터디카페 찾기</Text>
-        </Pressable>
+      {/* 소속 학원 카드: 학생·원장·강사 공통 (학부모는 소속 학원 정보가 없어 자녀 카드로 대체) */}
+      {role !== 'SUPER_ADMIN' && role !== 'PARENT' && (
+        <AcademyCard
+          academyId={academyId}
+          onPress={() => go(isStaff ? 'Classes' : 'Timetable')}
+        />
       )}
 
       {/* 지금 이용 중 (학생) */}
@@ -361,7 +361,6 @@ export default function HomeScreen() {
             <MiniStat icon="mc:school" label="전체 학생" value={studentCount === null ? '—' : `${studentCount}명`} tint={T.indigo} onPress={() => go('Students')} />
             <MiniStat icon="mc:clipboard-check" label="오늘 출결 처리" value={attendCount === null ? '—' : `${attendCount}건`} tint={T.green} onPress={() => go('Attendance')} />
             <MiniStat icon="mc:calendar-month" label="오늘 수업" value={`${today.length}개`} tint={T.amber} onPress={() => go('Classes')} />
-            <MiniStat icon="mc:alert-octagon" label="미처리 신고" value={reportCount === null ? '—' : `${reportCount}건`} tint={T.red} onPress={() => go('Reports')} />
           </View>
         </>
       )}
@@ -476,7 +475,7 @@ export default function HomeScreen() {
 
       {showCafes && (
         <>
-          <SectionHeader title={firstAvailable.length ? '지금 자리 있는 스터디카페' : '등록된 스터디카페'} action="전체 보기" onAction={() => goTab('MapTab')} />
+          <SectionHeader title={firstAvailable.length ? '자리 있는 스터디카페도 둘러보세요' : '등록된 스터디카페'} action="전체 보기" onAction={() => goTab('MapTab')} />
           {cafeList.length === 0 ? (
             <FlatCard>
               <Empty icon="cafe-outline">아직 등록된 스터디카페가 없어요</Empty>
@@ -503,23 +502,6 @@ export default function HomeScreen() {
 
       {showCafes && <CommunityTeaser />}
 
-      {showCafes && recent.length > 0 && cafes.length > 0 && (
-        <>
-          <SectionHeader title="최근 본 스터디카페" />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {recent
-              .map((id) => cafes.find((c) => c.id === id))
-              .filter((c): c is Cafe => !!c)
-              .slice(0, 6)
-              .map((c) => (
-                <Pressable key={c.id} onPress={() => navigation.navigate('SeatFloorPlan', { academyId: c.id })} style={styles.recentChip}>
-                  <Icon name="time-outline" size={14} color={colors.textMuted} />
-                  <Text style={styles.recentText}>{c.name}</Text>
-                </Pressable>
-              ))}
-          </View>
-        </>
-      )}
     </Screen>
   );
 }
@@ -531,13 +513,9 @@ const styles = StyleSheet.create({
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   bellBadge: { position: 'absolute', top: 3, right: 1, minWidth: 17, height: 17, borderRadius: 9, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 2, borderColor: colors.white },
   bellBadgeText: { color: colors.white, fontSize: 9, fontWeight: '800' },
-  search: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F3F5F8', borderRadius: radius.md, height: 50, paddingHorizontal: 16, marginBottom: 18 },
-  searchText: { fontSize: 14, color: colors.textMuted },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   cardTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
   passIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   noticeIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: '#FFF1D6', alignItems: 'center', justifyContent: 'center' },
-  recentChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F3F5F8', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 },
-  recentText: { fontSize: 13, color: colors.textSub, fontWeight: '600' },
 });

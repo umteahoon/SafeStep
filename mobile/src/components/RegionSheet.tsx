@@ -19,12 +19,15 @@ export function RegionSheet({
   value,
   onSelect,
   onClose,
+  unit = '스터디카페',
 }: {
   visible: boolean;
   groups: SidoGroup[];
   value: RegionValue;
   onSelect: (v: RegionValue) => void;
   onClose: () => void;
+  /** 개수 옆에 붙는 이름 (예: 학원 3곳 / 스터디카페 3곳) */
+  unit?: string;
 }) {
   // 시트 안에서 둘러보는 시/도 — 왼쪽 목록을 눌러도 선택이 적용되지 않고 오른쪽 구/시 목록만 바뀜
   const [browse, setBrowse] = useState<string | null>(value.sido);
@@ -86,7 +89,9 @@ export function RegionSheet({
                       <Text style={[styles.districtText, on && { color: colors.primary, fontWeight: '800' }]}>
                         {isAll ? `${active?.sido} 전체` : item.name}
                       </Text>
-                      <Text style={styles.districtSub}>스터디카페 {item.count}곳</Text>
+                      <Text style={styles.districtSub}>
+                        {unit} {item.count}곳
+                      </Text>
                     </View>
                     {on && <Icon name="checkmark" size={20} color={colors.primary} />}
                   </Pressable>

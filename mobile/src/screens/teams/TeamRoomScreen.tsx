@@ -439,7 +439,7 @@ function Inner() {
 
 export default function TeamRoomScreen() {
   return (
-    <RequireRole roles={['ACADEMY_ADMIN', 'TEACHER', 'STUDENT']} requireStudentLink>
+    <RequireRole roles={['ACADEMY_ADMIN', 'TEACHER', 'STUDENT']}>
       <Inner />
     </RequireRole>
   );

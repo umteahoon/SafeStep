@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 학생 계정의 연동 여부를 아직 모르는 동안 true (탭/홈이 잠깐 틀린 모습으로 번쩍이지 않게 로딩으로 처리)
   const [studentPending, setStudentPending] = useState(false);
 
-  const [previewRole, setPreviewRole] = useState<PreviewRole>('ACADEMY_ADMIN');
+  const [previewRole, setPreviewRole] = useState<PreviewRole>('GUEST'); // 미리보기: 새로고침하면 비로그인으로 시작
 
   useEffect(() => {
     if (PREVIEW_MODE) return;

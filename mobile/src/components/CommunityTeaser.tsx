@@ -9,7 +9,7 @@ import { PostItem } from './community';
 import { SectionHeader } from './home';
 import type { RootNav } from '../navigation/types';
 
-/** 홈의 "스터디카페 이야기": 반응이 많은 최근 글 3개 (여러 스터디카페 글을 섞어서) */
+/** 홈의 "학원·스터디카페 이야기": 반응이 많은 최근 글 3개 (여러 스터디카페 글을 섞어서) */
 export function CommunityTeaser() {
   const navigation = useNavigation<RootNav>();
   const { user } = useAuth();
@@ -41,7 +41,7 @@ export function CommunityTeaser() {
   if (posts.length === 0) return null;
   return (
     <>
-      <SectionHeader title="스터디카페 이야기" />
+      <SectionHeader title="학원·스터디카페 이야기" />
       <View style={{ marginHorizontal: -20 }}>
         {posts.map((p) => (
           <PostItem

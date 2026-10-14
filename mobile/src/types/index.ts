@@ -36,6 +36,16 @@ export interface Profile {
 export interface Academy {
   id: string;
   name: string;
+  /** 지점 종류. DB에 컬럼이 없으면 undefined(= 구분 없이 모두 표시) */
+  kind?: 'ACADEMY' | 'STUDY_CAFE' | null;
+  /** 학원 과목 분류 (kind 가 ACADEMY 일 때) */
+  category?: 'MATH' | 'ENGLISH' | 'KOREAN' | 'SCIENCE' | 'CODING' | 'GENERAL' | null;
+  /** 소개글 / 연락처 / 운영시간 / 특징 / 사진 (모두 선택값 — 없으면 화면에서 숨김) */
+  description?: string | null;
+  phone?: string | null;
+  opening_hours?: string | null;
+  features?: string[] | null;
+  image_urls?: string[] | null;
   address: string;
   latitude: number;
   longitude: number;
@@ -165,6 +175,8 @@ export interface ChatRoom {
   class_id: string | null;
   type: ChatRoomType;
   name: string;
+  /** 반 채팅방 참가 코드 (학생이 입력해야 들어올 수 있음. 컬럼이 없으면 undefined) */
+  join_code?: string | null;
   created_at: string;
 }
 
@@ -221,7 +233,8 @@ export interface AcademyLandmark {
 // ── 팀 / 채팅 ──────────────────────────────────────────────
 export interface Team {
   id: string;
-  academy_id: string;
+  /** 일반 회원이 만든 팀은 소속 학원이 없을 수 있음 */
+  academy_id: string | null;
   name: string;
   description: string | null;
   join_code: string;
@@ -263,6 +276,8 @@ export interface CommunityPost {
   title: string;
   content: string;
   created_at: string;
+  /** 조회수 (컬럼이 없으면 undefined → 0 으로 취급) */
+  view_count?: number | null;
   /** 작성 시점의 이름·역할(서버 트리거가 저장). profiles RLS 때문에 조인이 막힐 때 대신 사용 */
   author_name?: string | null;
   author_role?: UserRole | null;

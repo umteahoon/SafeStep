@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
@@ -37,7 +37,6 @@ function activityMenu(role: UserRole, hasAcademy: boolean, isMember: boolean): M
             { title: '강사 관리', desc: '승인 대기 · 소속 강사', icon: 'person-add-outline', to: 'Teachers' },
             { title: '반 · 시간표', icon: 'calendar-outline', to: 'Classes' },
             { title: '출석부', icon: 'checkbox-outline', to: 'Attendance' },
-            { title: '신고 관제', icon: 'flag-outline', to: 'Reports' },
             { title: '이용권 결제', desc: 'SafeStep 30일 이용권', icon: 'card-outline', to: 'Billing' },
           ]
         : [{ title: '학원 등록', desc: '등록 코드 입력', icon: 'key-outline', to: 'OwnerClaim' }];
@@ -46,7 +45,6 @@ function activityMenu(role: UserRole, hasAcademy: boolean, isMember: boolean): M
         { title: '출석부', icon: 'checkbox-outline', to: 'Attendance' },
         { title: '학생 관리', icon: 'people-outline', to: 'Students' },
         { title: '반 · 시간표', icon: 'calendar-outline', to: 'Classes' },
-        { title: '신고 관제', icon: 'flag-outline', to: 'Reports' },
       ];
     case 'STUDENT':
       return [
@@ -54,6 +52,7 @@ function activityMenu(role: UserRole, hasAcademy: boolean, isMember: boolean): M
         { title: '이용권', desc: '시간권·기간권 구매 · 잔여 현황', icon: 'ticket-outline', to: 'StudentPasses' },
         { title: '이용 내역', icon: 'receipt-outline', to: 'History' },
         { title: '내 시간표', icon: 'calendar-outline', to: 'Timetable' },
+        { title: '학습 플래너', desc: '오늘 할 일 · D-day · 주간 계획', icon: 'checkbox-outline', to: 'Planner' },
         { title: '집중 타이머', icon: 'timer-outline', to: 'FocusTimer' },
       ];
     case 'PARENT':
@@ -106,7 +105,8 @@ function PreviewSwitcher({ value, onChange }: { value: PreviewRole | null; onCha
 
 export default function MeScreen() {
   const navigation = useNavigation<RootNav>();
-  const { user, profile, isLoading, signOut, previewRole, setPreviewRole, isMember } = useAuth();
+  const { user, profile, isLoading, signOut, previewRole, setPreviewRole, isMember, academyId } = useAuth();
+  const [affiliation, setAffiliation] = useState<{ name: string; kind: string | null } | null>(null);
   const { favorites } = useFavorites();
   const { unread } = useNotifications();
   const [postCount, setPostCount] = useState<number | null>(null);
@@ -127,6 +127,21 @@ export default function MeScreen() {
       };
     }, [user])
   );
+
+  // 소속 학원·스터디카페 이름
+  useEffect(() => {
+    if (!academyId) return setAffiliation(null);
+    let alive = true;
+    supabase
+      .from('academies')
+      .select('name, kind')
+      .eq('id', academyId)
+      .maybeSingle()
+      .then(({ data }) => alive && setAffiliation(data ? { name: String((data as any).name), kind: (data as any).kind ?? null } : null));
+    return () => {
+      alive = false;
+    };
+  }, [academyId]);
 
   if (isLoading) return <Loading />;
 
@@ -150,12 +165,13 @@ export default function MeScreen() {
         </View>
 
         <Group title="둘러보기">
-          <Row icon="map-outline" title="스터디카페 찾기" onPress={() => navigation.navigate('Main', { screen: 'MapTab' })} />
+          <Row icon="map-outline" title="학원·스터디카페 찾기" onPress={() => navigation.navigate('Main', { screen: 'MapTab' })} />
           <Row icon="chatbubbles-outline" title="커뮤니티" onPress={() => navigation.navigate('Main', { screen: 'CommunityTab' })} last />
         </Group>
-        <Group title="스터디카페를 운영하시나요?">
+        <Group title="학원·스터디카페를 운영하시나요?">
           <Row icon="rocket-outline" title="무료로 시작하기" desc="도입 가이드" onPress={() => go('StartGuide')} />
-          <Row icon="chatbox-ellipses-outline" title="도입 문의" onPress={() => go('Inquiry')} last />
+          <Row icon="chatbox-ellipses-outline" title="도입 문의" onPress={() => go('Inquiry')} />
+          <Row icon="sparkles-outline" title="앱 소개 다시 보기" desc="처음 실행할 때 나오는 안내 화면" onPress={() => navigation.navigate('Welcome', { replay: true })} last />
         </Group>
         <Text style={styles.version}>SafeStep Mobile 1.0.0</Text>
       </Screen>
@@ -192,6 +208,11 @@ export default function MeScreen() {
           <Text style={styles.email} numberOfLines={1}>
             {profile.email}
           </Text>
+          {affiliation && (
+            <Text style={styles.affiliation} numberOfLines={1}>
+              {affiliation.kind === 'ACADEMY' ? '학원' : affiliation.kind === 'STUDY_CAFE' ? '스터디카페' : '소속'} · {affiliation.name}
+            </Text>
+          )}
           <View style={{ flexDirection: 'row', gap: 6, marginTop: 2 }}>
             <Badge text={roleText} />
             {profile.role === 'TEACHER' && (
@@ -239,19 +260,29 @@ export default function MeScreen() {
         </Group>
       )}
 
-      {!teacherPending && !isMember && (canUseChat(profile.role) || canUseTeams(profile.role)) && (
+      {!teacherPending && (canUseChat(profile.role) || canUseTeams(profile.role)) && (
         <Group title="소통">
           {canUseChat(profile.role) && (
-            <Row icon="chatbubbles-outline" title="채팅" desc="공지방 · 반 채팅방" onPress={() => go('Chats')} last={!canUseTeams(profile.role)} />
+            <Row
+              icon="chatbubbles-outline"
+              title="채팅"
+              desc={isMember ? '스터디 팀 만들기 · 코드로 참가' : '공지방 · 반 채팅방 · 코드로 참가'}
+              onPress={() => go('Chats')}
+              last
+            />
           )}
-          {canUseTeams(profile.role) && <Row icon="people-circle-outline" title="팀" desc="팀 만들기 · 참가 · 팀 채팅" onPress={() => go('Teams')} last />}
         </Group>
       )}
+
+      <Group title="계정">
+        <Row icon="create-outline" title="프로필 수정" desc="이름 · 연락처" onPress={() => go('ProfileEdit')} last />
+      </Group>
 
       <Group title="고객 지원">
         <Row icon="file-tray-full-outline" title="내 문의 내역" onPress={() => go('MyInquiries')} />
         <Row icon="chatbox-ellipses-outline" title="도입 문의" onPress={() => go('Inquiry')} />
-        <Row icon="rocket-outline" title="시작 가이드" onPress={() => go('StartGuide')} last />
+        <Row icon="rocket-outline" title="시작 가이드" onPress={() => go('StartGuide')} />
+        <Row icon="sparkles-outline" title="앱 소개 다시 보기" desc="처음 실행할 때 나오는 안내 화면" onPress={() => navigation.navigate('Welcome', { replay: true })} last />
       </Group>
 
       <View style={{ marginTop: 32, alignItems: 'center', gap: 14 }}>
@@ -270,6 +301,7 @@ const styles = StyleSheet.create({
   profile: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 6 },
   name: { fontSize: 22, fontWeight: '800', color: colors.text, letterSpacing: -0.5 },
   email: { fontSize: 13, color: colors.textMuted },
+  affiliation: { fontSize: 13, fontWeight: '700', color: colors.primary },
   stats: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F7F8FA', borderRadius: radius.lg, marginTop: 22, paddingVertical: 16 },
   stat: { flex: 1, alignItems: 'center', gap: 4 },
   statValue: { fontSize: 22, fontWeight: '800', color: colors.text, letterSpacing: -0.5 },

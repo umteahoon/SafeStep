@@ -1,11 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { BlockRoles } from '../../components/Guard';
 import { EXPLORE_BLOCKED } from '../../lib/teams';
 import { useAuth } from '../../lib/useAuth';
-import { addComment, deleteComment, deletePost, fetchComments, fetchPost, timeAgo, toggleLike } from '../../lib/community';
+import { addComment, bumpView, deleteComment, deletePost, fetchComments, fetchPost, timeAgo, toggleLike } from '../../lib/community';
 import type { PostWithStats } from '../../lib/community';
 import { CategoryTag } from '../../components/community';
 import { Button, Empty, Icon, Input, Loading, Screen } from '../../components/ui';
@@ -21,9 +21,16 @@ function PostDetailScreenInner() {
   const [comments, setComments] = useState<CommunityComment[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const viewed = useRef(false);
 
   const load = useCallback(async () => {
     const [p, c] = await Promise.all([fetchPost(postId, user?.id), fetchComments(postId)]);
+    // 이 화면을 처음 열 때만 조회수를 올림 (댓글 작성 후 다시 불러올 때는 올리지 않음)
+    if (p && !viewed.current) {
+      viewed.current = true;
+      const next = await bumpView(p.id, p.view_count);
+      p.view_count = next;
+    }
     setPost(p);
     setComments(c);
   }, [postId, user]);
@@ -113,7 +120,7 @@ function PostDetailScreenInner() {
             <Text style={styles.title}>{post.title}</Text>
             <Text style={styles.meta}>
               {post.author?.name ?? '익명'}
-              {post.author?.role === 'ACADEMY_ADMIN' || post.author?.role === 'TEACHER' ? ' · 운영진' : ''} · {timeAgo(post.created_at)}
+              {post.author?.role === 'ACADEMY_ADMIN' || post.author?.role === 'TEACHER' ? ' · 운영진' : ''} · {timeAgo(post.created_at)} · 조회 {post.view_count ?? 0}
             </Text>
             <Text style={styles.content}>{post.content}</Text>
             <View style={styles.actions}>

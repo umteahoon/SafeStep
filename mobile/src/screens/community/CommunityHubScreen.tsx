@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Modal, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
@@ -7,7 +7,8 @@ import { BlockRoles } from '../../components/Guard';
 import { EXPLORE_BLOCKED } from '../../lib/teams';
 import { useAuth } from '../../lib/useAuth';
 import { useFavorites } from '../../lib/favorites';
-import { fetchRecentPosts, filterPosts, sortPosts } from '../../lib/community';
+import { SORT_OPTIONS, fetchRecentPosts, filterPosts, sortPosts } from '../../lib/community';
+import type { SortMode } from '../../lib/community';
 import type { PostWithStats } from '../../lib/community';
 import { inScope, scopeLabel, writeTarget } from '../../lib/communityScope';
 import type { Scope, ScopeCafe } from '../../lib/communityScope';
@@ -37,7 +38,8 @@ function CommunityHubScreenInner() {
 
   const [scope, setScope] = useState<Scope>({ kind: 'all' });
   const [category, setCategory] = useState<CommunityCategory | null>(null);
-  const [mode, setMode] = useState<'latest' | 'hot'>('latest');
+  const [mode, setMode] = useState<SortMode>('latest');
+  const [sortOpen, setSortOpen] = useState(false);
   const [mine, setMine] = useState(false);
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -76,10 +78,10 @@ function CommunityHubScreenInner() {
   const load = useCallback(async () => {
     const [list, { data: ac }] = await Promise.all([
       fetchRecentPosts(user?.id, 200),
-      supabase.from('academies').select('id, name, address'),
+      supabase.from('academies').select('id, name, address, kind'),
     ]);
     setPosts(list);
-    setCafes(((ac as ScopeCafe[]) ?? []).map((c) => ({ id: c.id, name: c.name, address: c.address ?? '' })));
+    setCafes(((ac as ScopeCafe[]) ?? []).map((c) => ({ id: c.id, name: c.name, address: c.address ?? '', kind: c.kind ?? null })));
   }, [user]);
 
   useFocusEffect(
@@ -160,9 +162,10 @@ function CommunityHubScreenInner() {
       <View style={styles.metaRow}>
         <Text style={styles.count}>글 {shown.length}개</Text>
         <View style={{ flex: 1 }} />
-        <Pressable onPress={() => setMode((m) => (m === 'latest' ? 'hot' : 'latest'))} style={styles.metaBtn} hitSlop={6}>
+        <Pressable onPress={() => setSortOpen(true)} style={styles.metaBtn} hitSlop={6}>
           <Icon name="swap-vertical" size={14} color={colors.textSub} />
-          <Text style={styles.metaText}>{mode === 'latest' ? '최신순' : '인기순'}</Text>
+          <Text style={styles.metaText}>{SORT_OPTIONS.find((o) => o.value === mode)?.label}</Text>
+          <Icon name="chevron-down" size={12} color={colors.textMuted} />
         </Pressable>
         {user && (
           <Pressable onPress={() => setMine((v) => !v)} style={[styles.metaBtn, mine && styles.metaBtnOn]} hitSlop={6}>
@@ -211,6 +214,26 @@ function CommunityHubScreenInner() {
         />
       )}
 
+      <Modal visible={sortOpen} transparent animationType="fade" onRequestClose={() => setSortOpen(false)}>
+        <Pressable style={styles.sortBackdrop} onPress={() => setSortOpen(false)}>
+          <View style={styles.sortMenu}>
+            {SORT_OPTIONS.map((o) => (
+              <Pressable
+                key={o.value}
+                onPress={() => {
+                  setMode(o.value);
+                  setSortOpen(false);
+                }}
+                style={styles.sortItem}
+              >
+                <Text style={[styles.sortText, mode === o.value && { color: colors.primary, fontWeight: '800' }]}>{o.label}</Text>
+                {mode === o.value && <Icon name="checkmark" size={18} color={colors.primary} />}
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
+
       <CommunityScopeSheet
         visible={scopeOpen}
         cafes={cafes}
@@ -240,6 +263,10 @@ function CommunityHubScreenInner() {
 }
 
 const styles = StyleSheet.create({
+  sortBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.35)', justifyContent: 'center', paddingHorizontal: 48 },
+  sortMenu: { backgroundColor: colors.white, borderRadius: 18, paddingVertical: 6 },
+  sortItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15 },
+  sortText: { fontSize: 16, fontWeight: '600', color: colors.text },
   header: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
   titleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
   title: { fontSize: 26, fontWeight: '800', color: colors.text, letterSpacing: -0.8, flexShrink: 1 },

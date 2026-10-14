@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { cafeImage } from '../../lib/cafeImages';
+import { placeGallery, placeImage } from '../../lib/cafeImages';
+import { categoryLabel } from '../../lib/placeKind';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
@@ -52,11 +53,13 @@ function SeatFloorPlanScreenInner() {
       });
   }, [academyId, navigation]);
 
+  const isAcademy = academy?.kind === 'ACADEMY';
+
   return (
     <Screen>
       {/* 상단 사진 헤더 */}
       <View style={styles.hero}>
-        <Image source={cafeImage(academyId)} style={styles.heroImg} resizeMode="cover" />
+        <Image source={placeImage(academyId, academy?.kind)} style={styles.heroImg} resizeMode="cover" />
         <LinearGradient colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.7)']} style={styles.heroScrim} />
         <Pressable onPress={() => toggleFavorite(academyId)} hitSlop={10} style={styles.heroHeart}>
           <Icon name={isFavorite(academyId) ? 'heart' : 'heart-outline'} size={22} color={isFavorite(academyId) ? '#F43F5E' : '#FFFFFF'} />
@@ -78,14 +81,56 @@ function SeatFloorPlanScreenInner() {
       <Pressable onPress={() => navigation.navigate('Community', { academyId })} style={styles.community}>
         <Icon name="mc:forum" size={22} color={colors.primary} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.communityTitle}>스터디카페 커뮤니티</Text>
+          <Text style={styles.communityTitle}>{isAcademy ? '학원 커뮤니티' : '스터디카페 커뮤니티'}</Text>
           <Text style={styles.communitySub}>
-            {postCount ? `이웃들의 이야기 ${postCount}개` : '후기, 질문, 스터디 모집을 나눠보세요'}
+            {postCount ? `이웃들의 이야기 ${postCount}개` : isAcademy ? '수업 후기와 질문을 나눠보세요' : '후기, 질문, 스터디 모집을 나눠보세요'}
           </Text>
         </View>
         <Icon name="chevron-forward" size={18} color={colors.textMuted} />
       </Pressable>
 
+      {/* 소개 · 정보 · 사진 */}
+      {academy && (
+        <View style={styles.about}>
+          <Text style={styles.aboutTitle}>소개</Text>
+          <View style={styles.tagRow}>
+            <Text style={[styles.kindPill, isAcademy ? styles.kindPillAcademy : styles.kindPillCafe]}>
+              {isAcademy ? `학원${categoryLabel(academy.category) ? ' · ' + categoryLabel(academy.category) : ''}` : '스터디카페'}
+            </Text>
+          </View>
+          {!!academy.description && <Text style={styles.aboutText}>{academy.description}</Text>}
+
+          <View style={styles.infoList}>
+            {!!academy.opening_hours && <InfoRow icon="time-outline" label="운영시간" value={academy.opening_hours} />}
+            {!!academy.phone && <InfoRow icon="call-outline" label="연락처" value={academy.phone} />}
+            <InfoRow icon="location-outline" label="주소" value={academy.address} />
+            {!isAcademy && <InfoRow icon="grid-outline" label="좌석" value={`총 ${academy.total_seats}석`} />}
+          </View>
+
+          {!!academy.features?.length && (
+            <View style={styles.featureRow}>
+              {academy.features.map((f) => (
+                <Text key={f} style={styles.featureChip}>
+                  {f}
+                </Text>
+              ))}
+            </View>
+          )}
+
+          <Text style={[styles.aboutTitle, { marginTop: 18 }]}>사진</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+            {(academy.image_urls?.length
+              ? academy.image_urls.map((u) => ({ uri: u }))
+              : placeGallery(academyId, academy.kind)
+            ).map((src, i) => (
+              <Image key={i} source={src as any} style={styles.galleryImg} resizeMode="cover" />
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* 좌석 기반 기능(키오스크·이용권·도면)은 스터디카페에서만 */}
+      {!isAcademy && (
       <View style={{ gap: 8, marginBottom: 16 }}>
         <Button
           title="키오스크로 입/퇴실하기"
@@ -113,14 +158,39 @@ function SeatFloorPlanScreenInner() {
           />
         )}
       </View>
+      )}
 
-      <FloorPlanGrid academyId={academyId} onSelectSeat={setReportSeat} />
+      {!isAcademy && <FloorPlanGrid academyId={academyId} onSelectSeat={setReportSeat} />}
       <NoiseReportModal seat={reportSeat} onClose={() => setReportSeat(null)} />
     </Screen>
   );
 }
 
+function InfoRow({ icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <View style={styles.infoRow}>
+      <Icon name={icon} size={16} color={colors.textMuted} />
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  about: { marginBottom: 18 },
+  aboutTitle: { fontSize: 18, fontWeight: '800', color: colors.text, letterSpacing: -0.4, marginBottom: 10 },
+  tagRow: { flexDirection: 'row', marginBottom: 10 },
+  kindPill: { fontSize: 12, fontWeight: '800', borderRadius: 8, overflow: 'hidden', paddingHorizontal: 9, paddingVertical: 4 },
+  kindPillAcademy: { backgroundColor: '#EEF4FF', color: colors.primary },
+  kindPillCafe: { backgroundColor: '#E7F6EC', color: '#12A150' },
+  aboutText: { fontSize: 14.5, color: colors.textSub, lineHeight: 22 },
+  infoList: { marginTop: 14, gap: 10 },
+  infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  infoLabel: { width: 56, fontSize: 13, color: colors.textMuted },
+  infoValue: { flex: 1, fontSize: 14, color: colors.text, fontWeight: '600' },
+  featureRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
+  featureChip: { fontSize: 12.5, fontWeight: '700', color: colors.textSub, backgroundColor: '#F3F5F8', borderRadius: 999, overflow: 'hidden', paddingHorizontal: 12, paddingVertical: 7 },
+  galleryImg: { width: 220, height: 150, borderRadius: 18, backgroundColor: colors.graySoft },
   hero: { marginHorizontal: -16, marginTop: -16, height: 230, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden', backgroundColor: '#0F172A' },
   heroImg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   heroScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 },

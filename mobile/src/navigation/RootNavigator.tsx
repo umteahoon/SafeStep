@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Platform, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationContainer } from '@react-navigation/native';
@@ -7,6 +8,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as Linking from 'expo-linking';
 import { useAuth } from '../lib/useAuth';
 import { canExplore, canUseChat } from '../lib/teams';
+import { shouldShowWelcome } from '../lib/welcome';
+import WelcomeScreen from '../screens/common/WelcomeScreen';
 import { colors } from '../theme';
 import type { RootStackParamList, TabParamList } from './types';
 
@@ -14,6 +17,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import MeScreen from '../screens/common/MeScreen';
 import InquiryScreen from '../screens/common/InquiryScreen';
+import ProfileEditScreen from '../screens/common/ProfileEditScreen';
 import MyInquiriesScreen from '../screens/common/MyInquiriesScreen';
 import StartGuideScreen from '../screens/common/StartGuideScreen';
 import MapScreen from '../screens/map/MapScreen';
@@ -24,6 +28,7 @@ import PostDetailScreen from '../screens/community/PostDetailScreen';
 import PostWriteScreen from '../screens/community/PostWriteScreen';
 import StudyScreen from '../screens/study/StudyScreen';
 import FocusTimerScreen from '../screens/study/FocusTimerScreen';
+import PlannerScreen from '../screens/study/PlannerScreen';
 import TimetableScreen from '../screens/study/TimetableScreen';
 import HistoryScreen from '../screens/study/HistoryScreen';
 import NotificationsScreen from '../screens/study/NotificationsScreen';
@@ -103,8 +108,8 @@ function MainTabs() {
         name="MapTab"
         component={MapScreen}
         options={{
-          // 비로그인·일반 회원은 탐색 중심이라 "스터디카페", 소속이 있는 회원은 "지도"
-          title: user && !isMember ? '지도' : '스터디카페',
+          // 비로그인·일반 회원은 탐색 중심이라 "학원·스터디카페", 소속이 있는 회원은 "지도"
+          title: user && !isMember ? '지도' : '학원·스터디카페',
           headerShown: false,
           tabBarIcon: tabIcon('map', 'map-outline'),
         }}
@@ -173,9 +178,21 @@ function HomeButton({ onPress }: { onPress: () => void }) {
 }
 
 export default function RootNavigator() {
+  // 처음 실행이면 소개 화면부터. 저장소를 읽는 동안은 아무것도 그리지 않음 (메인 화면이 번쩍 보이지 않게)
+  const [initial, setInitial] = useState<'Welcome' | 'Main' | null>(null);
+  useEffect(() => {
+    let alive = true;
+    shouldShowWelcome().then((show) => alive && setInitial(show ? 'Welcome' : 'Main'));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  if (!initial) return null;
+
   return (
     <NavigationContainer linking={linking}>
       <Stack.Navigator
+        initialRouteName={initial}
         screenOptions={({ navigation }) => ({
           ...headerOpts,
           headerLeft: navigation.canGoBack()
@@ -187,12 +204,14 @@ export default function RootNavigator() {
               ),
         })}
       >
+        <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
 
         {/* 인증 / 공개 */}
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Inquiry" component={InquiryScreen} options={{ title: '도입 문의' }} />
+        <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} options={{ title: '프로필 수정' }} />
         <Stack.Screen name="MyInquiries" component={MyInquiriesScreen} options={{ title: '내 문의 내역' }} />
         <Stack.Screen name="StartGuide" component={StartGuideScreen} options={{ title: '시작 가이드' }} />
 
@@ -207,6 +226,7 @@ export default function RootNavigator() {
 
         {/* 학습 도구 */}
         <Stack.Screen name="FocusTimer" component={FocusTimerScreen} options={{ title: '집중 타이머' }} />
+        <Stack.Screen name="Planner" component={PlannerScreen} options={{ title: '학습 플래너' }} />
         <Stack.Screen name="Timetable" component={TimetableScreen} options={{ title: '시간표' }} />
         <Stack.Screen name="History" component={HistoryScreen} options={{ title: '이용 내역' }} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: '알림' }} />

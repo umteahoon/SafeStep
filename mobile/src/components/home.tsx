@@ -5,7 +5,7 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Icon, IconTile } from './ui';
 import type { IconName } from './ui';
-import { cafeImage } from '../lib/cafeImages';
+import { academyImage, cafeImage } from '../lib/cafeImages';
 import { congestion } from '../lib/geo';
 import { colors, radius } from '../theme';
 
@@ -136,6 +136,44 @@ export function CafeCard({
   );
 }
 
+// ── 학원 카드: 스터디카페 카드와 같은 틀 (사진 위, 이름·주소 아래), 좌석 현황 대신 제공 서비스 ──
+export function AcademyPhotoCard({
+  id,
+  name,
+  address,
+  distance,
+  onPress,
+  tag,
+  width = 232,
+}: {
+  id: string;
+  name: string;
+  address: string;
+  onPress: () => void;
+  /** 과목 분류 (예: 수학). 없으면 기본 서비스 문구 */
+  tag?: string | null;
+  distance?: string;
+  width?: number;
+}) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [{ width }, pressed && { opacity: 0.85 }]}>
+      <View style={styles.photoWrap}>
+        <Image source={academyImage(id)} style={styles.photo} resizeMode="cover" />
+      </View>
+      <Text style={styles.cafeName} numberOfLines={1}>
+        {name}
+      </Text>
+      <Text style={styles.academyTags} numberOfLines={1}>
+        {tag ?? '수업 · 출결 · 학부모 소통'}
+      </Text>
+      <Text style={styles.cafeAddr} numberOfLines={1}>
+        {distance ? `${distance} · ` : ''}
+        {address}
+      </Text>
+    </Pressable>
+  );
+}
+
 // ── 큰 추천 카드 캐러셀 (사진 + 그라데이션) ─────────────
 export interface FeaturedItem {
   id: string;
@@ -244,6 +282,7 @@ const styles = StyleSheet.create({
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
   statusText: { fontSize: 13, fontWeight: '600', color: '#374151' },
+  academyTags: { fontSize: 13, fontWeight: '600', color: colors.primary, marginTop: 2 },
   photoWrap: { width: '100%', aspectRatio: 1.45, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.graySoft, marginBottom: 12 },
   photo: { width: '100%', height: '100%' },
   photoDim: { ...FILL, backgroundColor: 'rgba(15,23,42,0.35)' },

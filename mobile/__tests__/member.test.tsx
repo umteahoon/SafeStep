@@ -108,22 +108,16 @@ describe('일반 회원 (학생 계정 + 학원 명부 미연동)', () => {
     expect(auth.isMember).toBe(false);
   });
 
-  it('홈: 이름 인사 + 연동 안내(로그인 안내·운영자 링크 없음)', async () => {
+  it('홈: 짧은 이름 인사만 (연동 안내 띠·로그인 안내·운영자 링크 없음)', async () => {
     const t = track(await mount('../src/screens/home/HomeScreen', 'MEMBER'));
     const text = allText(t);
     expect(text).toContain('일반회원님');
-    expect(text).toContain('연동하면 이용권, 출결, 채팅을 쓸 수 있어요');
+    expect(text).not.toContain('연동하면 이용권, 출결, 채팅을 쓸 수 있어요');
     expect(text).not.toContain('로그인하면 이용권 구매');
     expect(text).not.toContain('스터디카페를 운영하시나요?');
     expect(text).toContain('지역별로 찾기');
     expect(text).not.toContain('내 이용권'); // 학생 전용 섹션
     expect(text).not.toContain('오늘의 수업');
-  });
-
-  it('홈의 연동 안내를 누르면 연동 화면으로', async () => {
-    const t = track(await mount('../src/screens/home/HomeScreen', 'MEMBER'));
-    await press(t, '연동하면 이용권');
-    expect(nav.navigate).toHaveBeenCalledWith('StudentQr');
   });
 
   it('내 정보: "일반 회원" 배지와 연동 메뉴, 채팅·팀(소통) 메뉴는 없음', async () => {
@@ -194,7 +188,7 @@ describe('일반 회원 (학생 계정 + 학원 명부 미연동)', () => {
   it('일반 회원도 커뮤니티 글쓰기는 가능 (스터디카페를 고른 뒤)', async () => {
     const hub = track(await mount('../src/screens/community/CommunityHubScreen', 'MEMBER'));
     await press(hub, '글쓰기');
-    expect(allText(hub)).toContain('글을 남길 스터디카페');
+    expect(allText(hub)).toContain('글을 남길 곳');
     await press(hub, '홍대점');
     expect(nav.navigate).toHaveBeenCalledWith('PostWrite', { academyId: 'a-3' });
   });

@@ -36,7 +36,7 @@ describe.each(BLOCKED)('원장·강사·학부모(%s)는 지도·커뮤니티를
     const text = screenText(t);
     expect(text).toContain('이용할 수 없는 화면이에요');
     expect(text).not.toContain('글쓰기');
-    expect(text).not.toContain('이번 주 금요일 야간 개방 안내');
+    expect(text).not.toContain('이번 주 금요일 야간 자습실 운영 안내');
     expect(text).not.toContain('잔여석 있는 곳');
   });
 

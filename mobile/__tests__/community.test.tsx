@@ -26,7 +26,7 @@ describe('커뮤니티 화면 렌더링', () => {
     if (errors.length) console.log('console.error:', errors.map((e) => String(e[0]).slice(0, 300)));
     expect(errors).toHaveLength(0);
     expect(text).toContain('글쓰기');
-    expect(text).toContain('내 스터디카페'); // 소속이 있으면 처음엔 내 게시판
-    expect(text).toContain('이번 주 금요일 야간 개방 안내');
+    expect(text).toContain('내 학원'); // 소속이 있으면 처음엔 내 게시판 (미리보기 소속은 학원)
+    expect(text).toContain('이번 주 금요일 야간 자습실 운영 안내');
   });
 });

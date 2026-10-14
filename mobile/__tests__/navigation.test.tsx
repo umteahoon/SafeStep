@@ -87,7 +87,7 @@ describe('실제 내비게이션에서 커뮤니티 진입', () => {
       await press(tree, '커뮤니티');
       const text = allText(tree);
       expect(text).toContain('글쓰기');
-      expect(text).toContain('이번 주 금요일 야간 개방 안내');
+      expect(text).toContain('이번 주 금요일 야간 자습실 운영 안내');
     });
   });
 
@@ -101,15 +101,19 @@ describe('실제 내비게이션에서 커뮤니티 진입', () => {
 
   it('스터디카페 카드 → 상세 → "스터디카페 커뮤니티" 행 → 게시판 → 글 상세', async () => {
     await run('GUEST', async ({ tree }) => {
-      await press(tree, '홍대점');
+      // 지점이 많아져 "내 주변" 상위 목록에 들어오는 카드를 눌러 진입 (건대점은 서울 중심 위치에서 가까움)
+      await press(tree, '건대점');
       expect(allText(tree)).toContain('스터디카페 커뮤니티');
       await press(tree, '스터디카페 커뮤니티');
+      await act(async () => {
+        await sleep(1500); // 게시글 로딩 대기 (지점 수가 늘어 목록 로딩이 조금 길어짐)
+      });
       const board = allText(tree);
-      expect(board).toContain('홍대점 스터디룸 후기');
-      await press(tree, '홍대점 스터디룸 후기');
-      expect(allText(tree)).toContain('화이트보드가 있어서 편했어요');
+      expect(board).toContain('건대점 노트북존 좋네요');
+      await press(tree, '건대점 노트북존 좋네요');
+      expect(allText(tree)).toContain('탁 트인 창가 자리에서 공부하니');
     });
-  });
+  }, 20000);
 
 
 });

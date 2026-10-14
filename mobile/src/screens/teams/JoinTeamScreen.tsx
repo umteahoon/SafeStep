@@ -46,7 +46,7 @@ export default function JoinTeamScreen() {
     const { data, error: rpcError } = await supabase.rpc('join_team_by_code', { p_code: code });
     setIsBusy(false);
     if (rpcError || !data) {
-      setError(rpcError?.message ?? '팀 참가에 실패했습니다.');
+      setError(rpcError?.message ?? '참가에 실패했습니다.');
       return;
     }
     navigation.replace('TeamRoom', { teamId: data as string });
@@ -59,7 +59,7 @@ export default function JoinTeamScreen() {
     body = (
       <>
         <Muted style={{ fontSize: 14, marginBottom: 16 }}>
-          팀에 참가하려면 먼저 로그인해주세요. 로그인하면 이 초대로 돌아옵니다.
+          채팅방에 참가하려면 먼저 로그인해주세요. 로그인하면 이 초대로 돌아옵니다.
         </Muted>
         <Button
           title="로그인하고 참가하기"
@@ -75,7 +75,7 @@ export default function JoinTeamScreen() {
       </>
     );
   } else if (!eligible) {
-    body = <Banner kind="error">팀 기능은 학원에 소속된 원장·강사·학생만 사용할 수 있습니다.</Banner>;
+    body = <Banner kind="error">팀 채팅방은 학생·일반 회원 등 로그인한 이용자만 사용할 수 있습니다.</Banner>;
   } else if (!preview) {
     body = <Banner kind="error">{error ?? '유효하지 않은 초대 코드입니다. 코드를 다시 확인해주세요.'}</Banner>;
   } else {
@@ -83,19 +83,19 @@ export default function JoinTeamScreen() {
       <>
         <Title>{preview.team_name}</Title>
         {preview.description && <Muted style={{ fontSize: 14 }}>{preview.description}</Muted>}
-        <Muted style={{ marginTop: 8 }}>멤버 {preview.member_count}명</Muted>
+        <Muted style={{ marginTop: 8 }}>참여 {preview.member_count}명</Muted>
 
         <View style={{ marginTop: 20 }}>
           {preview.already_member ? (
             <Button
-              title="이미 참가한 팀 — 채팅방 열기"
+              title="이미 참여 중 — 채팅방 열기"
               variant="indigo"
               onPress={() => navigation.replace('TeamRoom', { teamId: preview.team_id })}
             />
           ) : !preview.same_academy ? (
-            <Banner kind="warn">같은 학원에 소속된 사람만 참가할 수 있는 팀입니다.</Banner>
+            <Banner kind="warn">같은 학원에 소속된 사람만 참가할 수 있는 채팅방입니다.</Banner>
           ) : (
-            <Button title="팀 참가하기" variant="indigo" onPress={join} loading={isBusy} />
+            <Button title="채팅방 참가하기" variant="indigo" onPress={join} loading={isBusy} />
           )}
         </View>
         <Banner kind="error">{error ?? undefined}</Banner>
@@ -107,7 +107,7 @@ export default function JoinTeamScreen() {
     <Screen contentStyle={{ flexGrow: 1, justifyContent: 'center' }}>
       <Card>
         <Text style={{ fontSize: 12, fontWeight: '700', color: colors.indigo, marginBottom: 4 }}>
-          SafeStep 팀 초대
+          SafeStep 채팅방 초대
         </Text>
         <Text style={{ fontFamily: 'Courier', fontSize: 14, letterSpacing: 3, color: colors.textMuted, marginBottom: 16 }}>
           {code.toUpperCase()}

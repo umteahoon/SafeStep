@@ -16,10 +16,13 @@
 ```bash
 cd mobile
 npm install
-cp .env.example .env   # 값 채우기
+cp .env.example .env   # 값 채우기 (Windows CMD: copy .env.example .env / PowerShell: Copy-Item .env.example .env)
 npm start              # Expo 개발 서버 — QR코드를 Expo Go 앱으로 스캔하면 실기기에서 확인
 ```
 
+> Windows/Mac 모두 동일하게 동작하도록 npm 스크립트에는 OS 전용 명령(`rm`, `export` 등)을 쓰지 않습니다. 환경변수 지정이 필요하면 `cross-env`를 사용하세요.
+
+- `npm run start:welcome` — 실행할 때마다 앱 소개(처음 화면)가 나오는 모드 (소개 화면 반복 확인용). 일반 실행에서는 내 정보 > "앱 소개 다시 보기"로 언제든 볼 수 있습니다.
 - `npm run android` / `npm run ios` — 에뮬레이터/시뮬레이터 (Android Studio / Xcode 필요)
 - `npm run typecheck` — TypeScript 검사
 - 환경변수는 `EXPO_PUBLIC_` 접두사가 붙어야 번들에 포함됩니다.

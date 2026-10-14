@@ -4,7 +4,7 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 export type TabParamList = {
   HomeTab: undefined;
   /** preset: 홈 바로가기에서 넘기는 빠른 필터. ts 는 같은 필터를 다시 눌러도 재적용하기 위한 값 */
-  MapTab: { preset?: 'near' | 'available' | 'quiet' | 'fav'; region?: { sido: string; sigungu?: string | null }; ts?: number } | undefined;
+  MapTab: { preset?: 'near' | 'available' | 'quiet' | 'fav'; /** 학원/스터디카페 구분 필터 */ kind?: 'ACADEMY' | 'STUDY_CAFE'; /** 학원 과목 분류 */ category?: string; region?: { sido: string; sigungu?: string | null }; ts?: number } | undefined;
   StudyTab: undefined;
   ChatTab: undefined;
   /** mine: 내 정보의 "내 글"에서 열 때 내 글만 보여줌 */
@@ -18,7 +18,9 @@ export type RootStackParamList = {
   // 인증 / 공개
   Login: { next?: { name: keyof RootStackParamList; params?: any } } | undefined;
   Register: undefined;
+  Welcome: { replay?: boolean } | undefined;
   Inquiry: undefined;
+  ProfileEdit: undefined;
   MyInquiries: undefined;
   StartGuide: undefined;
   TeacherPending: undefined;
@@ -30,6 +32,7 @@ export type RootStackParamList = {
 
   // 학생 / 학습
   FocusTimer: undefined;
+  Planner: undefined;
   Timetable: undefined;
   History: undefined;
   Notifications: undefined;

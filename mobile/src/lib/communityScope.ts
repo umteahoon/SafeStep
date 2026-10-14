@@ -6,12 +6,16 @@ export type Scope =
   | { kind: 'mine' }
   | { kind: 'fav' }
   | { kind: 'region'; sido: string; sigungu?: string | null }
+  /** 학원 전체 / 스터디카페 전체 */
+  | { kind: 'type'; type: 'ACADEMY' | 'STUDY_CAFE' }
   | { kind: 'cafe'; id: string };
 
 export interface ScopeCafe {
   id: string;
   name: string;
   address: string;
+  /** 학원(ACADEMY) / 스터디카페(STUDY_CAFE). 값이 없으면 구분하지 않음 */
+  kind?: string | null;
 }
 
 export interface ScopeContext {
@@ -22,13 +26,22 @@ export interface ScopeContext {
 
 const shortName = (n: string) => n.replace('SafeStep ', '');
 
+/** 지점 종류에 맞는 이름 (학원 / 스터디카페) */
+export function kindNoun(kind?: string | null): string {
+  return kind === 'ACADEMY' ? '학원' : '스터디카페';
+}
+
 /** 제목 드롭다운에 표시할 라벨 */
-export function scopeLabel(scope: Scope, ctx: Pick<ScopeContext, 'cafes'>): string {
+export function scopeLabel(scope: Scope, ctx: Pick<ScopeContext, 'cafes'> & { myAcademyId?: string | null }): string {
   switch (scope.kind) {
     case 'all':
       return '전체 스터디카페';
-    case 'mine':
-      return '내 스터디카페';
+    case 'type':
+      return scope.type === 'ACADEMY' ? '전체 학원' : '전체 스터디카페';
+    case 'mine': {
+      const mine = ctx.cafes.find((x) => x.id === ctx.myAcademyId);
+      return `내 ${kindNoun(mine?.kind)}`;
+    }
     case 'fav':
       return '즐겨찾기';
     case 'region':
@@ -49,6 +62,10 @@ export function inScope(academyId: string, scope: Scope, ctx: ScopeContext): boo
       return !!ctx.myAcademyId && academyId === ctx.myAcademyId;
     case 'fav':
       return ctx.favorites.includes(academyId);
+    case 'type': {
+      const c = ctx.cafes.find((x) => x.id === academyId);
+      return !!c && (scope.type === 'ACADEMY' ? c.kind === 'ACADEMY' : c.kind !== 'ACADEMY');
+    }
     case 'cafe':
       return academyId === scope.id;
     case 'region': {

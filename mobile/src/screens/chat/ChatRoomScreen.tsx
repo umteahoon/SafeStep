@@ -6,11 +6,13 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Switch,
   Text,
   View,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -22,6 +24,7 @@ import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../lib/useAuth';
 import { RequireRole } from '../../components/Guard';
+import { confirmAsync } from '../../lib/confirm';
 import { Banner, Button, Icon, Input, Loading, Screen } from '../../components/ui';
 import { colors } from '../../theme';
 import type { RootNav, RootStackParamList } from '../../navigation/types';
@@ -83,6 +86,13 @@ function Inner() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [roster, setRoster] = useState<RosterStudent[]>([]);
   const [teacherName, setTeacherName] = useState<string | null>(null);
+  // 반 정보 카드: 학원 이름 · 수업 시간 · 참여 인원 (코드로 들어온 뒤 보임)
+  const [academyName, setAcademyName] = useState<string | null>(null);
+  const [scheduleText, setScheduleText] = useState<string | null>(null);
+  const [memberCount, setMemberCount] = useState<number | null>(null);
+  const [roomMembers, setRoomMembers] = useState<{ id: string; name: string }[] | null>(null);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [todayStatus, setTodayStatus] = useState<Map<string, AttendanceStatus>>(new Map());
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [panel, setPanel] = useState<null | 'participants' | 'attendance'>(null);
@@ -120,6 +130,17 @@ function Inner() {
           .eq('date', today),
       ]);
       setTeacherName((cls as any)?.teacher?.name ?? null);
+      const { data: sch } = await supabase
+        .from('class_schedules')
+        .select('day_of_week, start_time, end_time')
+        .eq('class_id', classId);
+      const DAY = ['일', '월', '화', '수', '목', '금', '토'];
+      const text = ((sch as { day_of_week: number; start_time: string; end_time: string }[]) ?? [])
+        .slice()
+        .sort((a, b) => ((a.day_of_week + 6) % 7) - ((b.day_of_week + 6) % 7))
+        .map((x) => `${DAY[x.day_of_week]} ${String(x.start_time).slice(0, 5)}–${String(x.end_time).slice(0, 5)}`)
+        .join(' · ');
+      setScheduleText(text || null);
       setRoster(
         (enrollments ?? []).map((e: any) => e.students).filter(Boolean) as RosterStudent[]
       );
@@ -144,6 +165,22 @@ function Inner() {
     setIsLoading(false);
     if (roomData) {
       navigation.setOptions({ title: roomData.name });
+    }
+    if (roomData) {
+      const { data: ac } = await supabase.from('academies').select('name').eq('id', roomData.academy_id).maybeSingle();
+      setAcademyName((ac as any)?.name ?? null);
+      const { data: mem, error: memErr } = await supabase
+        .from('chat_room_members')
+        .select('user_id, profile:profiles(name)')
+        .eq('room_id', roomId);
+      if (memErr) {
+        setMemberCount(null);
+        setRoomMembers(null);
+      } else {
+        const list = ((mem as any[]) ?? []).map((m) => ({ id: m.user_id as string, name: (m.profile?.name as string) ?? '참여자' }));
+        setMemberCount(list.length);
+        setRoomMembers(list);
+      }
     }
     if (roomData?.type === 'CLASS' && roomData.class_id) await loadClassInfo(roomData.class_id);
   }, [roomId, loadClassInfo, navigation]);
@@ -422,6 +459,39 @@ function Inner() {
     .filter((s) => s.name.includes(rosterFilter.trim()))
     .filter((s) => !onlyUnmarked || !todayStatus.has(s.id));
 
+  const flash = (msg: string) => {
+    setNotice(msg);
+    setTimeout(() => setNotice(null), 2200);
+  };
+  const copyCode = async () => {
+    if (!room?.join_code) return;
+    try {
+      await Clipboard.setStringAsync(room.join_code);
+      flash('참가 코드를 복사했어요');
+    } catch {
+      flash('복사하지 못했어요');
+    }
+  };
+  // 반에 연결되지 않은 직접 만든 방만 삭제 가능 (반 연결 방은 반 관리에서 함께 정리됨)
+  const canDeleteRoom = isStaff && room?.type === 'CLASS' && !room?.class_id;
+  const canLeaveRoom = !isStaff && room?.type === 'CLASS';
+  const deleteRoom = async () => {
+    if (!room) return;
+    if (!(await confirmAsync(`'${room.name}' 채팅방을 삭제할까요?`, '대화 내용과 참가 기록이 모두 사라지고 되돌릴 수 없어요.', '삭제'))) return;
+    const { error: delErr } = await supabase.from('chat_rooms').delete().eq('id', room.id);
+    if (delErr) return flash(`삭제하지 못했어요: ${delErr.message}`);
+    setInfoOpen(false);
+    navigation.goBack();
+  };
+  const leaveRoom = async () => {
+    if (!room || !user) return;
+    if (!(await confirmAsync('이 채팅방에서 나갈까요?', '다시 들어오려면 참가 코드를 입력해야 해요.', '나가기'))) return;
+    const { error: leaveErr } = await supabase.from('chat_room_members').delete().eq('room_id', room.id).eq('user_id', user.id);
+    if (leaveErr) return flash('나가지 못했어요');
+    setInfoOpen(false);
+    navigation.goBack();
+  };
+
   const canPost = isStaff || (profile?.role === 'STUDENT' && room?.type === 'CLASS');
 
   if (isLoading) return <Loading />;
@@ -429,6 +499,19 @@ function Inner() {
   return (
     <Screen scroll={false}>
       <Banner kind="error">{error ?? undefined}</Banner>
+
+      {/* 방 정보 바 — 누르면 팀 채팅방과 같은 "정보" 시트가 열림 */}
+      {room && (
+        <Pressable onPress={() => setInfoOpen(true)} style={styles.infoBar}>
+          <Icon name="information-circle-outline" size={18} color={colors.primary} />
+          <Text style={styles.infoBarText} numberOfLines={1}>
+            {room.type === 'ANNOUNCEMENT' ? '공지방 정보' : `${room.name} 정보`}
+            {memberCount !== null ? ` · 참여 ${memberCount}명` : ''}
+          </Text>
+          <Icon name="chevron-forward" size={16} color={colors.textMuted} />
+        </Pressable>
+      )}
+      {notice && !infoOpen && <Text style={styles.noticeToast}>{notice}</Text>}
 
       <FlatList
         ref={listRef}
@@ -656,6 +739,72 @@ function Inner() {
           {viewerUrl && <Image source={{ uri: viewerUrl }} style={{ width: '100%', height: '80%' }} resizeMode="contain" />}
         </Pressable>
       </Modal>
+      {/* 채팅방 정보: 팀 채팅방의 정보 화면과 같은 구성 (멤버 · 참가 코드 · 나가기/삭제) */}
+      <Modal visible={infoOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setInfoOpen(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
+          <View style={styles.infoHead}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoTitle} numberOfLines={1}>
+                {room?.name}
+              </Text>
+              <Text style={styles.infoMeta}>
+                {[academyName, room?.type === 'CLASS' && room.class_id ? `담당 ${teacherName ?? '미배정'}` : null, scheduleText]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+            </View>
+            <Text style={styles.infoClose} onPress={() => setInfoOpen(false)}>
+              닫기
+            </Text>
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: 16 }}>
+            {notice && <Banner kind="success">{notice}</Banner>}
+
+            <Text style={styles.infoSection}>
+              멤버 {(roomMembers?.length ?? roster.length + (teacherName ? 1 : 0)) || 0}명
+            </Text>
+            {teacherName && room?.class_id ? (
+              <View style={styles.infoMember}>
+                <Text style={styles.infoMemberName}>{teacherName}</Text>
+                <Text style={styles.infoMemberRole}>강사</Text>
+              </View>
+            ) : null}
+            {(roomMembers ?? roster.map((r) => ({ id: r.id, name: r.name }))).map((m) => (
+              <View key={m.id} style={styles.infoMember}>
+                <Text style={styles.infoMemberName}>
+                  {m.name}
+                  {m.id === user?.id && <Text style={{ color: colors.textMuted, fontSize: 12 }}> (나)</Text>}
+                </Text>
+                <Text style={styles.infoMemberRole}>{room?.class_id ? '수강생' : '참여자'}</Text>
+              </View>
+            ))}
+            {(roomMembers?.length ?? roster.length) === 0 && <Text style={styles.infoMeta}>아직 참여한 사람이 없어요.</Text>}
+
+            {room?.join_code ? (
+              <>
+                <Text style={[styles.infoSection, { marginTop: 24 }]}>참가 코드</Text>
+                <Text style={styles.infoCode}>{room.join_code}</Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                  <Button title="코드 복사" variant="secondary" small style={{ flex: 1 }} onPress={copyCode} />
+                  <Button
+                    title="코드 공유"
+                    variant="secondary"
+                    small
+                    style={{ flex: 1 }}
+                    onPress={() => Share.share({ message: `SafeStep 채팅방 "${room.name}" 참가 코드: ${room.join_code}` })}
+                  />
+                </View>
+              </>
+            ) : null}
+
+            <View style={{ marginTop: 24 }}>
+              {canDeleteRoom ? <Button title="채팅방 삭제" variant="danger" onPress={deleteRoom} /> : null}
+              {canLeaveRoom ? <Button title="채팅방 나가기" variant="secondary" onPress={leaveRoom} /> : null}
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </Screen>
   );
 }
@@ -669,6 +818,18 @@ export default function ChatRoomScreen() {
 }
 
 const styles = StyleSheet.create({
+  infoBar: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#F3F7FF', paddingHorizontal: 14, paddingVertical: 11 },
+  infoBarText: { flex: 1, fontSize: 13, fontWeight: '700', color: colors.primaryDark },
+  noticeToast: { textAlign: 'center', fontSize: 12.5, fontWeight: '700', color: colors.primaryDark, backgroundColor: '#E8F0FF', paddingVertical: 8 },
+  infoHead: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  infoTitle: { fontSize: 20, fontWeight: '800', color: colors.text },
+  infoMeta: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
+  infoClose: { fontSize: 15, fontWeight: '700', color: colors.primary },
+  infoSection: { fontSize: 13, fontWeight: '800', color: colors.textSub, marginBottom: 6 },
+  infoMember: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  infoMemberName: { fontSize: 15, color: colors.text },
+  infoMemberRole: { fontSize: 12, color: colors.textMuted },
+  infoCode: { fontSize: 28, fontWeight: '800', letterSpacing: 4, color: colors.text, marginVertical: 8 },
   empty: { textAlign: 'center', color: colors.textMuted, fontSize: 14, paddingVertical: 32 },
   dateWrap: { alignItems: 'center', marginVertical: 8 },
   dateText: {

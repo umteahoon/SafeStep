@@ -56,17 +56,19 @@ describe('내 정보 — 로그인', () => {
     expect(text).toContain('SafeStep Mobile');
   });
 
-  it('연동된 학생: 내 활동 + 소통(채팅·팀)', async () => {
+  it('연동된 학생: 내 활동 + 소통(채팅, 팀 참가는 채팅에서)', async () => {
     const t = track(await mount(ME, 'STUDENT'));
     const text = screenText(t);
-    for (const item of ['내 출결 QR', '이용권', '이용 내역', '내 시간표', '집중 타이머', '채팅', '팀']) expect(text).toContain(item);
+    for (const item of ['내 출결 QR', '이용권', '이용 내역', '내 시간표', '집중 타이머', '채팅']) expect(text).toContain(item);
     expect(text).not.toContain('학원·스터디카페 연동하기');
   });
 
   it('원장: 관리 메뉴', async () => {
     const t = track(await mount(ME, 'ACADEMY_ADMIN'));
     const text = screenText(t);
-    for (const item of ['원장 대시보드', '학생 관리', '강사 관리', '출석부', '신고 관제', '이용권 결제']) expect(text).toContain(item);
+    for (const item of ['원장 대시보드', '학생 관리', '강사 관리', '출석부', '이용권 결제', '프로필 수정']) expect(text).toContain(item);
+    // 학원 운영진에게는 스터디카페 좌석 신고 관제가 필요 없음
+    expect(text).not.toContain('신고 관제');
   });
 
   it('슈퍼관리자: 활동 요약(즐겨찾기·내 글) 없음, 플랫폼 관리 메뉴', async () => {
@@ -113,7 +115,7 @@ describe('커뮤니티 — 내 정보의 "내 글"에서 열면 내 글만', () 
     // 앞 테스트에서 만든 내 글 2개만 보이고, 다른 사람 글은 보이지 않는다
     expect(text).toContain('내 글 1');
     expect(text).toContain('내 글 2');
-    expect(text).not.toContain('이번 주 금요일 야간 개방 안내');
+    expect(text).not.toContain('이번 주 금요일 야간 자습실 운영 안내');
     expect(text).not.toContain('홍대점 스터디룸 후기');
   });
 });

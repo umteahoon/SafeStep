@@ -29,8 +29,8 @@ const genCode = () => Array.from({ length: 8 }, () => CODE_CHARS[Math.floor(Math
 // ── 초기 데이터 ────────────────────────────────────────
 const db: Db = {
   academies: [
-    { id: AC, name: 'SafeStep 강남점', address: '서울 강남구 테헤란로 123', latitude: 37.4979, longitude: 127.0276, total_seats: 12, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 20), created_at: ago(60 * 24 * 90) },
-    { id: 'a-2', name: 'SafeStep 신촌점', address: '서울 서대문구 연세로 50', latitude: 37.5551, longitude: 126.9368, total_seats: 12, subscription_status: 'TRIAL', subscription_expires_at: ago(-60 * 24 * 7), created_at: ago(60 * 24 * 30) },
+    { id: AC, name: '이룸수학학원 강남점', kind: 'ACADEMY', category: 'MATH', address: '서울 강남구 테헤란로 123', latitude: 37.4979, longitude: 127.0276, total_seats: 12, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 20), created_at: ago(60 * 24 * 90) },
+    { id: 'a-2', name: '해냄국어논술학원 신촌점', kind: 'ACADEMY', category: 'KOREAN', address: '서울 서대문구 연세로 50', latitude: 37.5551, longitude: 126.9368, total_seats: 12, subscription_status: 'TRIAL', subscription_expires_at: ago(-60 * 24 * 7), created_at: ago(60 * 24 * 30) },
   ],
   seats: [],
   academy_landmarks: [],
@@ -83,8 +83,8 @@ const db: Db = {
   subscriptions: [],
   chat_rooms: [
     { id: 'r-ann', academy_id: AC, class_id: null, type: 'ANNOUNCEMENT', name: '전체 공지', created_at: ago(2000) },
-    { id: 'r-c1', academy_id: AC, class_id: 'c-1', type: 'CLASS', name: '중3 수학 A', created_at: ago(1900) },
-    { id: 'r-c2', academy_id: AC, class_id: 'c-2', type: 'CLASS', name: '고1 영어 B', created_at: ago(1800) },
+    { id: 'r-c1', academy_id: AC, class_id: 'c-1', type: 'CLASS', name: '중3 수학 A', join_code: 'CLS3MATH', created_at: ago(1900) },
+    { id: 'r-c2', academy_id: AC, class_id: 'c-2', type: 'CLASS', name: '고1 영어 B', join_code: 'CLS1ENGB', created_at: ago(1800) },
   ],
   chat_messages: [
     { id: 'm-1', room_id: 'r-ann', sender_id: 'u-t1', type: 'TEXT', content: '이번 주 토요일은 정기 휴무입니다. 참고해주세요.', image_url: null, edited_at: null, metadata: null, created_at: ago(60 * 26) },
@@ -94,6 +94,8 @@ const db: Db = {
     { id: 'm-5', room_id: 'r-c2', sender_id: 'u-t1', type: 'TEXT', content: '단어 시험은 금요일입니다.', image_url: null, edited_at: null, metadata: null, created_at: ago(60 * 20) },
   ],
   chat_room_reads: [],
+  // 반 채팅방은 코드를 입력해 참가한 사람만 목록에 나옴 (공지방은 학원 전체)
+  chat_room_members: [],
   teams: [
     { id: 'tm-1', academy_id: AC, name: '수학 스터디', description: '중3 수학 같이 풀어요', join_code: 'MATH2024', created_by: 'u-s1', created_at: ago(5000) },
     { id: 'tm-2', academy_id: AC, name: '영어 회화', description: '주 2회 회화 연습', join_code: 'ENGL1234', created_by: 'u-s2', created_at: ago(3000) },
@@ -103,7 +105,6 @@ const db: Db = {
     { team_id: 'tm-1', user_id: 'u-s2', role: 'MEMBER', joined_at: ago(4900) },
     { team_id: 'tm-1', user_id: 'u-s3', role: 'MEMBER', joined_at: ago(4800) },
     { team_id: 'tm-2', user_id: 'u-s2', role: 'OWNER', joined_at: ago(3000) },
-    { team_id: 'tm-2', user_id: ME, role: 'MEMBER', joined_at: ago(2900) },
     { team_id: 'tm-2', user_id: 'u-s3', role: 'MEMBER', joined_at: ago(2800) },
   ],
   team_chat_rooms: [
@@ -126,21 +127,39 @@ const PASS_PLANS = [
 
 // 커뮤니티 시드: 지점별 게시글·댓글·좋아요
 db.community_posts = [
-  { id: 'cp-1', academy_id: AC, author_id: 'u-own', category: 'FREE', title: '이번 주 금요일 야간 개방 안내', content: '시험 기간을 맞아 이번 주 금요일은 새벽 2시까지 운영합니다. 집중석은 선착순이니 일찍 오세요.', created_at: ago(60 * 5) },
-  { id: 'cp-2', academy_id: AC, author_id: 'u-s1', category: 'QUESTION', title: '콘센트 있는 자리는 어디가 좋아요?', content: '노트북을 오래 써야 하는데 집중석에도 콘센트가 있나요? 처음 가보려고 해요.', created_at: ago(60 * 3) },
-  { id: 'cp-3', academy_id: AC, author_id: 'u-s4', category: 'REVIEW', title: '집중석 한 달 써본 후기', content: '칸막이가 높아서 시선이 신경 안 쓰이고, 에어컨 바람도 세지 않아서 좋았어요. 다만 점심시간 직후엔 자리가 빨리 차요.', created_at: ago(60 * 26) },
-  { id: 'cp-4', academy_id: AC, author_id: 'u-s5', category: 'STUDY', title: '평일 저녁 토익 스터디 구해요', content: '평일 7~9시에 같이 공부할 분 2~3명 모집합니다. 목표 점수 850 이상이면 좋아요!', created_at: ago(60 * 30) },
+  { id: 'cp-1', academy_id: AC, author_id: 'u-own', category: 'FREE', title: '이번 주 금요일 야간 자습실 운영 안내', content: '중간고사 대비로 이번 주 금요일은 밤 11시까지 자습실을 운영합니다. 질문 클리닉은 9시까지 진행해요.', created_at: ago(60 * 5) },
+  { id: 'cp-2', academy_id: AC, author_id: 'u-s1', category: 'QUESTION', title: '중3 수학 A반 교재는 어디서 사나요?', content: '첫 수업 전에 교재를 준비하려고 하는데, 학원에서 따로 구매해야 하나요?', created_at: ago(60 * 3) },
+  { id: 'cp-3', academy_id: AC, author_id: 'u-s4', category: 'REVIEW', title: '한 달 다닌 수학 수업 후기', content: '소수정예라 질문하기 편하고, 오답노트를 꼼꼼히 봐주셔서 성적이 올랐어요. 다만 숙제 양은 조금 많아요.', created_at: ago(60 * 26) },
+  { id: 'cp-4', academy_id: AC, author_id: 'u-s5', category: 'STUDY', title: '내신 수학 같이 풀 친구 구해요', content: '중3 수학 A반 친구들과 주말에 문제 풀이 스터디 하실 분 구해요. 3~4명 정도면 좋아요!', created_at: ago(60 * 30) },
   { id: 'cp-5', academy_id: 'a-3', author_id: 'u-s6', category: 'REVIEW', title: '홍대점 스터디룸 후기', content: '4인 룸 예약해서 조별과제 했는데 화이트보드가 있어서 편했어요. 방음도 괜찮았습니다.', created_at: ago(60 * 8) },
   { id: 'cp-6', academy_id: 'a-3', author_id: 'u-s1', category: 'FREE', title: '주말 오전엔 거의 만석이에요', content: '토요일 10시 전에 가야 자리 있어요. 참고하세요.', created_at: ago(60 * 20) },
-  { id: 'cp-7', academy_id: 'a-5', author_id: 'u-s2', category: 'QUESTION', title: '야간 이용권 따로 있나요?', content: '밤 10시 이후에만 이용하는 요금제가 있는지 궁금해요.', created_at: ago(60 * 12) },
-  { id: 'cp-8', academy_id: 'a-5', author_id: 'u-s3', category: 'FREE', title: '잠실점 오늘 많이 붐비네요', content: '시험 기간이라 그런지 오후에 자리가 거의 없어요. 일찍 오세요.', created_at: ago(90) },
+  { id: 'cp-7', academy_id: 'a-5', author_id: 'u-s2', category: 'QUESTION', title: '레벨 테스트는 언제 보나요?', content: '신규 등록 전에 레벨 테스트를 먼저 봐야 하는지, 따로 예약이 필요한지 궁금해요.', created_at: ago(60 * 12) },
+  { id: 'cp-8', academy_id: 'a-5', author_id: 'u-s3', category: 'FREE', title: '잠실점 오늘 많이 붐비네요', content: '시험 기간이라 그런지 오후에 자습실 자리가 거의 없어요. 일찍 오세요.', created_at: ago(90) },
   { id: 'cp-9', academy_id: 'a-7', author_id: 'u-s4', category: 'STUDY', title: '판교점 코딩테스트 스터디', content: '주 2회 알고리즘 문제 풀이 스터디 같이 하실 분. 언어 무관, 초중급 환영해요.', created_at: ago(60 * 40) },
   { id: 'cp-10', academy_id: 'a-4', author_id: 'u-s5', category: 'REVIEW', title: '건대점 노트북존 좋네요', content: '탁 트인 창가 자리에서 공부하니 집중이 잘 돼요. 커피 한 잔 들고 가기 좋아요.', created_at: ago(60 * 15) },
+  // ── 학원 글: 수업·교재·반 편성·후기 / 스터디카페 글: 좌석·시설·이용 팁 ──
+  { id: 'cp-11', academy_id: 'a-2', author_id: 'u-s2', category: 'REVIEW', title: '논술 첨삭 후기', content: '매주 작문 숙제를 꼼꼼히 첨삭해 주셔서 문장력이 확실히 늘었어요. 독서 토론 수업도 재밌어요.', created_at: ago(60 * 11) },
+  { id: 'cp-12', academy_id: 'a-11', author_id: 'u-s3', category: 'QUESTION', title: '실험 수업은 몇 명이 같이 하나요?', content: '과학 실험 수업이 궁금해요. 한 반 인원이랑 준비물이 따로 있는지 알려 주세요.', created_at: ago(60 * 9) },
+  { id: 'cp-13', academy_id: 'a-12', author_id: 'u-own', category: 'FREE', title: '신학기 반 편성 안내', content: '다음 달부터 신학기 반이 새로 편성됩니다. 레벨 테스트는 이번 주 토요일 오전에 진행해요.', created_at: ago(60 * 7) },
+  { id: 'cp-14', academy_id: 'a-14', author_id: 'u-s4', category: 'STUDY', title: '영어 회화 스터디 같이 해요', content: '수업 끝나고 30분씩 회화 연습할 친구 구합니다. 레벨 무관, 편하게 연락 주세요.', created_at: ago(60 * 14) },
+  { id: 'cp-15', academy_id: 'a-13', author_id: 'u-s6', category: 'REVIEW', title: '내신 대비 특강 후기', content: '기출 문제를 원리부터 풀어 주셔서 이해가 잘 됐어요. 시험 기간에 질문방도 열어 주셔서 든든했습니다.', created_at: ago(60 * 18) },
+  { id: 'cp-16', academy_id: 'a-9', author_id: 'u-own', category: 'FREE', title: '자습실 이용 시간 안내', content: '수업이 없는 시간에도 자습실을 이용할 수 있어요. 평일 오후 2시부터 밤 10시까지입니다.', created_at: ago(60 * 22) },
+  { id: 'cp-17', academy_id: 'a-17', author_id: 'u-s1', category: 'REVIEW', title: '파이썬 기초반 후기', content: '비전공자인데도 첫 달에 간단한 프로그램을 직접 만들었어요. 코드 리뷰가 특히 도움이 됩니다.', created_at: ago(60 * 25) },
+  { id: 'cp-18', academy_id: 'a-24', author_id: 'u-s2', category: 'FREE', title: '시험 기간엔 오전 9시 전에 오세요', content: '오후에는 거의 만석이에요. 창가 쪽 집중석이 제일 빨리 차니 참고하세요.', created_at: ago(60 * 6) },
+  { id: 'cp-19', academy_id: 'a-26', author_id: 'u-s3', category: 'QUESTION', title: '프린터 사용할 수 있나요?', content: '과제 출력이 필요한데 카페 안에 프린터가 있는지, 요금이 얼마인지 궁금해요.', created_at: ago(60 * 10) },
+  { id: 'cp-20', academy_id: 'a-30', author_id: 'u-own', category: 'FREE', title: '이번 주 일요일 새벽 정기 점검', content: '일요일 새벽 2~4시에 키오스크와 에어컨 정기 점검이 있어요. 이용에 참고해 주세요.', created_at: ago(60 * 16) },
+  { id: 'cp-21', academy_id: 'a-31', author_id: 'u-s4', category: 'REVIEW', title: '조용해서 집중하기 좋아요', content: '칸막이 좌석이 넓고 조명이 은은해서 오래 앉아 있어도 눈이 편해요. 음료도 무료예요.', created_at: ago(60 * 13) },
+  { id: 'cp-22', academy_id: 'a-35', author_id: 'u-s5', category: 'STUDY', title: '공무원 시험 같이 준비하실 분', content: '평일 오전에 같이 모여서 공부하고 점심은 따로 먹는 스터디예요. 2~3명 더 구합니다.', created_at: ago(60 * 21) },
+  { id: 'cp-23', academy_id: 'a-20', author_id: 'u-s6', category: 'QUESTION', title: '셔틀버스 시간표가 궁금해요', content: '수업 끝나는 시간에 맞춰 운행하는 셔틀이 있는지, 노선이 어떻게 되는지 알려 주세요.', created_at: ago(60 * 19) },
+  { id: 'cp-24', academy_id: 'a-40', author_id: 'u-s1', category: 'FREE', title: '평일 오전이 가장 한산해요', content: '주말에는 사람이 꽤 와요. 조용하게 쓰고 싶으면 평일 오전을 추천합니다.', created_at: ago(60 * 17) },
 ];
+db.community_posts.forEach((p: any, i: number) => {
+  p.view_count = 18 + ((i * 53) % 240);
+});
 db.community_comments = [
-  { id: 'cc-1', post_id: 'cp-2', author_id: 'u-s4', content: '집중석 칸마다 콘센트 있어요! 1~4번 추천해요.', created_at: ago(60 * 2) },
-  { id: 'cc-2', post_id: 'cp-2', author_id: 'u-own', content: '노트북 사용은 노트북존(카페존)도 편하게 쓰실 수 있어요.', created_at: ago(60 * 1) },
-  { id: 'cc-3', post_id: 'cp-3', author_id: 'u-s1', content: '저도 집중석 좋아요. 후기 감사합니다!', created_at: ago(60 * 20) },
+  { id: 'cc-1', post_id: 'cp-2', author_id: 'u-s4', content: '첫 수업 날 데스크에서 나눠 주세요! 따로 안 사셔도 돼요.', created_at: ago(60 * 2) },
+  { id: 'cc-2', post_id: 'cp-2', author_id: 'u-own', content: '교재비는 첫 달 수강료에 포함되어 있습니다. 편하게 오세요.', created_at: ago(60 * 1) },
+  { id: 'cc-3', post_id: 'cp-3', author_id: 'u-s1', content: '저도 같은 반이에요. 오답노트 진짜 도움 돼요. 후기 감사합니다!', created_at: ago(60 * 20) },
   { id: 'cc-4', post_id: 'cp-4', author_id: 'u-s6', content: '관심 있어요! 쪽지 어떻게 드리면 될까요?', created_at: ago(60 * 28) },
   { id: 'cc-5', post_id: 'cp-8', author_id: 'u-s2', content: '저도 방금 갔는데 만석이었어요 ㅠ', created_at: ago(60) },
   { id: 'cc-6', post_id: 'cp-5', author_id: 'u-s3', content: '스터디룸 예약은 어떻게 하나요?', created_at: ago(60 * 6) },
@@ -153,17 +172,85 @@ db.community_likes = [
 
 // 스터디카페 5곳 추가 (총 7곳) — 규모와 혼잡도를 다양하게
 db.academies.push(
-  { id: 'a-3', name: 'SafeStep 홍대점', address: '서울 마포구 와우산로 94', latitude: 37.5563, longitude: 126.9236, total_seats: 24, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 40), created_at: ago(60 * 24 * 70) },
-  { id: 'a-4', name: 'SafeStep 건대점', address: '서울 광진구 능동로 120', latitude: 37.5404, longitude: 127.0692, total_seats: 20, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 25), created_at: ago(60 * 24 * 55) },
-  { id: 'a-5', name: 'SafeStep 잠실점', address: '서울 송파구 올림픽로 240', latitude: 37.5133, longitude: 127.1002, total_seats: 30, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 12), created_at: ago(60 * 24 * 45) },
-  { id: 'a-6', name: 'SafeStep 노원점', address: '서울 노원구 동일로 1414', latitude: 37.6554, longitude: 127.0614, total_seats: 16, subscription_status: 'TRIAL', subscription_expires_at: ago(-60 * 24 * 5), created_at: ago(60 * 24 * 20) },
-  { id: 'a-8', name: 'SafeStep 해운대점', address: '부산광역시 해운대구 해운대로 570', latitude: 35.1631, longitude: 129.1635, total_seats: 22, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 40) },
-  { id: 'a-9', name: 'SafeStep 서면점', address: '부산 부산진구 서전로 10', latitude: 35.1579, longitude: 129.0597, total_seats: 18, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 18), created_at: ago(60 * 24 * 25) },
-  { id: 'a-10', name: 'SafeStep 둔산점', address: '대전광역시 서구 둔산로 100', latitude: 36.3504, longitude: 127.3845, total_seats: 20, subscription_status: 'TRIAL', subscription_expires_at: ago(-60 * 24 * 9), created_at: ago(60 * 24 * 10) },
-  { id: 'a-7', name: 'SafeStep 판교점', address: '경기 성남시 분당구 판교역로 166', latitude: 37.3947, longitude: 127.1112, total_seats: 18, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 60), created_at: ago(60 * 24 * 15) }
+  { id: 'a-3', name: '공부의정석 스터디카페 홍대점', kind: 'STUDY_CAFE', address: '서울 마포구 와우산로 94', latitude: 37.5563, longitude: 126.9236, total_seats: 24, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 40), created_at: ago(60 * 24 * 70) },
+  { id: 'a-4', name: '집중시간 스터디카페 건대점', kind: 'STUDY_CAFE', address: '서울 광진구 능동로 120', latitude: 37.5404, longitude: 127.0692, total_seats: 20, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 25), created_at: ago(60 * 24 * 55) },
+  { id: 'a-5', name: '탑클래스영어학원 잠실점', kind: 'ACADEMY', category: 'ENGLISH', address: '서울 송파구 올림픽로 240', latitude: 37.5133, longitude: 127.1002, total_seats: 30, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 12), created_at: ago(60 * 24 * 45) },
+  { id: 'a-6', name: '더집중 스터디카페 노원점', kind: 'STUDY_CAFE', address: '서울 노원구 동일로 1414', latitude: 37.6554, longitude: 127.0614, total_seats: 16, subscription_status: 'TRIAL', subscription_expires_at: ago(-60 * 24 * 5), created_at: ago(60 * 24 * 20) },
+  { id: 'a-8', name: '바다향 스터디카페 해운대점', kind: 'STUDY_CAFE', address: '부산광역시 해운대구 해운대로 570', latitude: 35.1631, longitude: 129.1635, total_seats: 22, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 40) },
+  { id: 'a-9', name: '한솔종합학원 서면점', kind: 'ACADEMY', category: 'GENERAL', address: '부산 부산진구 서전로 10', latitude: 35.1579, longitude: 129.0597, total_seats: 18, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 18), created_at: ago(60 * 24 * 25) },
+  { id: 'a-10', name: '플랜비 스터디카페 둔산점', kind: 'STUDY_CAFE', address: '대전광역시 서구 둔산로 100', latitude: 36.3504, longitude: 127.3845, total_seats: 20, subscription_status: 'TRIAL', subscription_expires_at: ago(-60 * 24 * 9), created_at: ago(60 * 24 * 10) },
+  { id: 'a-7', name: '큐브코딩학원 판교점', kind: 'ACADEMY', category: 'CODING', address: '경기 성남시 분당구 판교역로 166', latitude: 37.3947, longitude: 127.1112, total_seats: 18, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 60), created_at: ago(60 * 24 * 15) },
+  { id: 'a-11', name: '뉴턴과학학원 서초점', kind: 'ACADEMY', category: 'SCIENCE', address: '서울 서초구 서초대로 77길 54', latitude: 37.4947, longitude: 127.0148, total_seats: 14, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 33), created_at: ago(60 * 24 * 22) },
+  { id: 'a-12', name: '정석수학학원 목동점', kind: 'ACADEMY', category: 'MATH', address: '서울 양천구 목동동로 233', latitude: 37.5265, longitude: 126.8647, total_seats: 16, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 40) },
+  { id: 'a-13', name: '미래탐구과학학원 대치점', kind: 'ACADEMY', category: 'SCIENCE', address: '서울 강남구 대치동 905', latitude: 37.4946, longitude: 127.0627, total_seats: 14, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 40) },
+  { id: 'a-14', name: '리딩앤라이팅영어학원 분당점', kind: 'ACADEMY', category: 'ENGLISH', address: '경기 성남시 분당구 서현로 180', latitude: 37.3835, longitude: 127.1207, total_seats: 18, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 40) },
+  { id: 'a-15', name: '글빛논술학원 일산점', kind: 'ACADEMY', category: 'KOREAN', address: '경기 고양시 일산동구 중앙로 1160', latitude: 37.6584, longitude: 126.7683, total_seats: 12, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 40) },
+  { id: 'a-16', name: '수담수학학원 광교점', kind: 'ACADEMY', category: 'MATH', address: '경기 수원시 영통구 광교중앙로 145', latitude: 37.2866, longitude: 127.0563, total_seats: 16, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 40) },
+  { id: 'a-17', name: '코딩메이커학원 송도점', kind: 'ACADEMY', category: 'CODING', address: '인천 연수구 센트럴로 160', latitude: 37.3927, longitude: 126.6406, total_seats: 14, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 40) },
+  { id: 'a-18', name: '스피킹플러스영어학원 유성점', kind: 'ACADEMY', category: 'ENGLISH', address: '대전 유성구 대학로 99', latitude: 36.3622, longitude: 127.3563, total_seats: 12, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 40) },
+  { id: 'a-19', name: '사이언스랩학원 상무점', kind: 'ACADEMY', category: 'SCIENCE', address: '광주 서구 상무중앙로 110', latitude: 35.1527, longitude: 126.8519, total_seats: 14, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 40) },
+  { id: 'a-20', name: '한빛종합학원 수성점', kind: 'ACADEMY', category: 'GENERAL', address: '대구 수성구 달구벌대로 2410', latitude: 35.8583, longitude: 128.6316, total_seats: 20, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 40) },
+  { id: 'a-21', name: '또래국어학원 전주점', kind: 'ACADEMY', category: 'KOREAN', address: '전북 전주시 완산구 효자로 225', latitude: 35.8107, longitude: 127.1156, total_seats: 12, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 40) },
+  { id: 'a-22', name: '탄탄수학학원 센텀점', kind: 'ACADEMY', category: 'MATH', address: '부산 해운대구 센텀중앙로 79', latitude: 35.169, longitude: 129.1306, total_seats: 16, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 40) },
+  { id: 'a-23', name: '해든영어학원 노원점', kind: 'ACADEMY', category: 'ENGLISH', address: '서울 노원구 상계로 77', latitude: 37.6559, longitude: 127.0643, total_seats: 14, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 40) },
+  { id: 'a-24', name: '스터디온 스터디카페 신촌점', kind: 'STUDY_CAFE', address: '서울 서대문구 신촌로 129', latitude: 37.5559, longitude: 126.9366, total_seats: 22, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 35) },
+  { id: 'a-25', name: '모두의독서실 스터디카페 수원점', kind: 'STUDY_CAFE', address: '경기 수원시 팔달구 매산로 45', latitude: 37.266, longitude: 127.001, total_seats: 26, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 35) },
+  { id: 'a-26', name: '열공카페 스터디카페 부산대점', kind: 'STUDY_CAFE', address: '부산 금정구 부산대학로63번길 2', latitude: 35.2316, longitude: 129.0842, total_seats: 24, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 35) },
+  { id: 'a-27', name: '포커스온 스터디카페 동성로점', kind: 'STUDY_CAFE', address: '대구 중구 동성로 38', latitude: 35.869, longitude: 128.596, total_seats: 18, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 35) },
+  { id: 'a-28', name: '이음 스터디카페 부평점', kind: 'STUDY_CAFE', address: '인천 부평구 부흥로 264', latitude: 37.4895, longitude: 126.7243, total_seats: 20, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 35) },
+  { id: 'a-29', name: '아침달 스터디카페 충장로점', kind: 'STUDY_CAFE', address: '광주 동구 충장로 77', latitude: 35.1495, longitude: 126.9177, total_seats: 16, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 35) },
+  { id: 'a-30', name: '몰입 스터디카페 영등포점', kind: 'STUDY_CAFE', address: '서울 영등포구 영중로 15', latitude: 37.516, longitude: 126.907, total_seats: 28, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 35) },
+  { id: 'a-31', name: '온도 스터디카페 울산삼산점', kind: 'STUDY_CAFE', address: '울산 남구 삼산로 282', latitude: 35.5384, longitude: 129.339, total_seats: 20, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 30) },
+  { id: 'a-32', name: '세움 스터디카페 세종나성점', kind: 'STUDY_CAFE', address: '세종 나성북로 28', latitude: 36.492, longitude: 127.257, total_seats: 18, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 30) },
+  { id: 'a-33', name: '호반 스터디카페 춘천퇴계점', kind: 'STUDY_CAFE', address: '강원 춘천시 퇴계로 85', latitude: 37.853, longitude: 127.734, total_seats: 16, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 30) },
+  { id: 'a-34', name: '파도소리 스터디카페 강릉교동점', kind: 'STUDY_CAFE', address: '강원 강릉시 임영로 151', latitude: 37.765, longitude: 128.902, total_seats: 14, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 30) },
+  { id: 'a-35', name: '청춘독서실 스터디카페 청주성안길점', kind: 'STUDY_CAFE', address: '충북 청주시 상당구 상당로 85', latitude: 36.636, longitude: 127.489, total_seats: 22, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 30) },
+  { id: 'a-36', name: '단단 스터디카페 천안두정점', kind: 'STUDY_CAFE', address: '충남 천안시 서북구 두정로 71', latitude: 36.833, longitude: 127.144, total_seats: 24, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 30) },
+  { id: 'a-37', name: '한옥마을 스터디카페 전주객사점', kind: 'STUDY_CAFE', address: '전북 전주시 완산구 홍산로 24', latitude: 35.819, longitude: 127.148, total_seats: 18, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 30) },
+  { id: 'a-38', name: '푸른바다 스터디카페 여수학동점', kind: 'STUDY_CAFE', address: '전남 여수시 학동서4길 18', latitude: 34.745, longitude: 127.737, total_seats: 16, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 30) },
+  { id: 'a-39', name: '영일만 스터디카페 포항북구점', kind: 'STUDY_CAFE', address: '경북 포항시 북구 중앙로 255', latitude: 36.042, longitude: 129.366, total_seats: 20, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 30) },
+  { id: 'a-40', name: '탐라 스터디카페 제주노형점', kind: 'STUDY_CAFE', address: '제주 제주시 노형로 407', latitude: 33.485, longitude: 126.478, total_seats: 18, subscription_status: 'ACTIVE', subscription_expires_at: ago(-60 * 24 * 30), created_at: ago(60 * 24 * 30) }
 );
+// 지점 소개 정보(소개글·연락처·운영시간·특징) — 종류/과목에 맞게 자동 생성
+{
+  const AREA: Record<string, string> = {
+    서울: '02', 경기: '031', 인천: '032', 부산: '051', 대구: '053', 대전: '042', 광주: '062', 울산: '052',
+    세종: '044', 강원: '033', 충북: '043', 충남: '041', 전북: '063', 전남: '061', 경북: '054', 제주: '064',
+  };
+  const ACADEMY_DESC: Record<string, { text: string; features: string[] }> = {
+    MATH: { text: '개념 이해부터 심화까지, 학년별 맞춤 커리큘럼으로 수학 실력을 단단하게 만드는 소수정예 수학 전문 학원입니다.', features: ['소수정예', '레벨 테스트', '오답 클리닉', '학부모 리포트'] },
+    ENGLISH: { text: '읽기·듣기·말하기·쓰기를 균형 있게 다루는 영어 전문 학원. 레벨 테스트로 수준에 맞는 반을 배정합니다.', features: ['레벨 테스트', '원어민 수업', '단어 시험', '학부모 리포트'] },
+    KOREAN: { text: '독해력과 논리적 글쓰기를 키우는 국어·논술 전문 학원. 첨삭 중심 수업으로 서술형 대비까지 챙깁니다.', features: ['첨삭 수업', '독서 토론', '서술형 대비', '학부모 리포트'] },
+    SCIENCE: { text: '실험과 원리 중심으로 물리·화학·생명·지구과학을 가르치는 과학 전문 학원입니다.', features: ['실험 수업', '내신 대비', '소수정예', '학부모 리포트'] },
+    CODING: { text: '파이썬·웹·알고리즘까지, 프로젝트 중심으로 배우는 코딩 전문 학원입니다.', features: ['프로젝트 수업', '1:1 코드 리뷰', '대회 준비', '학부모 리포트'] },
+    GENERAL: { text: '국·영·수·과 전 과목을 학년별 맞춤반으로 운영하는 종합 학원. 자습실과 학습 관리를 함께 제공합니다.', features: ['전 과목', '자습실', '학습 관리', '학부모 리포트'] },
+  };
+  const CAFE_DESC = [
+    { text: '조용한 집중석과 가벼운 대화가 가능한 오픈석을 나눠 운영하는 스터디카페. 개인 콘센트와 칸막이를 갖췄어요.', features: ['개인 콘센트', '칸막이 좌석', '무료 음료', '프린터'] },
+    { text: '시험 기간에도 쾌적하게, 넉넉한 좌석과 스터디룸을 갖춘 24시간 무인 스터디카페입니다.', features: ['24시간', '스터디룸', '개인 콘센트', '무인 키오스크'] },
+    { text: '노트북석과 컴퓨터석을 따로 운영하고, 커피·차를 무료로 제공하는 편안한 분위기의 스터디카페입니다.', features: ['노트북석', '컴퓨터석', '무료 음료', '사물함'] },
+  ];
+  db.academies.forEach((a: any, i: number) => {
+    if (a.description) return;
+    const sido = String(a.address).split(' ')[0].replace(/(특별시|광역시|특별자치시|특별자치도|도)$/, '');
+    const code = AREA[sido] ?? '02';
+    a.phone = `${code}-${String(300 + ((i * 37) % 600)).padStart(3, '0')}-${String(1000 + ((i * 7919) % 9000)).padStart(4, '0')}`;
+    if (a.kind === 'ACADEMY') {
+      const d = ACADEMY_DESC[a.category ?? 'GENERAL'] ?? ACADEMY_DESC.GENERAL;
+      a.description = d.text;
+      a.features = d.features;
+      a.opening_hours = '평일 14:00 – 22:00 · 토 10:00 – 18:00 · 일 휴무';
+    } else {
+      const d = CAFE_DESC[i % CAFE_DESC.length];
+      a.description = d.text;
+      a.features = d.features;
+      a.opening_hours = i % 2 === 0 ? '24시간 운영' : '매일 06:00 – 24:00';
+    }
+  });
+}
+
 // 지점별 혼잡도(점유율): 이후 좌석 생성에 사용
-const OCCUPANCY: Record<string, number> = { [AC]: 0.35, 'a-2': 0.5, 'a-3': 0.75, 'a-4': 0.4, 'a-5': 0.9, 'a-6': 1, 'a-7': 0.2, 'a-8': 0.55, 'a-9': 0.3, 'a-10': 0.6 };
+const OCCUPANCY: Record<string, number> = { [AC]: 0.35, 'a-2': 0.5, 'a-3': 0.75, 'a-4': 0.4, 'a-5': 0.9, 'a-6': 1, 'a-7': 0.2, 'a-8': 0.55, 'a-9': 0.3, 'a-10': 0.6, 'a-24': 0.45, 'a-25': 0.8, 'a-26': 0.6, 'a-27': 0.3, 'a-28': 0.92, 'a-29': 0.5, 'a-30': 0.7, 'a-31': 0.55, 'a-32': 0.35, 'a-33': 0.4, 'a-34': 0.65, 'a-35': 0.5, 'a-36': 0.85, 'a-37': 0.45, 'a-38': 0.3, 'a-39': 0.6, 'a-40': 0.5 };
 
 // 지점별 좌석 생성 (존: 집중석 25% / 자유석 / 노트북·컴퓨터 / 큰 지점은 스터디룸)
 for (const a of db.academies) {
@@ -198,7 +285,8 @@ for (const dayOffset of [1, 2, 4, 5, 6, 8, 9, 11]) {
 }
 db.attendance_logs.push({ id: uid(), academy_id: AC, student_id: 'st-me', seat_number: 7, type: 'CHECK_IN', check_method: 'QR', logged_at: ago(95), stay_duration_minutes: 0 });
 {
-  const mine = db.seats.find((s) => s.id === `${AC}-s7`);
+  // 학생이 이용 중인 좌석은 스터디카페(공부의정석 홍대점) 좌석 — 홈의 좌석 시간 카드에 스터디카페 이름이 나옵니다
+  const mine = db.seats.find((s) => s.id === 'a-3-s7');
   if (mine) Object.assign(mine, { status: 'OCCUPIED', current_student_id: 'st-me', occupied_at: ago(95), zone_type: 'FOCUS' });
 }
 
@@ -234,6 +322,7 @@ const FK: Record<string, string> = {
   'classes:profiles': 'teacher_id',
   'class_enrollments:students': 'student_id',
   'team_members:teams': 'team_id',
+  'chat_room_members:profiles': 'user_id',
   'academy_owner_invites:academies': 'academy_id',
   'community_posts:profiles': 'author_id',
   'community_comments:profiles': 'author_id',
@@ -449,11 +538,20 @@ function rpc(fn: string, args: Row): Result {
   switch (fn) {
     case 'create_team': {
       const id = uid();
-      const team = { id, academy_id: AC, name: args.p_name, description: args.p_description ?? null, join_code: genCode(), created_by: ME, created_at: new Date().toISOString() };
+      // 팀은 일반 회원이 만드는 스터디 모임이라 소속 학원 없이 만들어짐
+      const team = { id, academy_id: null, name: args.p_name, description: args.p_description ?? null, join_code: genCode(), created_by: ME, created_at: new Date().toISOString() };
       db.teams.push(team);
       db.team_members.push({ team_id: id, user_id: ME, role: 'OWNER', joined_at: new Date().toISOString() });
       db.team_chat_rooms.push({ id: uid(), team_id: id, type: 'TEAM', user_a: null, user_b: null, created_at: new Date().toISOString() });
       return ok(team);
+    }
+    case 'join_chat_room_by_code': {
+      const room = db.chat_rooms.find((r) => r.type === 'CLASS' && String(r.join_code ?? '').toUpperCase() === String(args.p_code).toUpperCase());
+      if (!room) return fail('유효하지 않은 참가 코드입니다.');
+      if (!db.chat_room_members.some((m) => m.room_id === room.id && m.user_id === ME)) {
+        db.chat_room_members.push({ room_id: room.id, user_id: ME, joined_at: new Date().toISOString() });
+      }
+      return ok(room.id);
     }
     case 'join_team_by_code': {
       const team = db.teams.find((t) => t.join_code === String(args.p_code).toUpperCase());

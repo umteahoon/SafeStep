@@ -81,7 +81,11 @@ export default function LoginScreen() {
     goAfterLogin();
   };
 
-  const browse = () => navigation.reset({ index: 0, routes: [{ name: 'Main', params: { screen: 'HomeTab' } }] });
+  const browse = () => {
+    // 미리보기 모드에서 "로그인 없이 둘러보기"는 항상 비로그인 상태로
+    if (PREVIEW_MODE) setPreviewRole('GUEST');
+    navigation.reset({ index: 0, routes: [{ name: 'Main', params: { screen: 'HomeTab' } }] });
+  };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.white }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
