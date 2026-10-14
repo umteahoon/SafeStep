@@ -57,14 +57,21 @@ export default function MapSearchPage() {
   const { isLoaded, error: mapError } = useNaverMaps();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
-  const externalMarkersRef = useRef<any[]>([]);
+  const markersRef = useRef<Array<{ id: string; marker: any; infoWindow: any }>>([]);
+  const externalMarkersRef = useRef<Array<{ idx: number; marker: any; infoWindow: any }>>([]);
+  const openInfoWindowRef = useRef<any>(null);
+  const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
+  const externalItemRefs = useRef<Record<number, HTMLLIElement | null>>({});
 
   const [academies, setAcademies] = useState<AcademyWithSeats[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [center, setCenter] = useState(DEFAULT_CENTER);
   const [searchQuery, setSearchQuery] = useState('');
   const [externalPlaces, setExternalPlaces] = useState<ExternalPlace[]>([]);
+  // 목록 ↔ 지도 상호 연동: 목록을 누르면 지도가 해당 위치로 이동하고,
+  // 지도 마커를 누르면 목록에서 그 항목이 강조되고 스크롤됩니다.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedExternalIdx, setSelectedExternalIdx] = useState<number | null>(null);
 
   // 사용자 위치
   useEffect(() => {
@@ -145,7 +152,7 @@ export default function MapSearchPage() {
   useEffect(() => {
     if (!isLoaded || !mapInstance.current) return;
 
-    markersRef.current.forEach((m) => m.setMap(null));
+    markersRef.current.forEach((m) => m.marker.setMap(null));
     markersRef.current = [];
 
     filteredAcademies.forEach((academy) => {
@@ -162,11 +169,15 @@ export default function MapSearchPage() {
         </div>`,
       });
 
+      // 지도에서 마커를 누르면 목록의 같은 항목이 강조되고 그 위치로 스크롤됩니다.
       window.naver.maps.Event.addListener(marker, 'click', () => {
+        openInfoWindowRef.current?.close();
         infoWindow.open(mapInstance.current, marker);
+        openInfoWindowRef.current = infoWindow;
+        setSelectedId(academy.id);
       });
 
-      markersRef.current.push(marker);
+      markersRef.current.push({ id: academy.id, marker, infoWindow });
     });
   }, [isLoaded, filteredAcademies]);
 
@@ -208,10 +219,10 @@ export default function MapSearchPage() {
   useEffect(() => {
     if (!isLoaded || !mapInstance.current) return;
 
-    externalMarkersRef.current.forEach((m) => m.setMap(null));
+    externalMarkersRef.current.forEach((m) => m.marker.setMap(null));
     externalMarkersRef.current = [];
 
-    externalPlaces.forEach((place) => {
+    externalPlaces.forEach((place, idx) => {
       const coords = resolvePlaceLatLng(place.mapx, place.mapy);
       if (!coords) return;
 
@@ -236,20 +247,56 @@ export default function MapSearchPage() {
         </div>`,
       });
 
+      // 지도에서 회색 마커를 누르면 목록의 "SafeStep 미등록" 항목도 강조·스크롤됩니다.
       window.naver.maps.Event.addListener(marker, 'click', () => {
+        openInfoWindowRef.current?.close();
         infoWindow.open(mapInstance.current, marker);
+        openInfoWindowRef.current = infoWindow;
+        setSelectedExternalIdx(idx);
       });
 
-      externalMarkersRef.current.push(marker);
+      externalMarkersRef.current.push({ idx, marker, infoWindow });
     });
   }, [isLoaded, externalPlaces]);
 
-  const focusExternalPlace = (place: ExternalPlace) => {
+  // 목록에서 SafeStep 등록 지점을 누르면 해당 마커 위치로 지도를 이동하고 정보창을 엽니다.
+  const focusAcademy = (academy: AcademyWithSeats) => {
+    setSelectedId(academy.id);
+    if (!mapInstance.current || !window.naver) return;
+    mapInstance.current.panTo(new window.naver.maps.LatLng(academy.latitude, academy.longitude));
+    mapInstance.current.setZoom(16);
+    const entry = markersRef.current.find((m) => m.id === academy.id);
+    if (entry) {
+      openInfoWindowRef.current?.close();
+      entry.infoWindow.open(mapInstance.current, entry.marker);
+      openInfoWindowRef.current = entry.infoWindow;
+    }
+  };
+
+  const focusExternalPlace = (place: ExternalPlace, idx: number) => {
     const coords = resolvePlaceLatLng(place.mapx, place.mapy);
     if (!coords || !mapInstance.current) return;
+    setSelectedExternalIdx(idx);
     mapInstance.current.panTo(new window.naver.maps.LatLng(coords.lat, coords.lng));
     mapInstance.current.setZoom(16);
+    const entry = externalMarkersRef.current.find((m) => m.idx === idx);
+    if (entry) {
+      openInfoWindowRef.current?.close();
+      entry.infoWindow.open(mapInstance.current, entry.marker);
+      openInfoWindowRef.current = entry.infoWindow;
+    }
   };
+
+  // 지도 마커를 눌러 선택이 바뀌면 목록에서도 그 항목이 보이도록 스크롤합니다.
+  useEffect(() => {
+    if (!selectedId) return;
+    itemRefs.current[selectedId]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [selectedId]);
+
+  useEffect(() => {
+    if (selectedExternalIdx === null) return;
+    externalItemRefs.current[selectedExternalIdx]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [selectedExternalIdx]);
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -305,7 +352,12 @@ export default function MapSearchPage() {
           {filteredAcademies.map((a) => (
             <li
               key={a.id}
-              className="cursor-pointer p-4 transition hover:bg-gray-50"
+              ref={(el) => {
+                itemRefs.current[a.id] = el;
+              }}
+              className={`cursor-pointer p-4 transition hover:bg-gray-50 ${
+                selectedId === a.id ? 'bg-blue-50 ring-1 ring-inset ring-blue-300' : ''
+              }`}
               onClick={() => navigate(`/seats/${a.id}`)}
             >
               <div className="flex items-center justify-between">
@@ -321,6 +373,16 @@ export default function MapSearchPage() {
                 </span>
               </div>
               <p className="mt-1 text-sm text-gray-400">{a.address}</p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  focusAcademy(a);
+                }}
+                className="mt-1.5 text-xs font-medium text-blue-600 hover:underline"
+              >
+                📍 지도에서 보기
+              </button>
             </li>
           ))}
           {!isLoadingList && academies.length === 0 && (
@@ -340,8 +402,13 @@ export default function MapSearchPage() {
               {externalPlaces.map((place, i) => (
                 <li
                   key={`${place.name}-${i}`}
-                  className="cursor-pointer p-4 transition hover:bg-gray-50"
-                  onClick={() => focusExternalPlace(place)}
+                  ref={(el) => {
+                    externalItemRefs.current[i] = el;
+                  }}
+                  className={`cursor-pointer p-4 transition hover:bg-gray-50 ${
+                    selectedExternalIdx === i ? 'bg-blue-50 ring-1 ring-inset ring-blue-300' : ''
+                  }`}
+                  onClick={() => focusExternalPlace(place, i)}
                 >
                   <div className="flex items-center gap-1.5">
                     <span className="h-2 w-2 shrink-0 rounded-full bg-gray-400" />
