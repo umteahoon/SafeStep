@@ -484,17 +484,18 @@ export default function MapSearchPage() {
         )}
       </div>
       </div>
-      <RegionSheet
-        visible={regionOpen}
-        groups={regions}
-        value={region}
-        onSelect={(v) => {
-          setRegion(v);
-          setRegionOpen(false);
-        }}
-        onClose={() => setRegionOpen(false)}
-        unit="스터디카페"
-      />
+      {regionOpen && (
+        <RegionSheet
+          groups={regions}
+          value={region}
+          onSelect={(v) => {
+            setRegion(v);
+            setRegionOpen(false);
+          }}
+          onClose={() => setRegionOpen(false)}
+          unit="스터디카페"
+        />
+      )}
     </div>
   );
 }

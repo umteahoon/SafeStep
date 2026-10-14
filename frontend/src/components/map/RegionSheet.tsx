@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { SidoGroup } from '../../lib/region';
 
 export interface RegionValue {
@@ -9,16 +9,16 @@ export interface RegionValue {
 /**
  * 지역 선택 바텀시트 — 왼쪽에서 시/도, 오른쪽에서 구/시를 고르는 2단 구조.
  * 모바일 앱 components/RegionSheet.tsx와 동일한 동작을 웹으로 포팅.
+ * 열릴 때마다 현재 선택값으로 초기화되도록, 부모가 열려 있을 때만 이 컴포넌트를
+ * 마운트합니다(매번 새로 마운트되어 아래 useState 초기값이 다시 적용됨).
  */
 export function RegionSheet({
-  visible,
   groups,
   value,
   onSelect,
   onClose,
   unit = '스터디카페',
 }: {
-  visible: boolean;
   groups: SidoGroup[];
   value: RegionValue;
   onSelect: (v: RegionValue) => void;
@@ -27,11 +27,6 @@ export function RegionSheet({
 }) {
   // 시트 안에서 둘러보는 시/도 — 왼쪽 목록을 눌러도 선택이 적용되지 않고 오른쪽 구/시 목록만 바뀜
   const [browse, setBrowse] = useState<string | null>(value.sido);
-  useEffect(() => {
-    if (visible) setBrowse(value.sido);
-  }, [visible, value.sido]);
-
-  if (!visible) return null;
   const active = groups.find((g) => g.sido === browse) ?? groups[0];
 
   return (
