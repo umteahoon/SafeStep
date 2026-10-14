@@ -28,7 +28,7 @@ safestep/
     ├── migration_14_security_hardening.sql     기존 프로젝트 추가 마이그레이션 (구독 상태 직접 변경 차단, 문의 직접 INSERT 제거, 채팅 이미지 비공개화, §1 참고)
     ├── seed.sql                                샘플 학원 2곳
     ├── seed_floorplan.sql                      존별 좌석 배치 샘플(강남점은 실제 매장 사진 기반 62석 구조)
-    ├── seed_real_studycafes.sql                지도용 실제 주소 기반 스터디카페 20곳 추가 + 기본 좌석 배치
+    ├── seed_real_studycafes.sql                지도용 실제 주소 기반 스터디카페 22곳 추가 + 기본 좌석 배치 (모바일 앱과 동일한 목록)
     └── seed_demo_accounts.mjs                  랜딩페이지 "데모 체험하기" 버튼용 계정 생성 스크립트
 ```
 
@@ -98,7 +98,7 @@ safestep/
 1. [supabase.com](https://supabase.com) 에서 새 프로젝트 생성 (무료 플랜)
 2. **SQL Editor** → `supabase/schema.sql` 전체 실행
 3. (선택) `supabase/seed.sql` → `supabase/seed_floorplan.sql` 순서로 실행 — 샘플 학원 2곳 + 존별 좌석 + 테스트 학생(핀코드 `111111`) 생성
-4. (선택) `/map`을 실제 위치처럼 채우려면 `supabase/seed_real_studycafes.sql` 실행 — 테스트/오인 가입으로 생긴 학원 지점 정리(STEP 0·1, 파일 안내 주석 참고) + 실제 주소 기반 스터디카페 20곳과 기본 좌석 배치 추가
+4. (선택) `/map`을 실제 위치처럼 채우려면 `supabase/seed_real_studycafes.sql` 실행 — 테스트/오인 가입으로 생긴 학원 지점 정리(STEP 0·1, 파일 안내 주석 참고) + 실제 주소 기반 스터디카페 22곳(모바일 앱과 동일한 목록)과 기본 좌석 배치 추가
 5. **Project Settings → API Keys** 에서 값 확인:
    - `Project URL` → `VITE_SUPABASE_URL`, `SUPABASE_URL`
    - `anon public` 키 → `VITE_SUPABASE_ANON_KEY`
