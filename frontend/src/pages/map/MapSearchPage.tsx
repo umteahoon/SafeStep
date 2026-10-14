@@ -4,6 +4,10 @@ import { useNaverMaps } from '../../hooks/useNaverMaps';
 import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api';
 import { isNativeApp } from '../../lib/platform';
+import { useFavorites } from '../../lib/favorites';
+import { groupRegions, inRegion } from '../../lib/region';
+import { RegionSheet } from '../../components/map/RegionSheet';
+import type { RegionValue } from '../../components/map/RegionSheet';
 import logo from '../../assets/logo.png';
 import type { Academy } from '../../types';
 
@@ -73,6 +77,12 @@ export default function MapSearchPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedExternalIdx, setSelectedExternalIdx] = useState<number | null>(null);
 
+  // 모바일 앱과 동일한 지역별 찾기 + 즐겨찾기
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const [onlyFav, setOnlyFav] = useState(false);
+  const [region, setRegion] = useState<RegionValue>({ sido: null, sigungu: null });
+  const [regionOpen, setRegionOpen] = useState(false);
+
   // 사용자 위치
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -139,14 +149,26 @@ export default function MapSearchPage() {
     });
   }, [isLoaded, center]);
 
-  // 검색어와 일치하는 학원만 — 입력할 때마다 바로 갱신되어 목록·지도 둘 다에 쓰임
+  // 검색어와 일치하는 학원만 — 입력할 때마다 바로 갱신되어 목록·지도 둘 다에 쓰임.
+  // 즐겨찾기/지역 필터까지 이어서 적용합니다 (모바일 앱과 동일한 필터 조합).
   const filteredAcademies = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return academies;
-    return academies.filter(
-      (a) => a.name.toLowerCase().includes(q) || a.address.toLowerCase().includes(q)
-    );
-  }, [academies, searchQuery]);
+    let list = !q
+      ? academies
+      : academies.filter(
+          (a) => a.name.toLowerCase().includes(q) || a.address.toLowerCase().includes(q)
+        );
+    if (onlyFav) list = list.filter((a) => isFavorite(a.id));
+    if (region.sido) list = list.filter((a) => inRegion(a.address, region.sido, region.sigungu));
+    return list;
+  }, [academies, searchQuery, onlyFav, region, isFavorite]);
+
+  // 지역 선택 시트에 쓸 시/도 · 구/시 그룹 (전체 지점 기준)
+  const regions = useMemo(
+    () => groupRegions(academies.map((a) => ({ id: a.id, address: a.address, empty: a.emptySeats, total: a.total_seats }))),
+    [academies]
+  );
+  const regionLabel = region.sido ? (region.sigungu ? `${region.sido} · ${region.sigungu}` : region.sido) : '지역';
 
   // 마커 렌더링: 검색 중이면 검색 결과만, 아니면 전체를 표시
   useEffect(() => {
@@ -342,6 +364,30 @@ export default function MapSearchPage() {
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
             />
           </form>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setRegionOpen(true)}
+              className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                region.sido
+                  ? 'border-gray-900 bg-gray-900 text-white'
+                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              📍 {regionLabel} ▾
+            </button>
+            <button
+              type="button"
+              onClick={() => setOnlyFav((v) => !v)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                onlyFav
+                  ? 'border-blue-500 bg-blue-50 text-blue-600'
+                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              ♥ 즐겨찾기
+            </button>
+          </div>
         </div>
 
         {isLoadingList && (
@@ -360,10 +406,21 @@ export default function MapSearchPage() {
               }`}
               onClick={() => navigate(`/seats/${a.id}`)}
             >
-              <div className="flex items-center justify-between">
-                <h2 className="font-medium text-gray-900">{a.name}</h2>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="min-w-0 flex-1 truncate font-medium text-gray-900">{a.name}</h2>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(a.id);
+                  }}
+                  className={`shrink-0 text-base ${isFavorite(a.id) ? 'text-rose-500' : 'text-gray-300'}`}
+                  aria-label="즐겨찾기"
+                >
+                  {isFavorite(a.id) ? '♥' : '♡'}
+                </button>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
                     a.emptySeats > 0
                       ? 'bg-blue-50 text-blue-600'
                       : 'bg-gray-100 text-gray-400'
@@ -389,7 +446,11 @@ export default function MapSearchPage() {
             <li className="p-4 text-sm text-gray-400">등록된 지점이 없습니다.</li>
           )}
           {!isLoadingList && academies.length > 0 && filteredAcademies.length === 0 && (
-            <li className="p-4 text-sm text-gray-400">"{searchQuery}"와 일치하는 지점이 없습니다.</li>
+            <li className="p-4 text-sm text-gray-400">
+              {onlyFav && !searchQuery && !region.sido
+                ? '즐겨찾기한 지점이 없어요. 하트를 눌러 추가해보세요.'
+                : `"${searchQuery}"와 일치하는 지점이 없습니다.`}
+            </li>
           )}
         </ul>
 
@@ -423,6 +484,17 @@ export default function MapSearchPage() {
         )}
       </div>
       </div>
+      <RegionSheet
+        visible={regionOpen}
+        groups={regions}
+        value={region}
+        onSelect={(v) => {
+          setRegion(v);
+          setRegionOpen(false);
+        }}
+        onClose={() => setRegionOpen(false)}
+        unit="스터디카페"
+      />
     </div>
   );
 }

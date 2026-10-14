@@ -40,6 +40,7 @@ const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'));
 const SeatEditorPage = lazy(() => import('./pages/admin/SeatEditorPage'));
 const ChatListPage = lazy(() => import('./pages/chat/ChatListPage'));
 const ChatRoomPage = lazy(() => import('./pages/chat/ChatRoomPage'));
+const ProfileEditPage = lazy(() => import('./pages/me/ProfileEditPage'));
 
 function App() {
   // 세션/프로필 구독은 앱 최상단에서 한 번만
@@ -146,7 +147,7 @@ function App() {
           </Route>
         </Route>
 
-        {/* 로그인한 전체 역할: 내 문의 내역 */}
+        {/* 로그인한 전체 역할: 내 문의 내역 · 내 정보 수정 */}
         <Route
           element={
             <ProtectedRoute
@@ -155,6 +156,7 @@ function App() {
           }
         >
           <Route path="/my/inquiries" element={<MyInquiriesPage />} />
+          <Route path="/me/edit" element={<ProfileEditPage />} />
         </Route>
 
         <Route

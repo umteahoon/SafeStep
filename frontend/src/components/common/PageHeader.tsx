@@ -51,6 +51,14 @@ export function PageHeader({ title, subtitle, backTo, right }: PageHeaderProps) 
         )}
         {profile && (
           <Link
+            to="/me/edit"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
+          >
+            👤 내 정보
+          </Link>
+        )}
+        {profile && (
+          <Link
             to="/my/inquiries"
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
           >
