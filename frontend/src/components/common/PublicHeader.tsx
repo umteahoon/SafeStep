@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { homeForRole } from '../../lib/navigation';
+import { MOBILE_SITE_URL } from '../../lib/deviceRedirect';
 import logo from '../../assets/logo.png';
 
 /** 랜딩에서 이어지는 공개 안내 페이지(/inquiry, /start)의 상단 바 */
@@ -13,6 +14,12 @@ export function PublicHeader() {
           <img src={logo} alt="SafeStep" className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-2 text-sm">
+          <a
+            href={`${MOBILE_SITE_URL}/?site=mobile`}
+            className="hidden rounded-lg px-3 py-2 text-gray-400 hover:bg-gray-50 sm:inline-block"
+          >
+            📱 모바일 버전
+          </a>
           <Link to="/map" className="rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50">
             스터디카페 및 학원 찾기
           </Link>

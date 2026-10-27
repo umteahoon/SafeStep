@@ -16,9 +16,32 @@ const headInject = `
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="SafeStep" />
+    <script>
+      // 데스크톱 브라우저로 이 모바일 사이트에 들어오면 웹(데스크톱) 사이트로 보냅니다.
+      // 홈 화면에 설치된 PWA는 건드리지 않고, 사용자가 명시적으로 선택한 경우도 기억합니다.
+      (function () {
+        var DESKTOP_SITE = 'https://safestep-kr.netlify.app';
+        var PREF_KEY = 'safestep:site-pref';
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('site') === 'mobile') {
+          localStorage.setItem(PREF_KEY, 'mobile');
+          return;
+        }
+        var isStandalone =
+          window.matchMedia('(display-mode: standalone)').matches ||
+          window.navigator.standalone === true;
+        if (isStandalone) return;
+        if (localStorage.getItem(PREF_KEY) === 'mobile') return;
+        var isMobileUA = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        if (!isMobileUA) {
+          window.location.replace(DESKTOP_SITE + '/?site=desktop');
+        }
+      })();
+    </script>
   </head>`;
 
 const bodyInject = `
+  <a href="https://safestep-kr.netlify.app/?site=desktop" style="position:fixed;right:10px;bottom:10px;z-index:9999;background:rgba(17,21,26,.7);color:#fff;font:12px -apple-system,sans-serif;padding:6px 10px;border-radius:999px;text-decoration:none;">💻 데스크톱 버전으로 보기</a>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
