@@ -153,12 +153,14 @@ export interface AbsenceRequest {
   created_at: string;
 }
 
-export type ChatRoomType = 'CLASS' | 'ANNOUNCEMENT';
+export type ChatRoomType = 'CLASS' | 'ANNOUNCEMENT' | 'PARENT';
 
 export interface ChatRoom {
   id: string;
   academy_id: string;
   class_id: string | null;
+  /** 학부모 상담방(PARENT)일 때 대상 학생 */
+  student_id?: string | null;
   type: ChatRoomType;
   name: string;
   created_at: string;

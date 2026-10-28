@@ -40,6 +40,7 @@ const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'));
 const SeatEditorPage = lazy(() => import('./pages/admin/SeatEditorPage'));
 const ChatListPage = lazy(() => import('./pages/chat/ChatListPage'));
 const ChatRoomPage = lazy(() => import('./pages/chat/ChatRoomPage'));
+const ParentConsultPage = lazy(() => import('./pages/chat/ParentConsultPage'));
 const ProfileEditPage = lazy(() => import('./pages/me/ProfileEditPage'));
 
 function App() {
@@ -98,6 +99,7 @@ function App() {
           <Route path="/classes" element={<ClassListPage />} />
           <Route path="/classes/schedule" element={<ClassSchedulePage />} />
           <Route path="/attendance" element={<ClassAttendancePage />} />
+          <Route path="/consult" element={<ParentConsultPage />} />
           <Route path="/admin/reports" element={<ReportsPage />} />
           <Route path="/admin/seats/editor" element={<SeatEditorPage />} />
         </Route>

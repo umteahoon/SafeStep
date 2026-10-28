@@ -10,6 +10,7 @@ import type { ChatMessage, ChatRoom, ChatRoomRead, Class } from '../../types';
 const TYPE_LABEL: Record<ChatRoom['type'], string> = {
   ANNOUNCEMENT: '공지',
   CLASS: '반',
+  PARENT: '상담',
 };
 
 function previewText(m: ChatMessage): string {
@@ -76,7 +77,8 @@ export default function ChatListPage() {
     }
 
     const { data, error: e } = await supabase.from('chat_rooms').select('*');
-    const roomList = (data as ChatRoom[]) ?? [];
+    // 직원에게 학부모 상담방은 "학부모 소통"(/consult)에서 따로 보여줌
+    const roomList = ((data as ChatRoom[]) ?? []).filter((r) => !(isStaff && r.type === 'PARENT'));
     setError(e?.message ?? null);
 
     if (roomList.length > 0) {
