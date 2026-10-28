@@ -241,11 +241,11 @@ export default function DashboardPage() {
             <table className="w-full min-w-[640px] text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
                 <tr>
-                  <th className="px-5 py-2.5">제목</th>
-                  <th className="px-3 py-2.5">수신 대상</th>
-                  <th className="px-3 py-2.5">전송 시간</th>
-                  <th className="px-3 py-2.5">상태</th>
-                  <th className="px-5 py-2.5">열람률</th>
+                  <th className="w-full px-5 py-2.5">제목</th>
+                  <th className="whitespace-nowrap px-3 py-2.5">수신 대상</th>
+                  <th className="whitespace-nowrap px-3 py-2.5">전송 시간</th>
+                  <th className="whitespace-nowrap px-3 py-2.5">상태</th>
+                  <th className="whitespace-nowrap px-5 py-2.5">열람률</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -337,21 +337,21 @@ function NoticeRow({ n }: { n: NoticeStat }) {
   const Icon = isNotice ? FileText : BellRing;
   return (
     <tr>
-      <td className="px-5 py-3">
-        <span className="flex items-center gap-2 font-medium text-slate-900">
-          <Icon size={16} className={isNotice ? 'text-blue-600' : 'text-amber-600'} aria-hidden="true" />
+      <td className="max-w-0 px-5 py-3" title={n.title}>
+        <span className="flex min-w-0 items-center gap-2 font-medium text-slate-900">
+          <Icon size={16} className={`shrink-0 ${isNotice ? 'text-blue-600' : 'text-amber-600'}`} aria-hidden="true" />
           <span className="truncate">{n.title}</span>
         </span>
         <span className="ml-6 text-xs text-slate-400">{isNotice ? '공지' : '출결 알림'}</span>
       </td>
-      <td className="px-3 py-3 text-slate-600">
+      <td className="whitespace-nowrap px-3 py-3 text-slate-600">
         {n.target}
         <span className="ml-1 text-xs text-slate-400">{n.recipients}명</span>
       </td>
       <td className="px-3 py-3 whitespace-nowrap text-slate-500">
         {n.sent_at ? format(new Date(n.sent_at), 'yyyy.MM.dd HH:mm') : '—'}
       </td>
-      <td className="px-3 py-3">
+      <td className="whitespace-nowrap px-3 py-3">
         {isNotice ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
             <Megaphone size={12} aria-hidden="true" />게시됨
@@ -364,7 +364,7 @@ function NoticeRow({ n }: { n: NoticeStat }) {
           </span>
         )}
       </td>
-      <td className="px-5 py-3">
+      <td className="whitespace-nowrap px-5 py-3">
         {rate === null ? (
           <span className="text-slate-300">—</span>
         ) : (
