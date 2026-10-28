@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8" /><title>지도</title></head>
+<body>
+<script>
+  // 웹(react-native-web)에서 지도 HTML을 받아 같은 https 주소의 이 문서에 그려 줍니다.
+  // srcdoc iframe은 주소가 about:srcdoc 이라 네이버 지도 스크립트가 http 로 리소스를 요청해 차단되기 때문.
+  window.addEventListener('message', function (e) {
+    if (e.source !== parent || !e.data || typeof e.data.__safestepMapHtml !== 'string') return;
+    document.open();
+    document.write(e.data.__safestepMapHtml);
+    document.close();
+  });
+  parent.postMessage({ __safestepMapFrameReady: true }, '*');
+</script>
+</body>
+</html>

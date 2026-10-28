@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { MapFrame } from '../../components/MapFrame';
+import type { MapFrameHandle } from '../../components/MapFrame';
 import * as Location from 'expo-location';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
@@ -36,6 +37,7 @@ function buildMapHtml(clientId: string) {
   return `<!doctype html><html><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <style>html,body,#map{margin:0;padding:0;width:100%;height:100%}</style>
+<script>window.navermap_authFailure=function(){window.ReactNativeWebView.postMessage(JSON.stringify({type:'authfail'}));};</script>
 <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${clientId}"></script>
 </head><body><div id="map"></div>
 <script>
@@ -99,7 +101,7 @@ function buildLeafletHtml() {
   function init(c){
     if(!window.L){ post({type:'error', message:'지도를 불러오지 못했습니다. 네트워크 연결을 확인하세요.'}); return; }
     map = L.map('map', {zoomControl:false}).setView([c.lat, c.lng], 11);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {maxZoom:19, subdomains:'abcd', attribution:'© OpenStreetMap © CARTO'}).addTo(map);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
     layer = L.layerGroup().addTo(map);
     map.on('moveend', reportBounds);
     post({type:'ready'});
@@ -133,12 +135,14 @@ function buildLeafletHtml() {
 function MapScreenInner() {
   const navigation = useNavigation<RootNav>();
   const route = useRoute<RouteProp<TabParamList, 'MapTab'>>();
-  const webRef = useRef<WebView>(null);
+  const webRef = useRef<MapFrameHandle>(null);
   const listRef = useRef<FlatList<AcademyWithSeats>>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [center, setCenter] = useState(DEFAULT_CENTER);
   const [webLoaded, setWebLoaded] = useState(false);
+  // 네이버 지도 인증이 실패하면(키 없음·미등록 도메인) 키가 필요 없는 기본 지도로 전환
+  const [useNaver, setUseNaver] = useState(!!NAVER_CLIENT_ID);
 
   const [academies, setAcademies] = useState<AcademyWithSeats[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
@@ -360,19 +364,25 @@ function MapScreenInner() {
     }, [])
   );
 
-  const html = useMemo(() => (NAVER_CLIENT_ID ? buildMapHtml(NAVER_CLIENT_ID) : buildLeafletHtml()), []);
+  const html = useMemo(() => (useNaver && NAVER_CLIENT_ID ? buildMapHtml(NAVER_CLIENT_ID) : buildLeafletHtml()), [useNaver]);
 
   return (
     <View style={styles.container}>
       <View style={styles.mapBox}>
-        <WebView
+        <MapFrame
+          key={useNaver ? 'naver' : 'leaflet'}
           ref={webRef}
-          originWhitelist={['*']}
-          source={NAVER_CLIENT_ID ? { html, baseUrl: NAVER_WEB_URL } : { html }}
-          javaScriptEnabled
-          onMessage={(e) => {
+          html={html}
+          baseUrl={useNaver ? NAVER_WEB_URL : undefined}
+          onMessage={(data) => {
             try {
-              const msg = JSON.parse(e.nativeEvent.data);
+              const msg = JSON.parse(data);
+              if (msg.type === 'authfail') {
+                setWebLoaded(false);
+                setMapReady(false);
+                setUseNaver(false);
+                return;
+              }
               if (msg.type === 'loaded') setWebLoaded(true);
               if (msg.type === 'ready') setMapReady(true);
               if (msg.type === 'error') setMapError(msg.message);
