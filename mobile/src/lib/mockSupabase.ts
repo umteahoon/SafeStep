@@ -535,6 +535,17 @@ function rpc(fn: string, args: Row): Result {
       emit('class_attendance_records', 'INSERT', rec, null);
       return ok({ status, already: false, class_id: cls.id, date: localToday });
     }
+    case 'open_parent_room': {
+      // 미리보기: 학생별 학부모 상담방을 찾거나 새로 만듦
+      const st = db.students.find((x) => x.id === args.p_student_id);
+      if (!st) return fail('상담방을 열 수 없습니다.');
+      let room = db.chat_rooms.find((r) => r.type === 'PARENT' && r.student_id === st.id);
+      if (!room) {
+        room = { id: uid(), academy_id: st.academy_id, class_id: null, student_id: st.id, type: 'PARENT', name: `${st.name} 학부모 상담`, created_at: new Date().toISOString() };
+        db.chat_rooms.push(room);
+      }
+      return ok(room.id);
+    }
     case 'list_academy_chat_rooms': {
       const mine = db.chat_room_members.filter((m) => m.user_id === mockUserId).map((m) => m.room_id);
       const isStaff = db.profiles.find((p) => p.id === mockUserId)?.role === 'TEACHER' || db.profiles.find((p) => p.id === mockUserId)?.role === 'ACADEMY_ADMIN';

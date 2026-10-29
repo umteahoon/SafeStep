@@ -5,6 +5,7 @@ import { apiFetch } from "../../lib/api";
 import { supabase } from "../../lib/supabase";
 import { subscribeToPush } from "../../lib/push";
 import { useAuth } from "../../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 interface Child {
   id: string;
@@ -133,6 +134,22 @@ export default function ParentReportPage() {
 
   const selectedChild = children.find((c) => c.id === selectedId);
 
+  // 선택한 자녀의 학원 선생님과 1:1 상담방을 열고(없으면 생성) 채팅으로 이동
+  const navigate = useNavigate();
+  const [isOpeningConsult, setIsOpeningConsult] = useState(false);
+  const openConsult = async () => {
+    if (!selectedId) return;
+    setIsOpeningConsult(true);
+    setError(null);
+    const { data, error: rpcErr } = await supabase.rpc("open_parent_room", { p_student_id: selectedId });
+    setIsOpeningConsult(false);
+    if (rpcErr || !data) {
+      setError(rpcErr?.message ?? "상담방을 열 수 없습니다.");
+      return;
+    }
+    navigate(`/chat/${data as string}`);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <PageHeader
@@ -200,6 +217,14 @@ export default function ParentReportPage() {
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
               >
                 🔔 출결 알림 켜기
+              </button>
+              <button
+                type="button"
+                onClick={openConsult}
+                disabled={isOpeningConsult}
+                className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                💬 선생님께 문의
               </button>
             </div>
 

@@ -5,6 +5,8 @@ import { apiFetch } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/useAuth';
 import { RequireRole } from '../../components/Guard';
+import { useNavigation } from '@react-navigation/native';
+import type { RootNav } from '../../navigation/types';
 import { Banner, Button, DayStepper, Input, Loading, Screen } from '../../components/ui';
 import { colors, radius } from '../../theme';
 
@@ -40,6 +42,8 @@ function dateLabel(v: string) {
 
 function Inner() {
   const { user } = useAuth();
+  const navigation = useNavigation<RootNav>();
+  const [isOpeningConsult, setIsOpeningConsult] = useState(false);
   const [children, setChildren] = useState<Child[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [report, setReport] = useState<Report | null>(null);
@@ -168,6 +172,24 @@ function Inner() {
             </Pressable>
           </View>
           {showLink && linkForm}
+
+          {/* 선택한 자녀의 학원 선생님과 1:1 상담 (방이 없으면 새로 만들어짐) */}
+          <Button
+            title={isOpeningConsult ? '상담방 여는 중...' : '💬 선생님께 문의하기'}
+            variant="secondary"
+            disabled={!selectedId || isOpeningConsult}
+            onPress={async () => {
+              setIsOpeningConsult(true);
+              setError(null);
+              const { data, error: rpcErr } = await supabase.rpc('open_parent_room', { p_student_id: selectedId });
+              setIsOpeningConsult(false);
+              if (rpcErr || !data) {
+                setError(rpcErr?.message ?? '상담방을 열 수 없습니다.');
+                return;
+              }
+              navigation.navigate('ChatRoom', { roomId: data as string });
+            }}
+          />
 
           {/* 이번 주 */}
           <Text style={s.h2}>이번 주 {selectedChild?.name ?? ''} 학생</Text>

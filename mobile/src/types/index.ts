@@ -167,7 +167,7 @@ export interface AbsenceRequest {
   created_at: string;
 }
 
-export type ChatRoomType = 'CLASS' | 'ANNOUNCEMENT';
+export type ChatRoomType = 'CLASS' | 'ANNOUNCEMENT' | 'PARENT';
 
 export interface ChatRoom {
   id: string;

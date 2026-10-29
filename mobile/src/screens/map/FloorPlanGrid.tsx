@@ -169,10 +169,27 @@ function ZoneBox({
           </View>
         </View>
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <SwipeArea>
           <Grid seats={seats} onSelectSeat={onSelectSeat} />
-        </ScrollView>
+        </SwipeArea>
       )}
+    </View>
+  );
+}
+
+/** 좌석 도면이 화면보다 넓을 때만 "옆으로 밀어 보기" 안내와 스크롤 막대를 보여주는 가로 스크롤 */
+function SwipeArea({ children }: { children: React.ReactNode }) {
+  const [boxW, setBoxW] = useState(0);
+  const [contentW, setContentW] = useState(0);
+  const overflow = contentW > boxW + 4 && boxW > 0;
+  return (
+    <View onLayout={(e) => setBoxW(e.nativeEvent.layout.width)}>
+      {overflow && (
+        <Text style={{ fontSize: 12, color: colors.textSub, marginBottom: 6 }}>← 옆으로 밀어 전체 좌석 보기 →</Text>
+      )}
+      <ScrollView horizontal showsHorizontalScrollIndicator={overflow} onContentSizeChange={(w) => setContentW(w)}>
+        {children}
+      </ScrollView>
     </View>
   );
 }
@@ -263,9 +280,9 @@ export function FloorPlanGrid({ academyId, onSelectSeat }: Props) {
       {landmarks.length > 0 ? (
         // 자유 배치 모드: 실제 매장 사진 기준 절대 좌표로 좌석·통로·시설 재현
         <View style={styles.canvas}>
-          <ScrollView horizontal>
+          <SwipeArea>
             <Grid seats={seats} landmarks={landmarks} onSelectSeat={onSelectSeat} />
-          </ScrollView>
+          </SwipeArea>
         </View>
       ) : (
         <>

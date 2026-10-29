@@ -29,6 +29,9 @@ safestep/
     ├── migration_15_hierarchy_checkin.sql      기존 프로젝트 추가 마이그레이션 (원장→강사 초대 코드, 학생 "출석하기" 버튼, §1 참고)
     ├── migration_16_chat_room_password.sql     기존 프로젝트 추가 마이그레이션 (채팅방 비밀번호 입장, §1 참고)
     ├── migration_17_academy_kind.sql           기존 프로젝트 추가 마이그레이션 (academies.kind/category 컬럼, §1 참고)
+    ├── migration_18_dashboard_notice_stats.sql 기존 프로젝트 추가 마이그레이션 (대시보드 공지·알림 현황 + 채팅방 RLS 무한 재귀 수정, §1 참고)
+    ├── migration_19_parent_consult_rooms.sql   기존 프로젝트 추가 마이그레이션 (학부모 1:1 상담방, §1 참고)
+    ├── seed_demo_rich.sql                      발표·시연용 데모 데이터 보강 (학생 5명 + 최근 3주 출결·학습 기록)
     ├── seed.sql                                샘플 학원 2곳
     ├── seed_floorplan.sql                      존별 좌석 배치 샘플(강남점은 실제 매장 사진 기반 62석 구조)
     ├── seed_real_studycafes.sql                지도용 실제 주소 기반 스터디카페 22곳 추가 + 기본 좌석 배치 (모바일 앱과 동일한 목록)
@@ -75,7 +78,10 @@ safestep/
 | 안드로이드 뒤로가기 차단 | `@capacitor/app` 설치 + `frontend/src/hooks/useBlockBackButton.ts`, 키오스크 화면(`/kiosk`)에 적용 — 실기기(네이티브 런타임)에서만 동작하며 하드웨어 뒤로가기를 무시해 공용 태블릿이 앱 종료/이전 화면으로 새는 것을 방지. `npx cap sync android` 완료 |
 | 로그인 상태 표시 버그 수정 | 랜딩/지도/공개 헤더(`PublicHeader`)와 `/start` 페이지가 `user && profile`을 조건으로 써서, 프로필 로딩이 늦거나 실패하면 실제로는 로그인된 원장도 로그아웃 상태(로그인/회원가입 버튼)로 보이던 문제 수정 — 이제 `user`만으로 로그인 여부를 판단하고, 프로필이 아직 없으면 안전한 기본 경로(`/map`)로 연결하거나 "불러오는 중" 상태를 표시 |
 | 지도 검색 바 | `/map` 목록 패널에 지점명/주소 검색 입력 추가 — 입력하는 즉시(제출 없이) 목록·지도 마커가 같이 갱신되고 결과 위치로 자동 이동(1곳이면 확대 이동, 여러 곳이면 전체가 보이게 범위 조정) |
-| 주변 실제 업체 표시 (선택) | `/map`에서 네이버 지역검색 API로 SafeStep 미등록 주변 스터디카페도 회색 마커로 함께 표시(`GET /api/places/search`, 백엔드 프록시 — Client Secret 노출 방지). `NAVER_SEARCH_CLIENT_ID`/`SECRET` 미설정 시 이 기능만 조용히 비활성화. 검색어가 비어 있으면 기본으로 "스터디카페" 조회 |
+| 관리 화면 사이드바 | 원장·강사 화면 전체에 왼쪽 사이드바 메뉴(`frontend/src/components/common/StaffLayout.tsx`의 `StaffShell` 라우트 레이아웃). 지점 종류가 학원(`academies.kind = 'ACADEMY'`)이면 좌석 배치·신고 관제 메뉴를 숨김 |
+| 대시보드 공지·알림 현황 | 공지방 글별 수신 인원·열람률, 지각·결석 보호자 알림 발송 여부를 표로 표시(`get_academy_notice_stats`, `migration_18`) |
+| 학부모 1:1 상담 | 학생별 학부모 상담방(`chat_rooms.type = 'PARENT'`, `migration_19`). 원장·강사는 `/consult`, 학부모는 웹 자녀 리포트·모바일 자녀 리포트의 "선생님께 문의"로 시작, 채팅 목록에서 이어서 대화 |
+| 주변 실제 업체 표시 (선택 · 현재 운영 서버 키 미설정으로 꺼져 있음) | `/map`에서 네이버 지역검색 API로 SafeStep 미등록 주변 스터디카페도 회색 마커로 함께 표시(`GET /api/places/search`, 백엔드 프록시 — Client Secret 노출 방지). `NAVER_SEARCH_CLIENT_ID`/`SECRET` 미설정 시 이 기능만 조용히 비활성화. 검색어가 비어 있으면 기본으로 "스터디카페" 조회 |
 | 실제 매장 좌석 배치 데모 | 사용자가 제공한 키오스크 좌석 선택 화면 사진(초월 스터디카페 산본점)을 참고해 "SafeStep 강남점"의 좌석 구조를 62석으로 교체(`supabase/seed_floorplan.sql`). 사진 속 실제 좌석 번호·존 구성(포커스존 12석/카페존(노트북) 6석/컴퓨터책상 3석/스터디룸 4석/자유석 37석)뿐 아니라 좌석 하나하나의 배치·통로까지 학원 전체 기준 절대 좌표로 재현. 새 `DESK`(컴퓨터책상) 존 타입 추가, 비좌석 랜드마크(존 라벨/화장실/창고/냉장고/KIOSK 위치)를 위한 `academy_landmarks` 테이블 신설(`supabase/migration_11_academy_landmarks.sql`) — 랜드마크가 있는 학원은 `FloorPlanGrid.tsx`가 기존 "존 상자별 배치" 대신 통로가 있는 "자유 배치" 모드로 렌더링(랜드마크 없는 학원은 기존 방식 그대로 유지) |
 
 ### ⏳ 미구현 (코드 자체가 아직 없음 — 외부 계정 설정과 무관하게 개발이 필요한 항목)
@@ -133,6 +139,10 @@ safestep/
 - `supabase/migration_15_hierarchy_checkin.sql` — `academy_teacher_invites` 테이블(원장→강사 초대 코드) + `student_check_in()` 함수(학생이 수업 시간대에 직접 출석 기록) (**없으면 모바일 앱의 원장 "내 학원 만들기"/강사 초대, 학생 "출석하기" 버튼이 동작하지 않습니다**)
 - `supabase/migration_16_chat_room_password.sql` — `chat_rooms.join_code` 컬럼 + `chat_room_members` 테이블 + 방 목록/참가 RPC(`list_academy_chat_rooms`, `join_chat_room`, `join_chat_room_by_code`) (**없으면 모바일 앱의 채팅방 비밀번호 입장 기능이 동작하지 않습니다** — 선행 조건: `migration_03_chat.sql`·`migration_05_chat_upgrades.sql`)
 - `supabase/migration_17_academy_kind.sql` — `academies.kind`/`category` 컬럼 추가 + 기존 데이터 백필 (**없으면 `POST /api/owner/academies`가 에러를 내고, 모바일 앱의 "학원" 탭 조회 자체가 실패합니다** — migration_15·16과 함께 들어온 기능인데 이 컬럼을 추가하는 마이그레이션이 누락되어 있어 따로 작성)
+- `supabase/migration_18_dashboard_notice_stats.sql` — 대시보드 공지·알림 현황 함수(`get_academy_notice_stats`) + `chat_rooms` 조회 정책의 무한 재귀 수정(`is_chat_room_member`) (**없으면 웹 `/chat`이 `infinite recursion detected in policy for relation "chat_rooms"` 오류를 내고, 대시보드 공지·알림 현황이 표시되지 않습니다** — 선행 조건: `migration_16`)
+- `supabase/migration_19_parent_consult_rooms.sql` — 학부모 1:1 상담방(`chat_rooms.type = 'PARENT'`, `student_id`) + `open_parent_room` / `list_parent_consults` RPC (**없으면 `/consult`와 "선생님께 문의" 버튼이 동작하지 않습니다** — 선행 조건: `migration_18`)
+
+> 새 Supabase 프로젝트도 `schema.sql` 실행 후 위 마이그레이션들을 번호 순서대로 모두 실행해야 합니다 (`schema.sql`에는 마이그레이션 내용이 합쳐져 있지 않습니다).
 
 ### 데모 체험 계정 만들기 (선택)
 랜딩 페이지의 "원장 데모 체험하기" / "강사 데모 체험하기" 버튼이 로그인할 계정을 생성합니다.
@@ -141,6 +151,10 @@ safestep/
 cd backend
 node ../supabase/seed_demo_accounts.mjs
 ```
+이 스크립트는 학부모 데모 계정(`demo-parent@safestep.local` / `safestepdemo`, 홍길동의 보호자로 연동)도 함께 만듭니다 — 학부모 1:1 상담 시연용이며 로그인 화면에서 이메일·비밀번호로 로그인합니다.
+
+대시보드·출석부가 비어 보이지 않게 하려면 이어서 SQL Editor에서 `supabase/seed_demo_rich.sql`을 실행하세요 (학생 5명 + 최근 3주 출결·학습 기록, 여러 번 실행해도 안전, 파일 끝에 되돌리기 방법).
+
 여러 번 실행해도 안전합니다(이미 있으면 건너뜀). 실제 로그인은 백엔드가 발급하는 1회용 매직링크 토큰으로 처리되며(`POST /api/auth/demo-login`), 이 계정의 비밀번호 자체는 프론트 어디에도 노출되지 않습니다. `backend/.env`의 `DEMO_LOGIN_ENABLED=false`로 이 API 자체를 언제든 차단할 수 있습니다.
 
 ### 학원 생성 & 원장 계정 연결 (신규 플로우)
@@ -224,6 +238,15 @@ Android Studio가 열리면:
 2. Netlify → **Add new site → Import from Git**
 3. Base directory: `frontend`, Build command: `npm run build`, Publish directory: `frontend/dist`
 4. 환경변수(Site settings → Environment variables)에 `.env.example`의 `VITE_*` 값 등록
+
+### 모바일 웹 → Netlify (수동 배포)
+`mobile/`(React Native 앱)을 `react-native-web`으로 내보낸 사이트(https://safestep-mobile-web.netlify.app)는 **GitHub와 연결되어 있지 않아 push만으로는 배포되지 않습니다.** 모바일 코드를 바꾼 뒤 직접 배포하세요:
+```bash
+cd mobile
+npx expo export --platform web && node scripts/inject-pwa.js
+npx netlify-cli deploy --prod --dir dist
+```
+네이버 지도가 모바일 웹에서도 보이려면 네이버 클라우드 콘솔의 Maps Application "Web 서비스 URL"에 `https://safestep-mobile-web.netlify.app`이 등록되어 있어야 합니다(등록 완료). 인증이 실패하면 OpenStreetMap 기본 지도로 자동 전환됩니다.
 
 ### Backend → Render (무료 티어)
 1. Render → **New → Web Service** → 이 저장소 연결

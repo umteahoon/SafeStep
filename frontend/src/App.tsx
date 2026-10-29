@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthListener } from './hooks/useAuth';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
+import { StaffShell } from './components/common/StaffLayout';
 import { RequireStudentLink } from './components/common/RequireStudentLink';
 import { isNativeApp } from './lib/platform';
 import { AppShell } from './components/common/AppShell';
@@ -95,6 +96,7 @@ function App() {
             <ProtectedRoute allowedRoles={['ACADEMY_ADMIN', 'TEACHER']} />
           }
         >
+          <Route element={<StaffShell />}>
           <Route path="/students" element={<StudentManagementPage />} />
           <Route path="/classes" element={<ClassListPage />} />
           <Route path="/classes/schedule" element={<ClassSchedulePage />} />
@@ -102,14 +104,17 @@ function App() {
           <Route path="/consult" element={<ParentConsultPage />} />
           <Route path="/admin/reports" element={<ReportsPage />} />
           <Route path="/admin/seats/editor" element={<SeatEditorPage />} />
+          </Route>
         </Route>
 
         {/* 원장 전용 */}
         <Route element={<ProtectedRoute allowedRoles={['ACADEMY_ADMIN']} />}>
           <Route path="/owner/claim" element={<OwnerClaimPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/teachers" element={<TeacherManagementPage />} />
-          <Route path="/billing" element={<SubscriptionPage />} />
+          <Route element={<StaffShell />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/teachers" element={<TeacherManagementPage />} />
+            <Route path="/billing" element={<SubscriptionPage />} />
+          </Route>
         </Route>
 
         {/* 팀·채팅: 학원 소속 원장·강사·학생 (학생은 명부 연동 후에만 접근) */}
@@ -144,8 +149,10 @@ function App() {
           }
         >
           <Route element={<RequireStudentLink />}>
-            <Route path="/chat" element={<ChatListPage />} />
-            <Route path="/chat/:roomId" element={<ChatRoomPage />} />
+            <Route element={<StaffShell />}>
+              <Route path="/chat" element={<ChatListPage />} />
+              <Route path="/chat/:roomId" element={<ChatRoomPage />} />
+            </Route>
           </Route>
         </Route>
 

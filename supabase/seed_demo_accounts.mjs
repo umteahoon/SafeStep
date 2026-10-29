@@ -170,6 +170,26 @@ async function main() {
     console.log('중3 수학 데모반 이미 존재:', demoClass.id);
   }
 
+  // 학부모 데모 계정: 홍길동의 보호자로 연동 (학부모 1:1 상담 시연용 — 이메일/비밀번호로 로그인)
+  const parentId = await ensureAuthUser('demo-parent@safestep.local', 'safestepdemo');
+  await upsertProfile({
+    id: parentId,
+    email: 'demo-parent@safestep.local',
+    name: '데모 학부모',
+    role: 'PARENT',
+    approval_status: 'APPROVED',
+  });
+  const [hong] = await rest(
+    `students?academy_id=eq.${academyId}&name=eq.${encodeURIComponent('홍길동')}&select=id,parent_user_id`
+  );
+  if (hong && !hong.parent_user_id) {
+    await rest(`students?id=eq.${hong.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ parent_user_id: parentId }),
+    });
+  }
+  console.log('demo-parent@safestep.local (학부모, 홍길동 보호자) 준비 완료:', parentId);
+
   console.log('\n완료! 랜딩 페이지의 "원장/강사 데모 체험하기" 버튼이 정상 동작합니다.');
 }
 

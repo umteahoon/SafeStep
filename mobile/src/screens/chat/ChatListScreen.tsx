@@ -126,7 +126,8 @@ function Inner() {
         .eq('user_id', user.id);
       if (!joinErr) {
         const ids = new Set(((joined as { room_id: string }[]) ?? []).map((m) => m.room_id));
-        roomList = roomList.filter((r) => r.type === 'ANNOUNCEMENT' || ids.has(r.id));
+        // 학부모 1:1 상담방(PARENT)은 참가 코드 없이 본인 자녀 방만 서버가 내려줌
+        roomList = roomList.filter((r) => r.type === 'ANNOUNCEMENT' || r.type === 'PARENT' || ids.has(r.id));
       }
     }
 
@@ -279,10 +280,10 @@ function Inner() {
             style={({ pressed }) => [styles.item, pressed && { opacity: 0.7 }]}
           >
             <IconTile
-              name={room.type === 'ANNOUNCEMENT' ? 'megaphone' : 'school'}
+              name={room.type === 'ANNOUNCEMENT' ? 'megaphone' : room.type === 'PARENT' ? 'chatbubbles' : 'school'}
               size={46}
-              color={room.type === 'ANNOUNCEMENT' ? colors.warnText : colors.primary}
-              bg={room.type === 'ANNOUNCEMENT' ? colors.warnSoft : colors.primarySoft}
+              color={room.type === 'ANNOUNCEMENT' ? colors.warnText : room.type === 'PARENT' ? colors.success : colors.primary}
+              bg={room.type === 'ANNOUNCEMENT' ? colors.warnSoft : room.type === 'PARENT' ? colors.successSoft : colors.primarySoft}
             />
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
