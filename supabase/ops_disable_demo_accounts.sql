@@ -9,7 +9,7 @@
 -- ============================================================
 
 UPDATE auth.users
-   SET banned_until = 'infinity'
+   SET banned_until = '2999-12-31 00:00:00+00'  -- 'infinity' 는 인증 서버가 처리하지 못해 500 오류가 남
  WHERE email IN ('demo-admin@safestep.local', 'demo-teacher@safestep.local', 'demo-parent@safestep.local');
 
 -- 이미 로그인해 있는 데모 세션도 즉시 끊기 (리프레시 토큰 삭제)
@@ -19,7 +19,7 @@ DELETE FROM auth.refresh_tokens
     WHERE email IN ('demo-admin@safestep.local', 'demo-teacher@safestep.local', 'demo-parent@safestep.local')
  );
 
--- 확인: banned_until 이 infinity 로 보이면 완료
+-- 확인: banned_until 이 2999-12-31 로 보이면 완료
 SELECT email, banned_until FROM auth.users WHERE email LIKE 'demo-%@safestep.local';
 
 -- 되돌리기 (데모를 다시 열 때만):

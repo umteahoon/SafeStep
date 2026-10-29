@@ -94,8 +94,22 @@ const DEMO_EMAILS: Record<'admin' | 'teacher', string> = {
 // role만 받고 이메일은 서버가 고정값으로 매핑합니다 — 임의 이메일을 받으면 이 API가
 // "아무 계정이나 로그인시키는 API"가 되어버리므로 절대 클라이언트 입력을 이메일에 쓰지 않습니다.
 // GET /api/auth/demo-status — 랜딩 페이지가 원장/강사 데모 버튼을 보여줄지 판단 (운영 시 DEMO_LOGIN_ENABLED=false)
-router.get('/demo-status', (_req, res) => {
-  res.json({ enabled: process.env.DEMO_LOGIN_ENABLED !== 'false' });
+// 데모 원장 계정이 정지(ban)되어 있어도 꺼진 것으로 봄 — 환경변수를 못 바꾼 상태에서도 버튼이 실패하지 않게. 1분 캐시
+let demoStatusCache: { at: number; enabled: boolean } | null = null;
+async function isDemoAccountUsable(): Promise<boolean> {
+  const { data: profile } = await supabaseAdmin.from('profiles').select('id').eq('email', DEMO_EMAILS.admin).maybeSingle();
+  if (!profile) return false;
+  const { data } = await supabaseAdmin.auth.admin.getUserById(profile.id);
+  const bannedUntil = (data.user as { banned_until?: string } | null)?.banned_until;
+  return !bannedUntil || new Date(bannedUntil).getTime() <= Date.now();
+}
+router.get('/demo-status', async (_req, res) => {
+  if (process.env.DEMO_LOGIN_ENABLED === 'false') return res.json({ enabled: false });
+  if (!demoStatusCache || Date.now() - demoStatusCache.at > 60_000) {
+    const enabled = await isDemoAccountUsable().catch(() => false);
+    demoStatusCache = { at: Date.now(), enabled };
+  }
+  res.json({ enabled: demoStatusCache.enabled });
 });
 
 router.post('/demo-login', publicAuthLimiter, async (req, res) => {
