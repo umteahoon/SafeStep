@@ -356,12 +356,13 @@ function NoticeRow({ n }: { n: NoticeStat }) {
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
             <Megaphone size={12} aria-hidden="true" />게시됨
           </span>
+        ) : n.recipients === 0 ? (
+          // 알림을 받을 연동된 보호자가 없으면 발송 표시와 관계없이 미연동으로 안내
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">보호자 미연동</span>
         ) : n.sent ? (
           <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">전송 완료</span>
         ) : (
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-            {n.recipients === 0 ? '보호자 미연동' : '미발송'}
-          </span>
+          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">미발송</span>
         )}
       </td>
       <td className="whitespace-nowrap px-5 py-3">

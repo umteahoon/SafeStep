@@ -70,7 +70,7 @@ BEGIN
         CASE v_status WHEN 'EXCUSED' THEN '병원 진료' WHEN 'LATE' THEN NULL ELSE NULL END,
         v_status IN ('LATE', 'ABSENT'),
         v_teacher,
-        v_day + TIME '16:12'
+        (v_day + TIME '16:12') AT TIME ZONE 'Asia/Seoul'
       )
       ON CONFLICT ON CONSTRAINT unique_daily_class_attendance DO NOTHING;
     END LOOP;
@@ -79,7 +79,7 @@ BEGIN
   -- 4) 학습시간: 최근 2주 키오스크 퇴실 기록 (학생별 하루 1~3시간)
   INSERT INTO attendance_logs (academy_id, student_id, seat_number, type, check_method, logged_at, stay_duration_minutes, notification_status)
   SELECT v_academy, s.id, 10 + (row_number() OVER ()) % 30, 'CHECK_OUT', 'QR',
-         d::date + TIME '21:00', 60 + ((EXTRACT(DOY FROM d)::INT * 7 + length(s.name) * 13) % 121), 'SENT'
+         (d::date + TIME '21:00') AT TIME ZONE 'Asia/Seoul', 60 + ((EXTRACT(DOY FROM d)::INT * 7 + length(s.name) * 13) % 121), 'SENT'
   FROM students s
   CROSS JOIN generate_series(CURRENT_DATE - 14, CURRENT_DATE - 1, INTERVAL '1 day') d
   WHERE s.academy_id = v_academy AND s.attendance_code LIKE '2100%'

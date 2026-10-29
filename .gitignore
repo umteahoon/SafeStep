@@ -16,3 +16,6 @@ frontend/android/app/release/
 
 # Local Netlify folder
 .netlify
+
+# Claude Code 개인 설정
+.claude/settings.local.json
