@@ -1,3 +1,4 @@
+import { DemoButtons } from '../../components/common/DemoButtons';
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
@@ -53,7 +54,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gray-50 px-4 py-10">
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 shadow-sm"
@@ -127,6 +128,11 @@ export default function LoginPage() {
           </Link>
         </p>
       </form>
+
+      <div className="w-full max-w-sm">
+        <p className="mb-2 text-center text-sm font-medium text-gray-600">계정 없이 둘러보기</p>
+        <DemoButtons columns="" />
+      </div>
     </div>
   );
 }

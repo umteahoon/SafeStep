@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { FloorPlanGrid } from '../../components/seat/FloorPlanGrid';
 import { NoiseReportModal } from '../../components/seat/NoiseReportModal';
 import { useAuth } from '../../hooks/useAuth';
-import logo from '../../assets/logo.png';
+import { BrandLogo } from '../../components/common/BrandLogo';
 import type { Academy, Seat } from '../../types';
 
 export default function SeatFloorPlanPage() {
@@ -31,7 +31,7 @@ export default function SeatFloorPlanPage() {
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
         <div>
           <Link to="/" className="mb-1 inline-block">
-            <img src={logo} alt="SafeStep" className="h-5 w-auto" />
+            <BrandLogo />
           </Link>
           <button
             onClick={() => navigate('/map')}

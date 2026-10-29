@@ -2,16 +2,16 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { homeForRole } from '../../lib/navigation';
 import { MOBILE_SITE_URL } from '../../lib/deviceRedirect';
-import logo from '../../assets/logo.png';
+import { BrandLogo } from './BrandLogo';
 
 /** 랜딩에서 이어지는 공개 안내 페이지(/inquiry, /start)의 상단 바 */
-export function PublicHeader() {
+export function PublicHeader({ wide = false }: { wide?: boolean }) {
   const { user, profile } = useAuth();
   return (
     <header className="border-b border-gray-100 bg-white">
-      <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
+      <div className={`mx-auto flex ${wide ? 'max-w-none' : 'max-w-4xl'} items-center justify-between px-4 py-3 sm:px-6 sm:py-4`}>
         <Link to="/">
-          <img src={logo} alt="SafeStep" className="h-7 w-auto shrink-0 sm:h-8" />
+          <BrandLogo />
         </Link>
         <nav className="flex shrink-0 items-center gap-1 whitespace-nowrap text-sm sm:gap-2">
           <a

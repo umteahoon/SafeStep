@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import { Router } from 'express';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 import { publicAuthLimiter } from '../lib/security';
@@ -83,12 +84,50 @@ router.post('/login-log', publicAuthLimiter, async (req, res) => {
 
 // 랜딩 페이지 "원장/강사 데모 체험하기" 버튼이 사용할 고정 데모 계정.
 // supabase/seed_demo_accounts.mjs 가 생성하는 계정과 반드시 동일해야 합니다.
-const DEMO_EMAILS: Record<'admin' | 'teacher', string> = {
+const DEMO_EMAILS: Record<'admin' | 'teacher' | 'parent', string> = {
   admin: 'demo-admin@safestep.local',
   teacher: 'demo-teacher@safestep.local',
+  parent: 'demo-parent@safestep.local',
 };
 
-// POST /api/auth/demo-login  { role: 'admin' | 'teacher' }
+// 학부모 데모에서 자녀로 보여줄 데모 학원 학생 (보호자가 비어 있을 때만 연결)
+const DEMO_PARENT_CHILDREN = ['홍길동', '김서연', '박지훈'];
+
+// 학부모 데모 계정이 없으면 만들고, 데모 학원 학생 몇 명의 보호자로 연결합니다.
+// 비밀번호는 아무도 모르는 임의값 — 로그인은 demo-login 의 1회용 토큰으로만 합니다.
+async function ensureDemoParent(): Promise<void> {
+  const { data: admin } = await supabaseAdmin
+    .from('profiles').select('academy_id').eq('email', DEMO_EMAILS.admin).maybeSingle();
+  if (!admin?.academy_id) return;
+
+  let { data: parent } = await supabaseAdmin
+    .from('profiles').select('id').eq('email', DEMO_EMAILS.parent).maybeSingle();
+  if (!parent) {
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email: DEMO_EMAILS.parent,
+      password: randomBytes(24).toString('base64url'),
+      email_confirm: true,
+    });
+    if (error || !created.user) throw error ?? new Error('demo parent create failed');
+    await supabaseAdmin.from('profiles').upsert({
+      id: created.user.id,
+      email: DEMO_EMAILS.parent,
+      name: '데모 학부모',
+      role: 'PARENT',
+      approval_status: 'APPROVED',
+    });
+    parent = { id: created.user.id };
+  }
+
+  await supabaseAdmin
+    .from('students')
+    .update({ parent_user_id: parent.id })
+    .eq('academy_id', admin.academy_id)
+    .in('name', DEMO_PARENT_CHILDREN)
+    .is('parent_user_id', null);
+}
+
+// POST /api/auth/demo-login  { role: 'admin' | 'teacher' | 'parent' }
 // 비밀번호를 프론트에 절대 노출하지 않기 위해, 백엔드(service role)가 매직링크용
 // 1회용 토큰만 발급하고 프론트는 그 토큰으로 supabase.auth.verifyOtp()를 호출합니다.
 // role만 받고 이메일은 서버가 고정값으로 매핑합니다 — 임의 이메일을 받으면 이 API가
@@ -118,8 +157,15 @@ router.post('/demo-login', publicAuthLimiter, async (req, res) => {
   }
 
   const role: unknown = (req.body ?? {}).role;
-  if (role !== 'admin' && role !== 'teacher') {
-    return res.status(400).json({ error: 'role은 admin 또는 teacher여야 합니다.' });
+  if (role !== 'admin' && role !== 'teacher' && role !== 'parent') {
+    return res.status(400).json({ error: 'role은 admin, teacher, parent 중 하나여야 합니다.' });
+  }
+  if (role === 'parent') {
+    try {
+      await ensureDemoParent();
+    } catch {
+      return res.status(500).json({ error: '학부모 데모 계정 준비에 실패했습니다.' });
+    }
   }
 
   const email = DEMO_EMAILS[role];

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useNaverMaps } from '../../hooks/useNaverMaps';
 import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api';
@@ -8,7 +8,7 @@ import { useFavorites } from '../../lib/favorites';
 import { groupRegions, inRegion } from '../../lib/region';
 import { RegionSheet } from '../../components/map/RegionSheet';
 import type { RegionValue } from '../../components/map/RegionSheet';
-import logo from '../../assets/logo.png';
+import { PublicHeader } from '../../components/common/PublicHeader';
 import type { Academy } from '../../types';
 
 interface AcademyWithSeats extends Academy {
@@ -336,11 +336,7 @@ export default function MapSearchPage() {
   return (
     <div className={`flex flex-col ${isNativeApp ? 'h-full' : 'h-screen'}`}>
       {!isNativeApp && (
-        <header className="flex items-center border-b border-gray-100 px-6 py-3">
-          <Link to="/">
-            <img src={logo} alt="SafeStep" className="h-7 w-auto" />
-          </Link>
-        </header>
+        <PublicHeader wide />
       )}
 
       <div className="flex flex-1 flex-col overflow-hidden md:flex-row">

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/common/PageHeader';
 import { apiFetch } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
@@ -10,6 +10,14 @@ const CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY as string | undefined;
 const WIDGET_SRC = 'https://js.tosspayments.com/v1/payment-widget';
 const AMOUNT = 10000;
 const ORDER_NAME = 'SafeStep 30일 이용권';
+
+/** 만료일이 지났으면 상태값과 상관없이 만료로 보여줌 (만료 처리 예약 작업이 늦어도 화면은 맞게) */
+function subscriptionLabel(a: Academy): { text: string; className: string } {
+  const expired = a.subscription_expires_at && new Date(a.subscription_expires_at).getTime() < Date.now();
+  if (expired || a.subscription_status === 'EXPIRED') return { text: '만료됨', className: 'text-red-600' };
+  if (a.subscription_status === 'TRIAL') return { text: '무료 체험 중', className: 'text-blue-600' };
+  return { text: '이용 중', className: 'text-green-600' };
+}
 
 declare global {
   interface Window {
@@ -150,8 +158,8 @@ export default function SubscriptionPage() {
         {academy && (
           <div className="rounded-xl border border-gray-200 bg-white p-4">
             <p className="text-sm text-gray-400">현재 상태</p>
-            <p className="text-lg font-bold text-gray-900">
-              {academy.subscription_status}
+            <p className={`text-lg font-bold ${subscriptionLabel(academy).className}`}>
+              {subscriptionLabel(academy).text}
             </p>
             <p className="text-sm text-gray-500">
               만료일:{' '}
@@ -171,8 +179,9 @@ export default function SubscriptionPage() {
           </div>
 
           {!CLIENT_KEY ? (
-            <p className="text-sm text-red-500">
-              VITE_TOSS_CLIENT_KEY가 설정되지 않았습니다.
+            <p className="text-sm text-gray-500">
+              온라인 결제는 준비 중입니다. 이용 연장은{' '}
+              <Link to="/inquiry" className="font-medium text-blue-600 hover:underline">도입 문의</Link>로 남겨 주세요.
             </p>
           ) : (
             <>

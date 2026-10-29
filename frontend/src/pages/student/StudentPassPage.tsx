@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../../components/common/PageHeader';
 import { apiFetch } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
@@ -223,7 +223,7 @@ export default function StudentPassPage() {
         {selectedPlan && (
           <div className="rounded-xl border border-gray-200 bg-white p-4">
             {!CLIENT_KEY ? (
-              <p className="text-sm text-red-500">VITE_TOSS_CLIENT_KEY가 설정되지 않았습니다.</p>
+              <p className="text-sm text-gray-500">온라인 결제는 준비 중입니다. 이용권은 지점 카운터에서 구매하거나 <Link to="/inquiry" className="font-medium text-blue-600 hover:underline">문의</Link>해 주세요.</p>
             ) : (
               <>
                 <div id="payment-method" />

@@ -1,6 +1,13 @@
-import { signOut } from '../../hooks/useAuth';
+import { Navigate } from 'react-router-dom';
+import { signOut, useAuth } from '../../hooks/useAuth';
+import { homeForRole } from '../../lib/navigation';
 
 export default function TeacherPendingPage() {
+  const { profile } = useAuth();
+  // 승인 대기 중인 강사만 보는 화면 — 그 외 계정은 자기 홈으로
+  if (profile && !(profile.role === 'TEACHER' && profile.approval_status !== 'APPROVED')) {
+    return <Navigate to={homeForRole(profile.role)} replace />;
+  }
   return (
     <div className="flex min-h-screen items-center justify-center p-8 text-center">
       <div>

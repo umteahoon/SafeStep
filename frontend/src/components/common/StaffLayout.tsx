@@ -20,7 +20,7 @@ import type { LucideIcon } from 'lucide-react';
 import { signOut, useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 import type { UserRole } from '../../types';
-import logo from '../../assets/logo.png';
+import { BrandLogo } from './BrandLogo';
 import { InStaffShell } from './staffShellContext';
 
 interface NavItem {
@@ -91,7 +91,7 @@ export function StaffShell() {
     <div className="flex min-h-screen bg-slate-50 text-slate-900">
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
         <Link to="/" className="flex items-center gap-2 px-6 pb-4 pt-6" title="홈으로">
-          <img src={logo} alt="SafeStep" className="h-7 w-auto" />
+          <BrandLogo />
         </Link>
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2" aria-label="관리 메뉴">
           {items.map(({ to, label, icon: Icon }) => (

@@ -1,114 +1,72 @@
 import { homeForRole } from '../lib/navigation';
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import {
+  BarChart3,
+  Bell,
+  Flag,
+  MapPin,
+  QrCode,
+  ShieldCheck,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { supabase } from '../lib/supabase';
-import { apiFetch } from '../lib/api';
 import { MOBILE_SITE_URL } from '../lib/deviceRedirect';
-import logo from '../assets/logo.png';
+import { BrandLogo } from '../components/common/BrandLogo';
+import { DemoButtons } from '../components/common/DemoButtons';
+import heroDashboard from '../assets/hero-dashboard.webp';
+import heroMobile from '../assets/hero-mobile.webp';
 
-// 로그인 없이 원장/강사 화면을 바로 체험할 수 있는 데모 전용 계정.
-// 시드 데이터(SafeStep 강남점, "중3 수학 데모반")에 연결되어 있습니다.
-// 계정 생성: `node supabase/seed_demo_accounts.mjs` (backend/.env 필요)
-// 실제 로그인은 백엔드 POST /api/auth/demo-login(매직링크 토큰 발급) 을 거치므로
-// 비밀번호는 프론트 어디에도 존재하지 않습니다.
-const DEMO_ACCOUNTS: Record<'admin' | 'teacher', { redirect: string }> = {
-  admin: { redirect: '/dashboard' },
-  teacher: { redirect: '/attendance' },
-};
-
-const CONSUMER_FEATURES = [
+const CONSUMER_FEATURES: { title: string; desc: string; icon: LucideIcon }[] = [
   {
     title: '실시간 잔여석',
+    icon: MapPin,
     desc: '네이버 지도에서 주변 스터디카페의 빈자리를 실시간으로 확인하고 이동하세요.',
   },
   {
     title: '좌석 도면 & 익명 신고',
+    icon: Flag,
     desc: '자리별 사용 현황을 한눈에. 소음·자리 독점은 익명으로 신고할 수 있습니다.',
   },
   {
     title: 'QR·핀코드 출입',
+    icon: QrCode,
     desc: '키오스크에서 QR 또는 6자리 핀코드로 입실·외출·퇴실을 처리합니다.',
   },
 ];
 
-const BUSINESS_FEATURES = [
+const BUSINESS_FEATURES: { title: string; desc: string; icon: LucideIcon }[] = [
   {
     title: '스마트 출결',
+    icon: Bell,
     desc: '반별 원클릭 출석 체크. 결석·지각은 보호자에게 즉시 알림이 발송됩니다.',
   },
   {
     title: '강사 승인 & 권한 분리',
+    icon: ShieldCheck,
     desc: '원장이 강사 가입을 승인하고, 역할별로 접근 가능한 화면이 엄격히 분리됩니다.',
   },
   {
     title: '대시보드 & 엑셀 추출',
+    icon: BarChart3,
     desc: '출석률·학습시간 통계를 보고 학생·출결 데이터를 엑셀로 내려받습니다.',
   },
   {
     title: '학부모 리포트',
+    icon: Users,
     desc: '6자리 코드로 자녀를 연동하고 주간 리포트, 사전 결석 신청을 제공합니다.',
   },
 ];
 
 export default function LandingPage() {
   const { user, profile } = useAuth();
-  const navigate = useNavigate();
-  const [demoLoading, setDemoLoading] = useState<'admin' | 'teacher' | null>(null);
-  const [demoError, setDemoError] = useState<string | null>(null);
-  // 서버에서 데모 로그인이 꺼져 있으면(운영) 원장/강사 데모 버튼을 숨김. 확인 전에는 표시하지 않음
-  const [staffDemoEnabled, setStaffDemoEnabled] = useState(false);
-  useEffect(() => {
-    let mounted = true;
-    apiFetch<{ enabled: boolean }>('/api/auth/demo-status', { auth: false })
-      .then((r) => {
-        if (mounted) setStaffDemoEnabled(!!r.enabled);
-      })
-      .catch(() => {
-        if (mounted) setStaffDemoEnabled(false);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const tryDemo = async (kind: 'admin' | 'teacher') => {
-    const isAlreadyDemo = profile?.email?.startsWith('demo-');
-    if (user && !isAlreadyDemo) {
-      const ok = window.confirm(
-        '현재 로그인된 계정에서 로그아웃하고 데모 계정으로 전환합니다. 계속할까요?'
-      );
-      if (!ok) return;
-    }
-
-    setDemoError(null);
-    setDemoLoading(kind);
-    try {
-      const { tokenHash } = await apiFetch<{ email: string; tokenHash: string }>(
-        '/api/auth/demo-login',
-        { method: 'POST', auth: false, body: JSON.stringify({ role: kind }) }
-      );
-      // generateLink가 주는 값은 해시된 토큰이므로 token이 아니라 token_hash로 검증해야 함
-      // (email + token 조합으로 보내면 Supabase가 403 "Token has expired or is invalid"를 반환)
-      const { error } = await supabase.auth.verifyOtp({
-        token_hash: tokenHash,
-        type: 'magiclink',
-      });
-      if (error) throw error;
-      navigate(DEMO_ACCOUNTS[kind].redirect);
-    } catch {
-      setDemoError('데모 계정 접속에 실패했습니다. 잠시 후 다시 시도해주세요.');
-    } finally {
-      setDemoLoading(null);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
       {/* 상단 네비게이션 */}
       <header className="sticky top-0 z-10 border-b border-gray-100 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
-          <img src={logo} alt="SafeStep" className="h-7 w-auto shrink-0 sm:h-8" />
+          <BrandLogo />
           <nav className="flex shrink-0 items-center gap-1 whitespace-nowrap text-sm sm:gap-2">
             <a
               href={`${MOBILE_SITE_URL}/?site=mobile`}
@@ -183,48 +141,33 @@ export default function LandingPage() {
             </Link>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center">
-          <img src={logo} alt="SafeStep" className="w-full max-w-lg" />
-
-          {/* 데모 체험하기 */}
-          <div className={`mt-6 grid w-full max-w-lg grid-cols-2 gap-2 ${staffDemoEnabled ? 'md:grid-cols-4' : ''}`}>
-            <Link
-              to="/map"
-              className="rounded-lg border border-gray-300 px-2 py-2.5 text-center text-xs font-medium text-gray-700 hover:bg-gray-50"
-            >
-              이용자 데모
-            </Link>
-            <Link
-              to="/kiosk?demo=1"
-              className="rounded-lg border border-gray-300 px-2 py-2.5 text-center text-xs font-medium text-gray-700 hover:bg-gray-50"
-            >
-              키오스크 데모
-            </Link>
-            {staffDemoEnabled && (
-              <>
-            <button
-              onClick={() => tryDemo('admin')}
-              disabled={demoLoading !== null}
-              className="rounded-lg border border-gray-300 px-2 py-2.5 text-center text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              {demoLoading === 'admin' ? '접속 중...' : '원장 데모'}
-            </button>
-            <button
-              onClick={() => tryDemo('teacher')}
-              disabled={demoLoading !== null}
-              className="rounded-lg border border-gray-300 px-2 py-2.5 text-center text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              {demoLoading === 'teacher' ? '접속 중...' : '강사 데모'}
-            </button>
-              </>
-            )}
+        {/* 실제 서비스 화면: 웹 원장 대시보드 + 모바일 앱 홈 */}
+        <div className="relative flex items-center justify-center pb-8 md:pb-0">
+          <div className="w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl shadow-blue-900/10">
+            <div className="flex items-center gap-1.5 border-b border-gray-100 bg-gray-50 px-3 py-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-red-300" />
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
+              <span className="h-2.5 w-2.5 rounded-full bg-green-300" />
+              <span className="ml-2 truncate text-[11px] text-gray-400">safestep-kr.netlify.app/dashboard</span>
+            </div>
+            <img src={heroDashboard} alt="SafeStep 원장 대시보드 화면" className="block w-full" />
           </div>
-          {demoError && <p className="mt-2 text-sm text-red-500">{demoError}</p>}
-          {staffDemoEnabled && (
-            <p className="mt-2 max-w-lg text-center text-xs text-gray-400">
-              원장/강사 데모는 예시 데이터를 함께 쓰는 공용 체험 계정입니다.
-            </p>
-          )}
+          <div className="absolute -bottom-2 right-2 w-[28%] overflow-hidden rounded-[1.4rem] border-[5px] border-gray-900 bg-gray-900 shadow-2xl sm:right-4 md:-bottom-8 md:-right-4">
+            <img src={heroMobile} alt="SafeStep 모바일 앱 홈 화면" className="block w-full rounded-[1rem]" />
+          </div>
+        </div>
+      </section>
+
+      {/* 로그인 없이 체험 */}
+      <section className="border-t border-gray-100 py-12">
+        <div className="mx-auto max-w-6xl px-6">
+          <h2 className="text-2xl font-bold">로그인 없이 바로 체험하기</h2>
+          <p className="mt-2 text-gray-500">
+            정식 서비스 전 체험판입니다. 역할을 고르면 예시 학원 데이터로 바로 들어가집니다.
+          </p>
+          <div className="mt-6">
+            <DemoButtons />
+          </div>
         </div>
       </section>
 
@@ -239,6 +182,9 @@ export default function LandingPage() {
                 key={f.title}
                 className="rounded-2xl border border-gray-100 bg-white p-6"
               >
+                <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <f.icon className="h-5 w-5" />
+                </span>
                 <h3 className="font-semibold">{f.title}</h3>
                 <p className="mt-2 text-sm text-gray-500">{f.desc}</p>
               </div>
@@ -260,6 +206,9 @@ export default function LandingPage() {
                 key={f.title}
                 className="rounded-2xl border border-gray-100 p-6"
               >
+                <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <f.icon className="h-5 w-5" />
+                </span>
                 <h3 className="font-semibold">{f.title}</h3>
                 <p className="mt-2 text-sm text-gray-500">{f.desc}</p>
               </div>

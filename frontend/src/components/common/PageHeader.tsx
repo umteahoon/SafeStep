@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { signOut, useAuth } from '../../hooks/useAuth';
 import { isNativeApp } from '../../lib/platform';
 import { TeamActionButtons } from '../team/TeamActionButtons';
-import logo from '../../assets/logo.png';
+import { BrandLogo } from './BrandLogo';
 import { useInStaffShell } from './staffShellContext';
 
 interface PageHeaderProps {
@@ -42,7 +42,7 @@ export function PageHeader({ title, subtitle, backTo, right }: PageHeaderProps) 
     <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
       <div className="flex items-center gap-4">
         <Link to={homeTo} title="홈으로" className="shrink-0">
-          <img src={logo} alt="SafeStep" className="h-6 w-auto" />
+          <BrandLogo />
         </Link>
         <div>
           {backTo && (
