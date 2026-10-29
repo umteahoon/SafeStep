@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { localDateString } from '../lib/time';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 import { AuthedRequest, requireAuth, requireRole } from '../middleware/auth';
 import { sendServerError } from '../lib/security';
@@ -84,10 +85,8 @@ router.get('/report', async (req: AuthedRequest, res) => {
   if (!owns) return res.status(403).json({ error: '연동되지 않은 학생입니다.' });
 
   const base = req.query.weekOf ? new Date(String(req.query.weekOf)) : new Date();
-  const from = new Date(base.getTime() - 6 * 24 * 60 * 60_000)
-    .toISOString()
-    .slice(0, 10);
-  const to = base.toISOString().slice(0, 10);
+  const from = localDateString(new Date(base.getTime() - 6 * 24 * 60 * 60_000));
+  const to = localDateString(base);
 
   const { data: records } = await supabaseAdmin
     .from('class_attendance_records')

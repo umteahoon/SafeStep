@@ -1,4 +1,5 @@
 import cron from 'node-cron';
+import { APP_TIME_ZONE } from '../lib/time';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 
 async function aggregateWeeklyReports() {
@@ -56,5 +57,5 @@ async function aggregateWeeklyReports() {
 
 // 매주 일요일 21:00 실행
 export function scheduleWeeklyReport() {
-  cron.schedule('0 21 * * 0', aggregateWeeklyReports);
+  cron.schedule('0 21 * * 0', aggregateWeeklyReports, { timezone: APP_TIME_ZONE });
 }

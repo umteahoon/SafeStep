@@ -1,4 +1,6 @@
 import 'dotenv/config';
+// 출결 판정 · 자정 퇴실 같은 예약 작업이 한국 시간 기준으로 돌도록 프로세스 시간대를 고정
+process.env.TZ = process.env.TZ || 'Asia/Seoul';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';

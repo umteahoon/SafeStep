@@ -1,4 +1,5 @@
 import cron from 'node-cron';
+import { APP_TIME_ZONE } from '../lib/time';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 
 const AWAY_TIMEOUT_MINUTES = 60;
@@ -36,5 +37,5 @@ async function releaseOverdueAwaySeats() {
 
 // 매 10분마다 실행
 export function scheduleAwayTimeout() {
-  cron.schedule('*/10 * * * *', releaseOverdueAwaySeats);
+  cron.schedule('*/10 * * * *', releaseOverdueAwaySeats, { timezone: APP_TIME_ZONE });
 }

@@ -1,4 +1,5 @@
 import cron from 'node-cron';
+import { APP_TIME_ZONE } from '../lib/time';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 
 async function forceCheckoutAllSeats() {
@@ -39,5 +40,5 @@ export function scheduleAutoCheckout() {
     await deactivateExpiredAcademies();
     // eslint-disable-next-line no-console
     console.log('[autoCheckout] 자정 정리 작업 완료');
-  });
+  }, { timezone: APP_TIME_ZONE });
 }

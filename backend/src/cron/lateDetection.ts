@@ -1,4 +1,5 @@
 import cron from 'node-cron';
+import { APP_TIME_ZONE, localDateString } from '../lib/time';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 import { sendAbsenceAlert } from '../services/PushService';
 
@@ -34,7 +35,7 @@ function academyIdOf(row: ScheduleRow): string | null {
 async function detectLateAndAbsent() {
   const now = new Date();
   const todayDow = now.getDay();
-  const today = now.toISOString().slice(0, 10);
+  const today = localDateString(now);
 
   const { data: schedules, error } = await supabaseAdmin
     .from('class_schedules')
@@ -137,5 +138,5 @@ async function upsertAuto(
 
 // 매 5분마다 실행
 export function scheduleLateDetection() {
-  cron.schedule('*/5 * * * *', detectLateAndAbsent);
+  cron.schedule('*/5 * * * *', detectLateAndAbsent, { timezone: APP_TIME_ZONE });
 }

@@ -1,4 +1,5 @@
 import cron from 'node-cron';
+import { APP_TIME_ZONE } from '../lib/time';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 
 async function deactivateExpiredPasses() {
@@ -22,5 +23,5 @@ export function scheduleExpirePasses() {
     await deactivateExpiredPasses();
     // eslint-disable-next-line no-console
     console.log('[expirePasses] 기간권 만료 처리 완료');
-  });
+  }, { timezone: APP_TIME_ZONE });
 }
