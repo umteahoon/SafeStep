@@ -8,6 +8,7 @@
 --   - 반 수업일(월 · 수) 기준 출석 / 지각 / 결석 / 사유결석 기록
 --     (지각 · 결석은 보호자 알림 발송됨으로 표시 → 대시보드 "출결 알림" 탭에 표시)
 --   - 키오스크 퇴실 기록(학습시간) → 대시보드 "총 학습시간"
+--   - 데모 기간권(시연용, 0원) → 키오스크 입실 시연 가능
 --
 -- 선행: schema.sql, seed.sql, seed_demo_accounts.mjs(데모반 생성), migration_18.
 -- 여러 번 실행해도 안전합니다 (같은 학생 · 같은 날짜 기록은 건너뜀).
@@ -88,6 +89,22 @@ BEGIN
       SELECT 1 FROM attendance_logs l
       WHERE l.student_id = s.id AND l.type = 'CHECK_OUT' AND l.logged_at::date = d::date
     );
+END $$;
+
+-- 5) 키오스크 입실 시연용 데모 이용권 (기간권, 1년) — 이용권이 없으면 키오스크 입실이 막히므로
+--    결제 없이도 데모 학생(홍길동 포함)이 입실할 수 있게 함. migration_07(또는 20) 적용 후에만 동작.
+DO $$
+BEGIN
+  IF to_regclass('public.student_passes') IS NULL THEN
+    RAISE NOTICE 'student_passes 테이블이 없어 데모 이용권은 건너뜁니다 (migration_20 먼저 실행).';
+    RETURN;
+  END IF;
+  INSERT INTO student_passes (academy_id, student_id, pass_type, product_name, expires_at, status, order_id, amount)
+  SELECT s.academy_id, s.id, 'PERIOD', '데모 기간권(시연용)', NOW() + INTERVAL '1 year', 'ACTIVE', 'demo-pass-' || s.id, 0
+  FROM students s
+  WHERE s.academy_id = (SELECT id FROM academies WHERE name = 'SafeStep 강남점')
+    AND (s.attendance_code LIKE '2100%' OR s.name = '홍길동')
+  ON CONFLICT (order_id) DO NOTHING;
 END $$;
 
 -- 되돌리기 (필요할 때만 실행):

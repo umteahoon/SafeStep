@@ -31,6 +31,7 @@ safestep/
     ├── migration_17_academy_kind.sql           기존 프로젝트 추가 마이그레이션 (academies.kind/category 컬럼, §1 참고)
     ├── migration_18_dashboard_notice_stats.sql 기존 프로젝트 추가 마이그레이션 (대시보드 공지·알림 현황 + 채팅방 RLS 무한 재귀 수정, §1 참고)
     ├── migration_19_parent_consult_rooms.sql   기존 프로젝트 추가 마이그레이션 (학부모 1:1 상담방, §1 참고)
+    ├── migration_20_catchup_07_08_09.sql       07·08·09를 안전하게 재실행 가능한 형태로 묶은 보정판 (운영 DB 누락 복구용)
     ├── seed_demo_rich.sql                      발표·시연용 데모 데이터 보강 (학생 5명 + 최근 3주 출결·학습 기록)
     ├── seed.sql                                샘플 학원 2곳
     ├── seed_floorplan.sql                      존별 좌석 배치 샘플(강남점은 실제 매장 사진 기반 62석 구조)
@@ -141,6 +142,7 @@ safestep/
 - `supabase/migration_17_academy_kind.sql` — `academies.kind`/`category` 컬럼 추가 + 기존 데이터 백필 (**없으면 `POST /api/owner/academies`가 에러를 내고, 모바일 앱의 "학원" 탭 조회 자체가 실패합니다** — migration_15·16과 함께 들어온 기능인데 이 컬럼을 추가하는 마이그레이션이 누락되어 있어 따로 작성)
 - `supabase/migration_18_dashboard_notice_stats.sql` — 대시보드 공지·알림 현황 함수(`get_academy_notice_stats`) + `chat_rooms` 조회 정책의 무한 재귀 수정(`is_chat_room_member`) (**없으면 웹 `/chat`이 `infinite recursion detected in policy for relation "chat_rooms"` 오류를 내고, 대시보드 공지·알림 현황이 표시되지 않습니다** — 선행 조건: `migration_16`)
 - `supabase/migration_19_parent_consult_rooms.sql` — 학부모 1:1 상담방(`chat_rooms.type = 'PARENT'`, `student_id`) + `open_parent_room` / `list_parent_consults` RPC (**없으면 `/consult`와 "선생님께 문의" 버튼이 동작하지 않습니다** — 선행 조건: `migration_18`)
+- `supabase/migration_20_catchup_07_08_09.sql` — `migration_07`(학생 이용권)·`08`(연동코드 UNIQUE)·`09`(내 문의 내역)를 이미 적용된 부분은 건너뛰며 한 번에 적용 (**2026-10-29 점검 때 운영 DB에 07·09가 빠져 있어 키오스크 입실이 전부 막히고 도입 문의 제출이 실패했음** — 기존 프로젝트라면 한 번 실행해 두면 안전)
 
 > 새 Supabase 프로젝트도 `schema.sql` 실행 후 위 마이그레이션들을 번호 순서대로 모두 실행해야 합니다 (`schema.sql`에는 마이그레이션 내용이 합쳐져 있지 않습니다).
 
