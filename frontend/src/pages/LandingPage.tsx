@@ -153,6 +153,9 @@ export default function LandingPage() {
       {/* 히어로 */}
       <section className="mx-auto grid max-w-6xl gap-10 px-6 py-16 md:grid-cols-2 md:py-24">
         <div className="flex flex-col justify-center">
+          <p className="mb-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+            대림대학교 컴퓨터정보학부 캡스톤디자인 · 팀 육전
+          </p>
           <p className="mb-3 text-sm font-semibold text-blue-600">
             스터디카페 좌석 관제 + 학원 스마트 출결
           </p>
@@ -279,6 +282,13 @@ export default function LandingPage() {
           <Link to="/privacy" className="font-semibold text-gray-500 hover:text-gray-700">개인정보처리방침</Link>
           <Link to="/inquiry" className="hover:text-gray-600">문의하기</Link>
         </div>
+        <p className="mb-1 text-gray-500">
+          대림대학교 컴퓨터정보학부 · 2026학년도 2학기 캡스톤디자인 · 팀 육전
+        </p>
+        <p className="mb-3">
+          지도교수 정호일 · 이주환 · 엄태훈 · 이동교 · 최원재 · 문의{' '}
+          <a href="mailto:am2869@naver.com" className="hover:text-gray-600">am2869@naver.com</a> (엄태훈)
+        </p>
         © {new Date().getFullYear()} SafeStep. All rights reserved.
       </footer>
     </div>

@@ -1,4 +1,5 @@
 // 개인정보처리방침 · 이용약관 본문. 웹 /privacy, /terms 에서 사용하고, 모바일 앱은 이 웹 페이지로 연결합니다.
+// 대림대학교 컴퓨터정보학부 2026학년도 2학기 캡스톤디자인 작품(팀 육전)의 약관입니다.
 // ⚠️ 일반적인 서비스 형식을 따른 초안입니다. 실제 운영(유료 · 실사용자) 전에는 학교 또는 전문가 검토를 받고,
 //    운영 주체 · 개인정보 보호책임자 정보를 실제 값으로 바꾸세요.
 
@@ -17,8 +18,10 @@ export interface LegalDoc {
 
 /** 운영 주체 · 연락처. 실제 운영 전 바꿔 주세요 (CONTACT_EMAIL 이 비어 있으면 '문의하기' 메뉴로 안내) */
 export const OPERATOR_NAME = 'SafeStep 운영팀 (대림대학교 컴퓨터정보학부 팀 육전)';
-export const CONTACT_EMAIL = '';
-const CONTACT = CONTACT_EMAIL ? `이메일 ${CONTACT_EMAIL}` : "서비스 내 '학원·카페 도입 문의' 메뉴";
+export const CONTACT_EMAIL = 'am2869@naver.com';
+/** 개인정보 보호책임자 · 문의 담당 */
+export const CONTACT_PERSON = '엄태훈';
+const CONTACT = CONTACT_EMAIL ? `${CONTACT_PERSON} (이메일 ${CONTACT_EMAIL})` : "서비스 내 '학원·카페 도입 문의' 메뉴";
 
 export const PRIVACY_POLICY: LegalDoc = {
   title: '개인정보처리방침',
@@ -112,7 +115,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     {
       title: '11. 개인정보 보호책임자',
       body: [
-        `- 책임 부서: ${OPERATOR_NAME}`,
+        `- 개인정보 보호책임자: ${CONTACT_PERSON} (${OPERATOR_NAME})`,
         `- 연락처: ${CONTACT}`,
         '개인정보 침해에 대한 신고 · 상담은 개인정보침해신고센터(privacy.kisa.or.kr, 국번 없이 118), 개인정보분쟁조정위원회(www.kopico.go.kr, 1833-6972)에도 할 수 있습니다.',
       ],

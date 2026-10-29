@@ -9,6 +9,11 @@ let html = fs.readFileSync(indexPath, 'utf8');
 
 const headInject = `
     <meta name="theme-color" content="#2563EB" />
+    <meta name="description" content="대림대학교 컴퓨터정보학부 2026학년도 2학기 캡스톤디자인 작품 · 팀 육전 — 스터디카페 좌석 관제와 학원 스마트 출결을 하나로 관리하는 SafeStep" />
+    <meta property="og:title" content="SafeStep 모바일" />
+    <meta property="og:description" content="대림대학교 컴퓨터정보학부 2026학년도 2학기 캡스톤디자인 작품 · 팀 육전 — 스터디카페 좌석 관제와 학원 스마트 출결을 하나로 관리하는 SafeStep" />
+    <meta property="og:type" content="website" />
+    <meta name="author" content="대림대학교 컴퓨터정보학부 팀 육전 (이주환 · 엄태훈 · 이동교 · 최원재)" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />

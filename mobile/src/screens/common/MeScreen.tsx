@@ -13,6 +13,13 @@ import { colors, radius } from '../../theme';
 import type { RootNav, RootStackParamList } from '../../navigation/types';
 import type { UserRole } from '../../types';
 
+/** 학교 프로젝트 표기 (내 정보 화면 맨 아래) */
+const CREDIT = [
+  '대림대학교 컴퓨터정보학부 · 2026-2 캡스톤디자인 · 팀 육전',
+  '지도교수 정호일 · 이주환 · 엄태훈 · 이동교 · 최원재',
+  '문의 am2869@naver.com (엄태훈)',
+].join('\n');
+
 interface MenuItem {
   title: string;
   desc?: string;
@@ -164,6 +171,7 @@ export default function MeScreen() {
           <Row icon="sparkles-outline" title="앱 소개 다시 보기" desc="처음 실행할 때 나오는 안내 화면" onPress={() => navigation.navigate('Welcome', { replay: true })} last />
         </Group>
         <Text style={styles.version}>SafeStep Mobile 1.0.0</Text>
+        <Text style={styles.credit}>{CREDIT}</Text>
       </Screen>
     );
   }
@@ -281,6 +289,7 @@ export default function MeScreen() {
           <Text style={styles.logoutText}>로그아웃</Text>
         </Pressable>
         <Text style={styles.version}>SafeStep Mobile 1.0.0</Text>
+        <Text style={styles.credit}>{CREDIT}</Text>
       </View>
     </Screen>
   );
@@ -306,6 +315,7 @@ const styles = StyleSheet.create({
   logout: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14 },
   logoutText: { fontSize: 14, fontWeight: '600', color: colors.textSub },
   version: { fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: 24 },
+  credit: { fontSize: 11, color: colors.textMuted, textAlign: 'center', lineHeight: 17, marginTop: 6 },
   preview: { marginBottom: 14, gap: 8 },
   previewLabel: { fontSize: 11, fontWeight: '800', color: colors.warnText },
   pChip: { backgroundColor: colors.warnSoft, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
