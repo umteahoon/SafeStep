@@ -28,6 +28,8 @@ export default function RegisterPage() {
   const [academies, setAcademies] = useState<AcademyOption[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [isOver14, setIsOver14] = useState(false);
 
   const needsAcademy = role === 'TEACHER';
 
@@ -189,9 +191,24 @@ export default function RegisterPage() {
           </p>
         )}
 
+        {/* 약관 · 개인정보 동의 (필수) */}
+        <div className="mb-4 space-y-2 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+          <label className="flex items-start gap-2">
+            <input type="checkbox" required checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5" />
+            <span>
+              <Link to="/terms" target="_blank" className="text-blue-600 underline">이용약관</Link>과{' '}
+              <Link to="/privacy" target="_blank" className="text-blue-600 underline">개인정보처리방침</Link>에 동의합니다 (필수)
+            </span>
+          </label>
+          <label className="flex items-start gap-2">
+            <input type="checkbox" required checked={isOver14} onChange={(e) => setIsOver14(e.target.checked)} className="mt-0.5" />
+            <span>만 14세 이상입니다 (필수) — 만 14세 미만은 보호자 동의 후 보호자가 가입을 도와주세요.</span>
+          </label>
+        </div>
+
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || !agreed || !isOver14}
           className="w-full rounded-lg bg-blue-600 py-2.5 font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
         >
           {isSubmitting ? '가입 처리 중...' : '회원가입'}

@@ -159,6 +159,8 @@ export default function MeScreen() {
           {Platform.OS === 'web' && (
             <Row icon="desktop-outline" title="데스크톱 버전으로 보기" desc="컴퓨터용 웹 화면" onPress={() => Linking.openURL('https://safestep-kr.netlify.app/?site=desktop')} />
           )}
+          <Row icon="document-text-outline" title="이용약관" onPress={() => Linking.openURL('https://safestep-kr.netlify.app/terms')} />
+          <Row icon="shield-checkmark-outline" title="개인정보처리방침" onPress={() => Linking.openURL('https://safestep-kr.netlify.app/privacy')} />
           <Row icon="sparkles-outline" title="앱 소개 다시 보기" desc="처음 실행할 때 나오는 안내 화면" onPress={() => navigation.navigate('Welcome', { replay: true })} last />
         </Group>
         <Text style={styles.version}>SafeStep Mobile 1.0.0</Text>
@@ -268,6 +270,8 @@ export default function MeScreen() {
         {Platform.OS === 'web' && (
           <Row icon="desktop-outline" title="데스크톱 버전으로 보기" desc="컴퓨터용 웹 화면" onPress={() => Linking.openURL('https://safestep-kr.netlify.app/?site=desktop')} />
         )}
+        <Row icon="document-text-outline" title="이용약관" onPress={() => Linking.openURL('https://safestep-kr.netlify.app/terms')} />
+        <Row icon="shield-checkmark-outline" title="개인정보처리방침" onPress={() => Linking.openURL('https://safestep-kr.netlify.app/privacy')} />
         <Row icon="sparkles-outline" title="앱 소개 다시 보기" desc="처음 실행할 때 나오는 안내 화면" onPress={() => navigation.navigate('Welcome', { replay: true })} last />
       </Group>
 

@@ -12,6 +12,11 @@ import { AdminLayout } from './components/admin/AdminLayout';
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const PrivacyPage = lazy(() => import('./pages/legal/LegalPage').then((m) => ({ default: m.PrivacyPage })));
+const TermsPage = lazy(() => import('./pages/legal/LegalPage').then((m) => ({ default: m.TermsPage })));
 const UnauthorizedPage = lazy(() => import('./pages/auth/UnauthorizedPage'));
 const TeacherPendingPage = lazy(() => import('./pages/auth/TeacherPendingPage'));
 
@@ -74,6 +79,10 @@ function App() {
         <Route path="/teams/join/:code" element={<JoinTeamPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route path="/teacher/pending" element={<TeacherPendingPage />} />
 
@@ -168,10 +177,7 @@ function App() {
           <Route path="/me/edit" element={<ProfileEditPage />} />
         </Route>
 
-        <Route
-          path="*"
-          element={<Navigate to={isNativeApp ? '/map' : '/'} replace />}
-        />
+        <Route path="*" element={isNativeApp ? <Navigate to="/map" replace /> : <NotFoundPage />} />
       </Routes>
       </Suspense>
       </ErrorBoundary>

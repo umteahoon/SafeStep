@@ -56,6 +56,14 @@ function resolvePlaceLatLng(mapx: string, mapy: string): { lat: number; lng: num
   return null;
 }
 
+const CATEGORY_LABEL: Record<string, string> = {
+  MATH: '수학', ENGLISH: '영어', KOREAN: '국어·논술', SCIENCE: '과학', CODING: '코딩', GENERAL: '종합',
+};
+/** 학원은 좌석이 없으므로 잔여석 대신 '학원 · 과목' 으로 표시 */
+const isAcademyKind = (a: { kind?: string | null }) => a.kind === 'ACADEMY';
+const academyLabel = (a: { category?: string | null }) =>
+  `학원${a.category && CATEGORY_LABEL[a.category] ? ' · ' + CATEGORY_LABEL[a.category] : ''}`;
+
 export default function MapSearchPage() {
   const navigate = useNavigate();
   const { isLoaded, error: mapError } = useNaverMaps();
@@ -187,7 +195,7 @@ export default function MapSearchPage() {
       const infoWindow = new window.naver.maps.InfoWindow({
         content: `<div style="padding:8px 12px;font-size:13px;">
           <strong>${academy.name}</strong><br/>
-          잔여석 ${academy.emptySeats}석
+          ${isAcademyKind(academy) ? academyLabel(academy) : `잔여석 ${academy.emptySeats}석`}
         </div>`,
       });
 
@@ -419,6 +427,11 @@ export default function MapSearchPage() {
                 >
                   {isFavorite(a.id) ? '♥' : '♡'}
                 </button>
+                {isAcademyKind(a) ? (
+                  <span className="shrink-0 rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+                    {academyLabel(a)}
+                  </span>
+                ) : (
                 <span
                   className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
                     a.emptySeats > 0
@@ -428,6 +441,7 @@ export default function MapSearchPage() {
                 >
                   잔여 {a.emptySeats}석 / {a.total_seats}석
                 </span>
+                )}
               </div>
               <p className="mt-1 text-sm text-gray-400">{a.address}</p>
               <button

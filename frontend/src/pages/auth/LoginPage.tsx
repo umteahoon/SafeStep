@@ -106,6 +106,12 @@ export default function LoginPage() {
           </p>
         )}
 
+        <div className="-mt-2 mb-4 text-right">
+          <Link to="/forgot-password" className="text-sm text-gray-500 hover:text-blue-600">
+            비밀번호를 잊으셨나요?
+          </Link>
+        </div>
+
         <button
           type="submit"
           disabled={isSubmitting}

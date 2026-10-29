@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -150,6 +150,10 @@ export default function LoginScreen() {
           />
 
           <Button title="로그인" onPress={handleSubmit} loading={isSubmitting} disabled={!canSubmit} style={styles.cta} />
+
+          <Pressable onPress={() => Linking.openURL('https://safestep-kr.netlify.app/forgot-password')} hitSlop={8} style={{ alignSelf: 'center', marginTop: 12 }}>
+            <Text style={styles.signupText}>비밀번호를 잊으셨나요?</Text>
+          </Pressable>
 
           <View style={styles.signupRow}>
             <Text style={styles.signupText}>아직 계정이 없으신가요?</Text>

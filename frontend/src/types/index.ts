@@ -39,6 +39,10 @@ export interface Academy {
   subscription_status: 'TRIAL' | 'ACTIVE' | 'EXPIRED';
   subscription_expires_at: string;
   created_at: string;
+  /** 'ACADEMY'(학원) | 'STUDY_CAFE'(스터디카페). 학원은 좌석 개념이 없음 */
+  kind?: string | null;
+  /** 학원 과목: MATH · ENGLISH · KOREAN · SCIENCE · CODING · GENERAL */
+  category?: string | null;
 }
 
 export interface Subscription {

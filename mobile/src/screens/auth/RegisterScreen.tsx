@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
@@ -272,7 +272,13 @@ export default function RegisterScreen() {
               </View>
             )}
             <Banner kind="error">{error ?? undefined}</Banner>
-            <Text style={styles.terms}>가입하면 서비스 이용약관과 개인정보 처리방침에 동의하게 돼요.</Text>
+            <Text style={styles.terms}>
+              가입하면{' '}
+              <Text style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={() => Linking.openURL('https://safestep-kr.netlify.app/terms')}>이용약관</Text>
+              과{' '}
+              <Text style={{ color: colors.primary, textDecorationLine: 'underline' }} onPress={() => Linking.openURL('https://safestep-kr.netlify.app/privacy')}>개인정보처리방침</Text>
+              에 동의하게 돼요. 만 14세 미만은 보호자 동의 후 보호자가 가입을 도와주세요.
+            </Text>
           </>
         )}
       </ScrollView>
