@@ -153,7 +153,9 @@ safestep/
 cd backend
 node ../supabase/seed_demo_accounts.mjs
 ```
-이 스크립트는 학부모 데모 계정(`demo-parent@safestep.local` / `safestepdemo`, 홍길동의 보호자로 연동)도 함께 만듭니다 — 학부모 1:1 상담 시연용이며 로그인 화면에서 이메일·비밀번호로 로그인합니다.
+이 스크립트는 학부모 데모 계정(`demo-parent@safestep.local`, 홍길동의 보호자로 연동 — 비밀번호는 `DEMO_ACCOUNT_PASSWORD` 환경변수로 지정, 없으면 무작위)도 함께 만듭니다 — 학부모 1:1 상담 시연용입니다.
+
+> **실제 운영 시:** Render 환경변수 `DEMO_LOGIN_ENABLED=false`로 데모 로그인 API를 끄고(랜딩의 원장/강사 데모 버튼도 자동으로 숨겨짐), `supabase/ops_disable_demo_accounts.sql`로 데모 계정 로그인 자체를 정지하세요.
 
 대시보드·출석부가 비어 보이지 않게 하려면 이어서 SQL Editor에서 `supabase/seed_demo_rich.sql`을 실행하세요 (학생 5명 + 최근 3주 출결·학습 기록, 여러 번 실행해도 안전, 파일 끝에 되돌리기 방법).
 

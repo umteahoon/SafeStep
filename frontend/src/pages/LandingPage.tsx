@@ -1,5 +1,5 @@
 import { homeForRole } from '../lib/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
@@ -56,6 +56,21 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [demoLoading, setDemoLoading] = useState<'admin' | 'teacher' | null>(null);
   const [demoError, setDemoError] = useState<string | null>(null);
+  // 서버에서 데모 로그인이 꺼져 있으면(운영) 원장/강사 데모 버튼을 숨김. 확인 전에는 표시하지 않음
+  const [staffDemoEnabled, setStaffDemoEnabled] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    apiFetch<{ enabled: boolean }>('/api/auth/demo-status', { auth: false })
+      .then((r) => {
+        if (mounted) setStaffDemoEnabled(!!r.enabled);
+      })
+      .catch(() => {
+        if (mounted) setStaffDemoEnabled(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const tryDemo = async (kind: 'admin' | 'teacher') => {
     const isAlreadyDemo = profile?.email?.startsWith('demo-');
@@ -168,7 +183,7 @@ export default function LandingPage() {
           <img src={logo} alt="SafeStep" className="w-full max-w-lg" />
 
           {/* 데모 체험하기 */}
-          <div className="mt-6 grid w-full max-w-lg grid-cols-2 gap-2 md:grid-cols-4">
+          <div className={`mt-6 grid w-full max-w-lg grid-cols-2 gap-2 ${staffDemoEnabled ? 'md:grid-cols-4' : ''}`}>
             <Link
               to="/map"
               className="rounded-lg border border-gray-300 px-2 py-2.5 text-center text-xs font-medium text-gray-700 hover:bg-gray-50"
@@ -181,6 +196,8 @@ export default function LandingPage() {
             >
               키오스크 데모
             </Link>
+            {staffDemoEnabled && (
+              <>
             <button
               onClick={() => tryDemo('admin')}
               disabled={demoLoading !== null}
@@ -195,11 +212,15 @@ export default function LandingPage() {
             >
               {demoLoading === 'teacher' ? '접속 중...' : '강사 데모'}
             </button>
+              </>
+            )}
           </div>
           {demoError && <p className="mt-2 text-sm text-red-500">{demoError}</p>}
-          <p className="mt-2 max-w-lg text-center text-xs text-gray-400">
-            원장/강사 데모는 예시 데이터를 함께 쓰는 공용 체험 계정입니다.
-          </p>
+          {staffDemoEnabled && (
+            <p className="mt-2 max-w-lg text-center text-xs text-gray-400">
+              원장/강사 데모는 예시 데이터를 함께 쓰는 공용 체험 계정입니다.
+            </p>
+          )}
         </div>
       </section>
 

@@ -35,6 +35,11 @@ function loadBackendEnv() {
 
 loadBackendEnv();
 
+// 데모 계정 비밀번호는 저장소에 두지 않음: DEMO_ACCOUNT_PASSWORD 환경변수, 없으면 실행할 때마다 무작위.
+// (랜딩의 데모 버튼은 비밀번호 없이 백엔드 매직링크로 로그인하므로 비밀번호를 알 필요가 없음)
+import { randomBytes } from 'node:crypto';
+const DEMO_PASSWORD = process.env.DEMO_ACCOUNT_PASSWORD || randomBytes(18).toString('base64url');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -111,7 +116,7 @@ async function main() {
   }
   const academyId = academy.id;
 
-  const adminId = await ensureAuthUser('demo-admin@safestep.local', 'safestepdemo');
+  const adminId = await ensureAuthUser('demo-admin@safestep.local', DEMO_PASSWORD);
   await upsertProfile({
     id: adminId,
     email: 'demo-admin@safestep.local',
@@ -122,7 +127,7 @@ async function main() {
   });
   console.log('demo-admin@safestep.local (원장) 준비 완료:', adminId);
 
-  const teacherId = await ensureAuthUser('demo-teacher@safestep.local', 'safestepdemo');
+  const teacherId = await ensureAuthUser('demo-teacher@safestep.local', DEMO_PASSWORD);
   await upsertProfile({
     id: teacherId,
     email: 'demo-teacher@safestep.local',
@@ -171,7 +176,7 @@ async function main() {
   }
 
   // 학부모 데모 계정: 홍길동의 보호자로 연동 (학부모 1:1 상담 시연용 — 이메일/비밀번호로 로그인)
-  const parentId = await ensureAuthUser('demo-parent@safestep.local', 'safestepdemo');
+  const parentId = await ensureAuthUser('demo-parent@safestep.local', DEMO_PASSWORD);
   await upsertProfile({
     id: parentId,
     email: 'demo-parent@safestep.local',

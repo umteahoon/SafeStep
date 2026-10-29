@@ -93,6 +93,11 @@ const DEMO_EMAILS: Record<'admin' | 'teacher', string> = {
 // 1회용 토큰만 발급하고 프론트는 그 토큰으로 supabase.auth.verifyOtp()를 호출합니다.
 // role만 받고 이메일은 서버가 고정값으로 매핑합니다 — 임의 이메일을 받으면 이 API가
 // "아무 계정이나 로그인시키는 API"가 되어버리므로 절대 클라이언트 입력을 이메일에 쓰지 않습니다.
+// GET /api/auth/demo-status — 랜딩 페이지가 원장/강사 데모 버튼을 보여줄지 판단 (운영 시 DEMO_LOGIN_ENABLED=false)
+router.get('/demo-status', (_req, res) => {
+  res.json({ enabled: process.env.DEMO_LOGIN_ENABLED !== 'false' });
+});
+
 router.post('/demo-login', publicAuthLimiter, async (req, res) => {
   if (process.env.DEMO_LOGIN_ENABLED === 'false') {
     return res.status(404).json({ error: '데모 로그인이 비활성화되어 있습니다.' });
