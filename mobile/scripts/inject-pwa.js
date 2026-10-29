@@ -41,8 +41,7 @@ const headInject = `
   </head>`;
 
 const bodyInject = `
-  <!-- 하단 탭바(학원 · 내 정보 탭)를 가리지 않도록 탭바 위에 작게 띄움 -->
-  <a href="https://safestep-kr.netlify.app/?site=desktop" style="position:fixed;right:8px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:9999;background:rgba(17,21,26,.6);color:#fff;font:11px -apple-system,sans-serif;padding:5px 9px;border-radius:999px;text-decoration:none;">💻 데스크톱 버전</a>
+  <!-- '데스크톱 버전으로 보기'는 화면을 가리지 않도록 내 정보 화면 메뉴로 옮김 (MeScreen) -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {

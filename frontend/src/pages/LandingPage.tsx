@@ -107,9 +107,9 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white text-gray-900">
       {/* 상단 네비게이션 */}
       <header className="sticky top-0 z-10 border-b border-gray-100 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <img src={logo} alt="SafeStep" className="h-8 w-auto" />
-          <nav className="flex items-center gap-2 text-sm">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
+          <img src={logo} alt="SafeStep" className="h-7 w-auto shrink-0 sm:h-8" />
+          <nav className="flex shrink-0 items-center gap-1 whitespace-nowrap text-sm sm:gap-2">
             <a
               href={`${MOBILE_SITE_URL}/?site=mobile`}
               className="hidden rounded-lg px-3 py-2 text-gray-400 hover:bg-gray-50 sm:inline-block"
@@ -120,7 +120,8 @@ export default function LandingPage() {
               to="/map"
               className="rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50"
             >
-              스터디카페 및 학원 찾기
+              <span className="hidden sm:inline">스터디카페 및 학원 찾기</span>
+              <span className="sm:hidden">찾기</span>
             </Link>
             {user ? (
               <Link

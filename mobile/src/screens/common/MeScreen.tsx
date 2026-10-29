@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { PREVIEW_MODE, useAuth } from '../../lib/useAuth';
@@ -156,6 +156,9 @@ export default function MeScreen() {
         <Group title="학원·스터디카페를 운영하시나요?">
           <Row icon="rocket-outline" title="무료로 시작하기" desc="도입 가이드" onPress={() => go('StartGuide')} />
           <Row icon="chatbox-ellipses-outline" title="도입 문의" onPress={() => go('Inquiry')} />
+          {Platform.OS === 'web' && (
+            <Row icon="desktop-outline" title="데스크톱 버전으로 보기" desc="컴퓨터용 웹 화면" onPress={() => Linking.openURL('https://safestep-kr.netlify.app/?site=desktop')} />
+          )}
           <Row icon="sparkles-outline" title="앱 소개 다시 보기" desc="처음 실행할 때 나오는 안내 화면" onPress={() => navigation.navigate('Welcome', { replay: true })} last />
         </Group>
         <Text style={styles.version}>SafeStep Mobile 1.0.0</Text>
@@ -262,6 +265,9 @@ export default function MeScreen() {
         <Row icon="file-tray-full-outline" title="내 문의 내역" onPress={() => go('MyInquiries')} />
         <Row icon="chatbox-ellipses-outline" title="도입 문의" onPress={() => go('Inquiry')} />
         <Row icon="rocket-outline" title="시작 가이드" onPress={() => go('StartGuide')} />
+        {Platform.OS === 'web' && (
+          <Row icon="desktop-outline" title="데스크톱 버전으로 보기" desc="컴퓨터용 웹 화면" onPress={() => Linking.openURL('https://safestep-kr.netlify.app/?site=desktop')} />
+        )}
         <Row icon="sparkles-outline" title="앱 소개 다시 보기" desc="처음 실행할 때 나오는 안내 화면" onPress={() => navigation.navigate('Welcome', { replay: true })} last />
       </Group>
 
