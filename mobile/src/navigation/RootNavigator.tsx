@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Platform, Pressable } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Platform, Pressable, View, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationContainer } from '@react-navigation/native';
 import type { LinkingOptions } from '@react-navigation/native';
@@ -10,6 +10,7 @@ import { useAuth } from '../lib/useAuth';
 import { canExplore, canUseChat } from '../lib/teams';
 import { shouldShowWelcome } from '../lib/welcome';
 import WelcomeScreen from '../screens/common/WelcomeScreen';
+import { AnimatedSplash, SPLASH_BG } from '../components/AnimatedSplash';
 import { colors } from '../theme';
 import type { RootStackParamList, TabParamList } from './types';
 
@@ -177,8 +178,12 @@ function HomeButton({ onPress }: { onPress: () => void }) {
 }
 
 export default function RootNavigator() {
-  // 처음 실행이면 소개 화면부터. 저장소를 읽는 동안은 아무것도 그리지 않음 (메인 화면이 번쩍 보이지 않게)
+  // 처음 실행이면 소개 화면부터. 스플래시 애니메이션이 도는 동안 미리 판단해 둠
   const [initial, setInitial] = useState<'Welcome' | 'Main' | null>(null);
+  const [splashDone, setSplashDone] = useState(process.env.NODE_ENV === 'test');
+  const dark = useColorScheme() === 'dark';
+  const enterOpacity = useRef(new Animated.Value(0)).current;
+  const enterScale = useRef(new Animated.Value(0.96)).current;
   useEffect(() => {
     let alive = true;
     shouldShowWelcome().then((show) => alive && setInitial(show ? 'Welcome' : 'Main'));
@@ -186,8 +191,41 @@ export default function RootNavigator() {
       alive = false;
     };
   }, []);
-  if (!initial) return null;
 
+  const showApp = splashDone && !!initial;
+  // 스플래시가 끝나면 다음 화면이 0.55초 동안 페이드(easeInOutCubic) + 0.96 → 1.0 확대(easeOutCubic)로 등장.
+  // 스플래시는 내비게이션 스택에 없으므로 뒤로가기로 돌아오지 않음
+  useEffect(() => {
+    if (!showApp) return;
+    const useNativeDriver = Platform.OS !== 'web';
+    const a = Animated.parallel([
+      Animated.timing(enterOpacity, { toValue: 1, duration: 550, easing: Easing.inOut(Easing.cubic), useNativeDriver }),
+      Animated.timing(enterScale, { toValue: 1, duration: 550, easing: Easing.out(Easing.cubic), useNativeDriver }),
+    ]);
+    a.start();
+    return () => a.stop();
+  }, [showApp, enterOpacity, enterScale]);
+
+  if (!showApp) {
+    return <AnimatedSplash onFinish={() => setSplashDone(true)} />;
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: dark ? SPLASH_BG.dark : SPLASH_BG.light }}>
+      <Animated.View
+        style={{
+          flex: 1,
+          opacity: enterOpacity,
+          transform: [{ scale: enterScale }],
+        }}
+      >
+        <AppNavigator initial={initial} />
+      </Animated.View>
+    </View>
+  );
+}
+
+function AppNavigator({ initial }: { initial: 'Welcome' | 'Main' }) {
   return (
     <NavigationContainer linking={linking}>
       <Stack.Navigator

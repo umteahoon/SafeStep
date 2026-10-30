@@ -167,6 +167,12 @@ router.post('/demo-login', publicAuthLimiter, async (req, res) => {
       return res.status(500).json({ error: '학부모 데모 계정 준비에 실패했습니다.' });
     }
   }
+  // 체험 학원 데이터를 하루 1번 기준 상태로 되돌림 (migration_21 — 20시간 안에 이미 했으면 DB 함수가 바로 끝냄).
+  // 함수가 아직 없거나 실패해도 체험 접속은 막지 않음
+  await supabaseAdmin.rpc('reset_demo_academy').then(
+    () => undefined,
+    () => undefined
+  );
 
   const email = DEMO_EMAILS[role];
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({

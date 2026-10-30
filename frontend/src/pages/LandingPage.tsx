@@ -1,8 +1,12 @@
 import { homeForRole } from '../lib/navigation';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  ArrowRight,
   BarChart3,
   Bell,
+  BellRing,
+  LayoutDashboard,
   Flag,
   MapPin,
   QrCode,
@@ -11,6 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
 import { MOBILE_SITE_URL } from '../lib/deviceRedirect';
 import { BrandLogo } from '../components/common/BrandLogo';
 import { DemoButtons } from '../components/common/DemoButtons';
@@ -58,8 +63,33 @@ const BUSINESS_FEATURES: { title: string; desc: string; icon: LucideIcon }[] = [
   },
 ];
 
+// 출결이 처리되는 흐름 (학생 → 원장 · 강사 → 학부모)
+const FLOW_STEPS: { title: string; desc: string; icon: LucideIcon }[] = [
+  { title: '학생 입실', desc: '키오스크에서 QR 또는 6자리 핀코드로 입실 · 퇴실', icon: QrCode },
+  { title: '출결 자동 기록', desc: '원장 · 강사 대시보드에 출석 · 지각 · 학습시간이 바로 반영', icon: LayoutDashboard },
+  { title: '학부모 알림', desc: '지각 · 결석이면 보호자에게 즉시 알림, 주간 리포트로 확인', icon: BellRing },
+];
+
+/** 등록된 학원 · 스터디카페 수 (지도에 보이는 공개 데이터) */
+function useAcademyCounts() {
+  const [counts, setCounts] = useState<{ academy: number; cafe: number } | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    const count = (kind: string) =>
+      supabase.from('academies').select('id', { count: 'exact', head: true }).eq('kind', kind);
+    Promise.all([count('ACADEMY'), count('STUDY_CAFE')]).then(([a, c]) => {
+      if (mounted && a.count != null && c.count != null) setCounts({ academy: a.count, cafe: c.count });
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  return counts;
+}
+
 export default function LandingPage() {
   const { user, profile } = useAuth();
+  const counts = useAcademyCounts();
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -109,13 +139,10 @@ export default function LandingPage() {
       </header>
 
       {/* 히어로 */}
-      <section className="mx-auto grid max-w-6xl gap-10 px-6 py-16 md:grid-cols-2 md:py-24">
+      <section className="mx-auto grid max-w-6xl gap-10 px-6 py-10 md:grid-cols-2 md:py-14">
         <div className="flex flex-col justify-center">
-          <p className="mb-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+          <p className="mb-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
             대림대학교 컴퓨터정보학부 캡스톤디자인 · 팀 육전
-          </p>
-          <p className="mb-3 text-sm font-semibold text-blue-600">
-            스터디카페 좌석 관제 + 학원 스마트 출결
           </p>
           <h1 className="text-4xl font-extrabold leading-tight tracking-tight md:text-5xl">
             자리도, 출결도
@@ -123,8 +150,8 @@ export default function LandingPage() {
             한 곳에서 관리하세요
           </h1>
           <p className="mt-4 text-lg text-gray-500">
-            이용자는 빈자리를 실시간으로 찾고, 사장님은 출결·강사·정산을
-            자동화합니다. 웹과 앱에서 동일하게 동작하는 SafeStep.
+            스터디카페 좌석 관제와 학원 스마트 출결을 하나로. 이용자는 빈자리를
+            실시간으로 찾고, 원장님은 출결 · 강사 · 학부모 소통을 한곳에서 관리합니다.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
@@ -140,6 +167,19 @@ export default function LandingPage() {
               학원·카페 도입 문의
             </Link>
           </div>
+          <dl className="mt-8 flex flex-wrap gap-x-8 gap-y-3 text-sm">
+            {[
+              { label: '등록 학원', value: counts ? `${counts.academy}곳` : '—' },
+              { label: '스터디카페', value: counts ? `${counts.cafe}곳` : '—' },
+              { label: '사용자 역할', value: '5가지' },
+              { label: '지원 환경', value: '웹 · 모바일 앱' },
+            ].map((s) => (
+              <div key={s.label}>
+                <dt className="text-gray-400">{s.label}</dt>
+                <dd className="text-xl font-bold text-gray-900">{s.value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
         {/* 실제 서비스 화면: 웹 원장 대시보드 + 모바일 앱 홈 */}
         <div className="relative flex items-center justify-center pb-8 md:pb-0">
@@ -159,7 +199,7 @@ export default function LandingPage() {
       </section>
 
       {/* 로그인 없이 체험 */}
-      <section className="border-t border-gray-100 py-12">
+      <section className="border-t border-gray-100 py-10">
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-2xl font-bold">로그인 없이 바로 체험하기</h2>
           <p className="mt-2 text-gray-500">
@@ -168,6 +208,47 @@ export default function LandingPage() {
           <div className="mt-6">
             <DemoButtons />
           </div>
+        </div>
+      </section>
+
+      {/* 동작 흐름 */}
+      <section className="border-t border-gray-100 bg-gradient-to-b from-blue-50/60 to-white py-14">
+        <div className="mx-auto max-w-6xl px-6">
+          <h2 className="text-2xl font-bold">이렇게 동작해요</h2>
+          <p className="mt-2 text-gray-500">학생이 입실하는 순간부터 학부모 알림까지 자동으로 이어집니다.</p>
+          <ol className="mt-8 grid gap-4 md:grid-cols-3">
+            {FLOW_STEPS.map((step, i) => (
+              <li key={step.title} className="relative rounded-2xl border border-blue-100 bg-white p-6">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white">
+                    <step.icon className="h-5 w-5" />
+                  </span>
+                  <span className="text-sm font-semibold text-blue-600">STEP {i + 1}</span>
+                </div>
+                <h3 className="mt-4 text-lg font-semibold">{step.title}</h3>
+                <p className="mt-1 text-sm text-gray-500">{step.desc}</p>
+                {i < FLOW_STEPS.length - 1 && (
+                  <ArrowRight className="absolute -right-4 top-1/2 z-10 hidden h-6 w-6 -translate-y-1/2 rounded-full bg-white text-blue-400 md:block" />
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* 시연 영상 */}
+      <section className="py-14">
+        <div className="mx-auto max-w-4xl px-6">
+          <h2 className="text-2xl font-bold">시연 영상</h2>
+          <p className="mt-2 text-gray-500">웹과 모바일 앱을 실제로 사용하는 모습을 3분 안에 보여드립니다.</p>
+          <video
+            className="mt-6 aspect-video w-full rounded-2xl border border-gray-200 bg-gray-100 shadow-lg"
+            src="/media/safestep-demo.mp4"
+            poster="/media/safestep-demo-poster.jpg"
+            controls
+            preload="none"
+            playsInline
+          />
         </div>
       </section>
 
