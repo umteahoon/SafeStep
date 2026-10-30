@@ -23,20 +23,24 @@ const headInject = `
     <meta name="apple-mobile-web-app-title" content="SafeStep" />
     <script>
       // 데스크톱 브라우저로 이 모바일 사이트에 들어오면 웹(데스크톱) 사이트로 보냅니다.
-      // 홈 화면에 설치된 PWA는 건드리지 않고, 사용자가 명시적으로 선택한 경우도 기억합니다.
+      // 홈 화면에 설치된 PWA는 건드리지 않고, ?site=mobile 로 고른 경우는 지금 탭에서만 기억합니다
+      // (예전처럼 영구 저장하면 그 컴퓨터는 다시는 웹 화면으로 자동 이동하지 않았음).
       (function () {
         var DESKTOP_SITE = 'https://safestep-kr.netlify.app';
         var PREF_KEY = 'safestep:site-pref';
+        try { localStorage.removeItem(PREF_KEY); } catch (e) {}
         var params = new URLSearchParams(window.location.search);
         if (params.get('site') === 'mobile') {
-          localStorage.setItem(PREF_KEY, 'mobile');
+          try { sessionStorage.setItem(PREF_KEY, 'mobile'); } catch (e) {}
           return;
         }
         var isStandalone =
           window.matchMedia('(display-mode: standalone)').matches ||
           window.navigator.standalone === true;
         if (isStandalone) return;
-        if (localStorage.getItem(PREF_KEY) === 'mobile') return;
+        var pref = null;
+        try { pref = sessionStorage.getItem(PREF_KEY); } catch (e) {}
+        if (pref === 'mobile') return;
         var isMobileUA = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         if (!isMobileUA) {
           window.location.replace(DESKTOP_SITE + '/?site=desktop');
