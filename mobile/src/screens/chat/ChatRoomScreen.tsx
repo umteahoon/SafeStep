@@ -492,7 +492,11 @@ function Inner() {
     navigation.goBack();
   };
 
-  const canPost = isStaff || (profile?.role === 'STUDENT' && room?.type === 'CLASS');
+  // 학부모는 반 채팅방에선 읽기 전용, 자기 자녀의 1:1 상담방(PARENT)에서는 글을 씀 (DB 정책 can_post_in_chat_room 과 같음)
+  const canPost =
+    isStaff ||
+    (profile?.role === 'STUDENT' && room?.type === 'CLASS') ||
+    (isParent && room?.type === 'PARENT');
 
   if (isLoading) return <Loading />;
 

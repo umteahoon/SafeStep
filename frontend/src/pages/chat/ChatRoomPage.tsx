@@ -386,7 +386,11 @@ export default function ChatRoomPage() {
     .filter((s) => s.name.includes(rosterFilter.trim()))
     .filter((s) => !onlyUnmarked || !todayStatus.has(s.id));
 
-  const canPost = isStaff || (profile?.role === 'STUDENT' && room?.type === 'CLASS');
+  // 학부모는 반 채팅방에선 읽기 전용, 자기 자녀의 1:1 상담방(PARENT)에서는 글을 씀 (DB 정책 can_post_in_chat_room 과 같음)
+  const canPost =
+    isStaff ||
+    (profile?.role === 'STUDENT' && room?.type === 'CLASS') ||
+    (isParent && room?.type === 'PARENT');
 
   if (isLoading) {
     return <p className="p-6 text-sm text-gray-400">불러오는 중...</p>;
@@ -396,7 +400,7 @@ export default function ChatRoomPage() {
     <div className="flex h-screen flex-col bg-gray-50">
       <PageHeader
         title={room?.name ?? '채팅'}
-        subtitle={room?.type === 'ANNOUNCEMENT' ? '전체 공지방' : '반 채팅방'}
+        subtitle={room?.type === 'ANNOUNCEMENT' ? '전체 공지방' : room?.type === 'PARENT' ? '학부모 1:1 상담' : '반 채팅방'}
         backTo="/chat"
         right={
           <div className="flex items-center gap-2">
